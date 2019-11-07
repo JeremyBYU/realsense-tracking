@@ -2,6 +2,7 @@
 # generated from docker_images_ros2/devel/create_ros_image.Dockerfile.em
 ARG FROM_IMAGE=ubuntu:bionic
 FROM $FROM_IMAGE
+ARG TARGETPLATFORM
 
 # setup timezone
 RUN echo 'Etc/UTC' > /etc/timezone && \
@@ -87,39 +88,39 @@ RUN sudo apt-get update && \
     apt-get install -q -y libglfw3-dev libgl1-mesa-dev libglu1-mesa-dev
 
 # Install cmake - This takes like 30 minutes on emulated hardware...
-# RUN wget https://cmake.org/files/v3.15/cmake-3.15.5.tar.gz && \
-#     tar -zxvf cmake-3.15.5.tar.gz;rm cmake-3.15.5.tar.gz && \
-#     cd cmake-3.15.5 && \
-#     ./configure --prefix=/opt/cmake-3.15.5 && \
-#     make -j12 && \
-#     make install
+RUN wget -O /opt/cmake-3.15.5.tar.gz https://cmake.org/files/v3.15/cmake-3.15.5.tar.gz && \
+    cd /opt && \
+    tar -xzf cmake-3.15.5.tar.gz && \
+    rm /opt/cmake-3.15.5.tar.gz && \
+    cd /opt/cmake-3.15.5 && \
+    ./configure --prefix=/opt/cmake-3.15.5 && \
+    make -j12 && \
+    make install
 
 # # To save time we are just copying the binary cmake executables that are already compiled
-COPY bin/cmake_bin/cmake-3.15.5.tar.gz /opt/cmake-3.15.5.tar.gz
-RUN tar -xzvf /opt/cmake-3.15.5.tar.gz -C /opt/ && rm -rf /opt/cmake-3.15.5.tar.gz
+# COPY bin/cmake_bin/cmake-3.15.5.tar.gz /opt/cmake-3.15.5.tar.gz
+# RUN tar -xzvf /opt/cmake-3.15.5.tar.gz -C /opt/ && rm -rf /opt/cmake-3.15.5.tar.gz
 ENV PATH "$PATH:/opt/cmake-3.15.5/bin"
 
 # Clone Realsense
 RUN git clone https://github.com/IntelRealSense/librealsense.git /opt/librealsense && cd /opt/librealsense && \
     git checkout b9eb8fd96abf2cabe83aca4a748a9e53adace4f9 && mkdir build && cd build && \
-    cmake ../ -DFORCE_LIBUVC=true -DCMAKE_BUILD_TYPE=release -DBUILD_EXAMPLES=true -DBUILD_GRAPHICAL_EXAMPLES=true -DBUILD_PYTHON_BINDINGS:bool=true && \
+    cmake ../ -DFORCE_LIBUVC=true -DCMAKE_BUILD_TYPE=release -DBUILD_EXAMPLES=true -DBUILD_GRAPHICAL_EXAMPLES=true -DBUILD_PYTHON_BINDINGS=true && \
     make -j 18 && \
     make install
 
-# Clone OpenCV
-RUN git clone -b '3.4.7' --single-branch https://github.com/opencv/opencv.git /opt/opencv; \
-    git clone -b '3.4.7' --single-branch https://github.com/opencv/opencv_contrib.git /opt/opencv_contrib; \
-    cd /opt/opencv; \
-    mkdir build; \
-    cd build; \
-    cmake -DCMAKE_BUILD_TYPE=Release -DOPENCV_EXTRA_MODULES_PATH=/opencv_contrib/modules -DOPENCV_EXTRA_EXE_LINKER_FLAGS=-latomic .. ; \
-    make -j 18 ; \
-    make install; \
-    cd /; \
-    rm -rf /opt/opencv_contrib;
 
-# RUN cd $ROS2_WS
-    
+# Clone OpenCV
+RUN git clone -b '3.4.7' --single-branch https://github.com/opencv/opencv.git /opt/opencv
+RUN git clone -b '3.4.7' --single-branch https://github.com/opencv/opencv_contrib.git /opt/opencv_contrib
+
+RUN sudo apt-get install --no-install-recommends -y build-essential libgtk2.0-dev pkg-config libavcodec-dev libavformat-dev libswscale-dev
+RUN sudo apt-get install --no-install-recommends -y libtbb2 libtbb-dev libjpeg-dev libpng-dev libtiff-dev libdc1394-22-dev
+RUN pip3 install numpy
+
+COPY opencv.sh /tmp/  
+RUN chmod u+x /tmp/opencv.sh
+RUN bash /tmp/opencv.sh ${TARGETPLATFORM} 
 
 # setup bashrc
 RUN cp /etc/skel/.bashrc ~/
