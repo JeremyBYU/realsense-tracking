@@ -116,7 +116,7 @@ RUN git clone -b '3.4.7' --single-branch https://github.com/opencv/opencv_contri
 
 RUN sudo apt-get install --no-install-recommends -y build-essential libgtk2.0-dev pkg-config libavcodec-dev libavformat-dev libswscale-dev
 RUN sudo apt-get install --no-install-recommends -y libtbb2 libtbb-dev libjpeg-dev libpng-dev libtiff-dev libdc1394-22-dev
-RUN pip3 install numpy
+RUN sudo apt-get install --no-install-recommends -y python3-numpy 
 
 COPY opencv.sh /tmp/  
 RUN chmod u+x /tmp/opencv.sh
