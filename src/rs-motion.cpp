@@ -11,6 +11,8 @@
 #include <cstring>
 
 #include <chrono>
+#include <thread>
+
 
 
 struct short3
@@ -407,6 +409,7 @@ bool check_imu_is_supported()
 int main(int argc, char * argv[]) try
 
 {
+    using namespace std::chrono_literals;
 
     // Before running the example, check that a device supporting IMU is connected
 
@@ -423,15 +426,15 @@ int main(int argc, char * argv[]) try
 
     // Initialize window for rendering
 
-    window app(1280, 720, "RealSense Motion Example");
+    // window app(1280, 720, "RealSense Motion Example");
 
-    // Construct an object to manage view state
+    // // Construct an object to manage view state
 
-    glfw_state app_state(0.0, 0.0);
+    // glfw_state app_state(0.0, 0.0);
 
-    // Register callbacks to allow manipulation of the view state
+    // // Register callbacks to allow manipulation of the view state
 
-    register_glfw_callbacks(app, app_state);
+    // register_glfw_callbacks(app, app_state);
 
 
 	size_t gryro_iter = 0;
@@ -489,7 +492,7 @@ int main(int argc, char * argv[]) try
     auto profile = pipe_motion.start(cfg_motion, [&](rs2::frame frame)
 
     {
-
+        std::cout << "Yo" << std::endl;
         // Cast the frame that arrived to motion frame
 
         auto motion = frame.as<rs2::motion_frame>();
@@ -569,7 +572,8 @@ int main(int argc, char * argv[]) try
 
     // Main loop
 
-    while (app)
+    // while (app)
+    while(true)
 
     {
 
@@ -624,11 +628,12 @@ int main(int argc, char * argv[]) try
 
         // Configure scene, draw floor, handle manipultation by the user etc.
 
-        render_scene(app_state);
+        // render_scene(app_state);
 
         // Draw the camera according to the computed theta
 
-        camera.render_camera(algo.get_theta());
+        // camera.render_camera(algo.get_theta());
+        std::this_thread::sleep_for(10ms);
 
     }
 

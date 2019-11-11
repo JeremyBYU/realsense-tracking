@@ -1,1 +1,3 @@
 Docker/**/cmake_bin/archive
+bin
+build

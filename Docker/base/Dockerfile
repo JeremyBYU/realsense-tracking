@@ -1,5 +1,5 @@
-# This is an auto generated Dockerfile for ros2:devel
-# generated from docker_images_ros2/devel/create_ros_image.Dockerfile.em
+# Docker file to setup base robotics environment
+# Ubunut base, python 3, cmake 3.15, realsense, open cv, 
 ARG FROM_IMAGE=ubuntu:bionic
 FROM $FROM_IMAGE
 ARG TARGETPLATFORM
@@ -12,78 +12,24 @@ RUN echo 'Etc/UTC' > /etc/timezone && \
 # install packages
 RUN apt-get update && apt-get install -q -y \
     bash-completion \
-    dirmngr \
-    gnupg2 \
     lsb-release \
     python3-pip \
+    python3-numpy  \
+    python3-dev \
+    git \
     && rm -rf /var/lib/apt/lists/*
-
-# setup keys
-RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C1CF6E31E6BADE8868B172B4F42ED6FBAB17C654
-
-# setup sources.list
-RUN echo "deb http://packages.ros.org/ros2/ubuntu `lsb_release -sc` main" > /etc/apt/sources.list.d/ros2-latest.list
 
 # setup environment
 ENV LANG C.UTF-8
 ENV LC_ALL C.UTF-8
-
-# install bootstrap tools
-RUN apt-get update && apt-get install --no-install-recommends -y \
-    git \
-    python3-rosdep \
-    python3-vcstool \
-    && rm -rf /var/lib/apt/lists/*
-
-# install python packages
-RUN pip3 install -U \
-    argcomplete \
-    colcon-common-extensions \
-    colcon-mixin \
-    flake8 \
-    flake8-blind-except \
-    flake8-builtins \
-    flake8-class-newline \
-    flake8-comprehensions \
-    flake8-deprecated \
-    flake8-docstrings \
-    flake8-import-order \
-    flake8-quotes \
-    pytest-repeat \
-    pytest-rerunfailures
-
-# FIXME This is a workaround for pytest not found causing builds to fail
-# Following RUN statements tests for regression of https://github.com/ros2/ros2/issues/722
-RUN pip3 freeze | grep pytest \
-    && python3 -m pytest --version
-
-# bootstrap rosdep
-RUN rosdep init \
-    && rosdep update
-
-# setup colcon mixin and metadata
-RUN colcon mixin add default \
-      https://raw.githubusercontent.com/colcon/colcon-mixin-repository/master/index.yaml && \
-    colcon mixin update && \
-    colcon metadata add default \
-      https://raw.githubusercontent.com/colcon/colcon-metadata-repository/master/index.yaml && \
-    colcon metadata update
-
+    
 # clone source
-ENV ROS2_WS /opt/ros2_ws
-RUN mkdir -p $ROS2_WS/src
-WORKDIR $ROS2_WS
-
-# build source
-RUN colcon \
-    build \
-    --cmake-args \
-      -DSECURITY=ON --no-warn-unused-cli \
-    --symlink-install
-
+ENV MYWS /opt/workspace
+RUN mkdir -p $MYWS/src
+WORKDIR $MYWS
 
 # Prepare realsense
-RUN sudo apt-get update && \
+RUN apt-get update && \
     apt-get install -q -y wget git libssl-dev libusb-1.0-0-dev pkg-config libgtk-3-dev && \
     apt-get install -q -y libglfw3-dev libgl1-mesa-dev libglu1-mesa-dev
 
@@ -109,54 +55,26 @@ RUN git clone https://github.com/IntelRealSense/librealsense.git /opt/librealsen
     make -j 18 && \
     make install
 
-
 # Clone OpenCV
 RUN git clone -b '3.4.7' --single-branch https://github.com/opencv/opencv.git /opt/opencv
 RUN git clone -b '3.4.7' --single-branch https://github.com/opencv/opencv_contrib.git /opt/opencv_contrib
 
-RUN sudo apt-get install --no-install-recommends -y build-essential libgtk2.0-dev pkg-config libavcodec-dev libavformat-dev libswscale-dev
-RUN sudo apt-get install --no-install-recommends -y libtbb2 libtbb-dev libjpeg-dev libpng-dev libtiff-dev libdc1394-22-dev
-RUN sudo apt-get install --no-install-recommends -y python3-numpy 
+RUN apt-get install --no-install-recommends -y build-essential libgtk2.0-dev pkg-config libavcodec-dev libavformat-dev libswscale-dev
+RUN apt-get install --no-install-recommends -y libtbb2 libtbb-dev libjpeg-dev libpng-dev libtiff-dev libdc1394-22-dev
+RUN apt-get install --no-install-recommends -y libatlas-base-dev libcanberra-gtk*
 
 COPY opencv.sh /tmp/  
 RUN chmod u+x /tmp/opencv.sh
-RUN bash /tmp/opencv.sh ${TARGETPLATFORM} 
+RUN bash /tmp/opencv.sh ${TARGETPLATFORM}
 
-# install packages
-RUN apt-get update && apt-get install -q -y \
-    libasio-dev \
-    libtinyxml2-dev \
-    wget \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get install --no-install-recommends -y libglew-dev liblz4-dev
 
-ARG ROS_DISTRO=dashing
-ENV ROS_DISTRO=$ROS_DISTRO
-ENV ROS_VERSION=2 \
-    ROS_PYTHON_VERSION=3
-
-
-RUN wget https://raw.githubusercontent.com/ros2/ros2/$ROS_DISTRO-release/ros2.repos \
-    && vcs import src < ros2.repos
-
-# install dependencies
-RUN apt-get update && rosdep install -y \
-    --from-paths src \
-    --ignore-src \
-    --skip-keys "console_bridge fastcdr fastrtps libopensplice67 libopensplice69 rti-connext-dds-5.3.1 urdfdom_headers" \
-    && rm -rf /var/lib/apt/lists/*
-
-# build source
-RUN colcon \
-    build \
-    --symlink-install \
-    --mixin build-testing-on release \
-    --cmake-args --no-warn-unused-cli
-
-# setup bashrc
-RUN cp /etc/skel/.bashrc ~/
+COPY xivo.sh /tmp/  
+RUN chmod u+x /tmp/xivo.sh
+RUN bash /tmp/xivo.sh ${TARGETPLATFORM} 
 
 # setup entrypoint
-COPY ./ros_entrypoint.sh /
+COPY ./base_entrypoint.sh /
 
-ENTRYPOINT ["/ros_entrypoint.sh"]
+ENTRYPOINT ["/base_entrypoint.sh"]
 CMD ["bash"]
