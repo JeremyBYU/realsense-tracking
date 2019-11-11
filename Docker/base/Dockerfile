@@ -94,18 +94,18 @@ RUN wget -O /opt/cmake-3.15.5.tar.gz https://cmake.org/files/v3.15/cmake-3.15.5.
     rm /opt/cmake-3.15.5.tar.gz && \
     cd /opt/cmake-3.15.5 && \
     ./configure --prefix=/opt/cmake-3.15.5 && \
-    make -j12 && \
+    make -j18 && \
     make install
 
 # # To save time we are just copying the binary cmake executables that are already compiled
 # COPY bin/cmake_bin/cmake-3.15.5.tar.gz /opt/cmake-3.15.5.tar.gz
 # RUN tar -xzvf /opt/cmake-3.15.5.tar.gz -C /opt/ && rm -rf /opt/cmake-3.15.5.tar.gz
-ENV PATH "$PATH:/opt/cmake-3.15.5/bin"
+ENV PATH "/opt/cmake-3.15.5/bin:$PATH"
 
 # Clone Realsense
 RUN git clone https://github.com/IntelRealSense/librealsense.git /opt/librealsense && cd /opt/librealsense && \
-    git checkout b9eb8fd96abf2cabe83aca4a748a9e53adace4f9 && mkdir build && cd build && \
-    cmake ../ -DFORCE_LIBUVC=true -DCMAKE_BUILD_TYPE=release -DBUILD_EXAMPLES=true -DBUILD_GRAPHICAL_EXAMPLES=true -DBUILD_PYTHON_BINDINGS=true && \
+    mkdir build && cd build && \
+    cmake ../ -DFORCE_RSUSB_BACKEND=true -DCMAKE_BUILD_TYPE=release -DBUILD_EXAMPLES=true -DBUILD_GRAPHICAL_EXAMPLES=true -DBUILD_PYTHON_BINDINGS=true && \
     make -j 18 && \
     make install
 
@@ -121,6 +121,36 @@ RUN sudo apt-get install --no-install-recommends -y python3-numpy
 COPY opencv.sh /tmp/  
 RUN chmod u+x /tmp/opencv.sh
 RUN bash /tmp/opencv.sh ${TARGETPLATFORM} 
+
+# install packages
+RUN apt-get update && apt-get install -q -y \
+    libasio-dev \
+    libtinyxml2-dev \
+    wget \
+    && rm -rf /var/lib/apt/lists/*
+
+ARG ROS_DISTRO=dashing
+ENV ROS_DISTRO=$ROS_DISTRO
+ENV ROS_VERSION=2 \
+    ROS_PYTHON_VERSION=3
+
+
+RUN wget https://raw.githubusercontent.com/ros2/ros2/$ROS_DISTRO-release/ros2.repos \
+    && vcs import src < ros2.repos
+
+# install dependencies
+RUN apt-get update && rosdep install -y \
+    --from-paths src \
+    --ignore-src \
+    --skip-keys "console_bridge fastcdr fastrtps libopensplice67 libopensplice69 rti-connext-dds-5.3.1 urdfdom_headers" \
+    && rm -rf /var/lib/apt/lists/*
+
+# build source
+RUN colcon \
+    build \
+    --symlink-install \
+    --mixin build-testing-on release \
+    --cmake-args --no-warn-unused-cli
 
 # setup bashrc
 RUN cp /etc/skel/.bashrc ~/
