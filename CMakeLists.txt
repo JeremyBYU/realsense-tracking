@@ -31,6 +31,7 @@ include_directories(
     /usr/local/include
     /usr/local/include/opencv2
     ${PROJECT_SOURCE_DIR}/../librealsense/common/res
+    ${PROJECT_SOURCE_DIR}/../librealsense/src
 )
 
 
@@ -41,6 +42,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 
 # Add the application sources to the target
 add_executable(rs-motion src/rs-motion.cpp)
+add_executable(rs-motion-syncer src/rs-motion-syncer.cpp)
 
 # Link librealsense2 to the target
 target_link_libraries(rs-motion ${realsense2_LIBRARY} ${DEPENDENCIES})
+target_link_libraries(rs-motion-syncer ${realsense2_LIBRARY} ${DEPENDENCIES})
