@@ -1,28 +1,34 @@
 // License: Apache 2.0. See LICENSE file in root directory.
-
 // Copyright(c) 2019 Intel Corporation. All Rights Reserved.
+// After many many times of trial and error I have finally arrived on this technique to get multiple sensor streams from
+// an intel realsense which have DIFFERENT FRAME RATES
+
+// This technique works with RSUSB driver (LIBUVC) but should work with kernel drivers as well
+// This example is meant for D435i, to get high frequency motion data at the same time of depth,rgb images
+// Two examples are shown, one that read a bags file and another that does live streaming from the sensor. Activate bag reading with cmd line flag --bag=<file>
+// The main technique that makes this possible is to NOT USE rs::pipeline, but to directly acess each sensor and 
+// configure the stream manually (as well as associated callbacks).
 
 #include <cstring>
 #include <chrono>
 #include <thread>
 #include <mutex>
+#include <map>
+#include <string>
+#include <sstream>
+#include <iostream>
+#include <iomanip>
 
 #include <librealsense2/rs.hpp>
 #include <gflags/gflags.h>
 
-
-
-#include "example.hpp" // Include short list of convenience functions for rendering
-
 using namespace std::chrono_literals;
 
 // Command line flags
-
 DEFINE_string(bag, "",
 				"Path to bag file");
 
 bool check_imu_is_supported()
-
 {
 
 	bool found_gyro = false;
@@ -61,7 +67,6 @@ int bag_counter(std::string file_name)
 	double ts_accel = 0.0;
 	double ts_depth = 0.0;
 	double ts_color = 0.0;
-	double depth_gryo_latency = 0.0;
 	rs2_timestamp_domain gyro_domain;
 	rs2_timestamp_domain accel_domain;
 	rs2_timestamp_domain depth_domain;
@@ -78,7 +83,7 @@ int bag_counter(std::string file_name)
     device = profile.get_device();
     auto playback = device.as<rs2::playback>();
     playback.set_real_time(false);
-	// start pipeline and get device
+	// DONT START THE PIPELINE, you will always get dropped frames from high frequency data if paired with low frequency images
 	// pipeline_profile = pipe.start( config );
 
 	auto sensors = playback.query_sensors();
@@ -161,16 +166,13 @@ void print_profiles(std::vector<rs2::stream_profile> streams)
 	}
 }
 
+// This example demonstrates live streaming motion data as well as video data
 int live_counter()
 {
-	using namespace std::chrono_literals;
-
 	// Before running the example, check that a device supporting IMU is connected
 	if (!check_imu_is_supported())
 	{
-
 		std::cerr << "Device supporting IMU (D435i) not found";
-
 		return EXIT_FAILURE;
 	}
 
@@ -182,7 +184,6 @@ int live_counter()
 	double ts_accel = 0.0;
 	double ts_depth = 0.0;
 	double ts_color = 0.0;
-	double depth_gryo_latency = 0.0;
 	rs2_timestamp_domain gyro_domain;
 	rs2_timestamp_domain accel_domain;
 	rs2_timestamp_domain depth_domain;
@@ -195,16 +196,22 @@ int live_counter()
 	// Add streams of gyro and accelerometer to configuration
 	config.enable_stream(RS2_STREAM_ACCEL, RS2_FORMAT_MOTION_XYZ32F);
 	config.enable_stream(RS2_STREAM_GYRO, RS2_FORMAT_MOTION_XYZ32F);
-	// Declare object that handles camera pose calculations
+	// Add dpeth and color streams
 	config.enable_stream(RS2_STREAM_COLOR, 640, 480, RS2_FORMAT_BGR8, 30);
 	config.enable_stream(RS2_STREAM_DEPTH, 640, 480, RS2_FORMAT_Z16, 30);
 
-	auto profile = config.resolve(pipe);
+	auto profile = config.resolve(pipe); // allows us to get device
     auto device = profile.get_device();
 
 	auto streams =  profile.get_streams(); // 0=Depth, 1=RGB, 2=Gryo, 3=Accel
 	std::cout << "Profiles that will be activated: "<< std::endl; 
 	print_profiles(streams);
+
+	// Create a mapping between sensor name and the desired profiles
+	std::map<std::string, std::vector<rs2::stream_profile>> sensor_to_streams; 
+	sensor_to_streams.insert(std::pair<std::string, std::vector<rs2::stream_profile>>(std::string("Stereo Module"), {streams[0]}));
+	sensor_to_streams.insert(std::pair<std::string, std::vector<rs2::stream_profile>>(std::string("RGB Camera"), {streams[1]}));
+	sensor_to_streams.insert(std::pair<std::string, std::vector<rs2::stream_profile>>(std::string("Motion Module"), {streams[2], streams[3]}));
 
 	auto sensors = device.query_sensors();
 	for (auto &sensor : sensors)
@@ -212,29 +219,22 @@ int live_counter()
 		auto sensor_name = std::string(sensor.get_info(RS2_CAMERA_INFO_NAME));
 		std::cout << "Sensor Name: " << sensor_name << std::endl;
 		bool make_callback = false;
-		if (sensor_name == std::string("Stereo Module")) // This will be first
+		try
 		{
+			// get sensor streams that are mapped to this sensor name
+			auto sensor_streams = sensor_to_streams.at(sensor_name);
 			std::cout << "Opening stream for " << sensor_name << std::endl;
-			sensor.open(streams[0]);
-			streams.erase(streams.begin());
+			sensor.open(sensor_streams);
 			make_callback = true;
+
 		}
-		if (sensor_name == std::string("RGB Camera")) // This will be second
+		catch(const std::exception& e)
 		{
-			std::cout << "Opening stream for " << sensor_name << std::endl;
-			sensor.open(streams[0]);
-			streams.erase(streams.begin());
-			make_callback = true;
-		}
-		if (sensor_name == std::string("Motion Module")) // This will be last
-		{
-			std::cout << "Opening stream for " << sensor_name << std::endl;
-			sensor.open(streams);
-			make_callback = true;
+			std::cout << "Sensor " << sensor_name << " has not configured streams, skipping..." << std::endl; 
 		}
 		if (make_callback)
 		{
-			std::cout << "Creating callback for " << sensor.get_info(RS2_CAMERA_INFO_NAME) << std::endl;
+			std::cout << "Creating callback for " << sensor_name << std::endl;
 			sensor.start([&](rs2::frame frame){
 				if (frame.get_profile().stream_type() == RS2_STREAM_COLOR)
 				{
@@ -267,7 +267,6 @@ int live_counter()
 
 	while (true)
 	{
-		
 		double my_clock = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
 		std::cout << std::setprecision(0) << std::fixed << "FPS --- "
 			<< "Gryo: " << gryro_iter << "; Accel: " << accel_iter
