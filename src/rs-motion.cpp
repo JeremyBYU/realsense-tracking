@@ -2,16 +2,22 @@
 
 // Copyright(c) 2019 Intel Corporation. All Rights Reserved.
 
-#include <librealsense2/rs.hpp>
-
+#include <cstring>
+#include <chrono>
+#include <thread>
 #include <mutex>
+
+#include <librealsense2/rs.hpp>
+#include <gflags/gflags.h>
+
+
 
 #include "example.hpp" // Include short list of convenience functions for rendering
 
-#include <cstring>
+// Command line flags
 
-#include <chrono>
-#include <thread>
+DEFINE_string(bag, "",
+				"Path to bag file");
 
 struct short3
 {
@@ -125,15 +131,113 @@ bool check_imu_is_supported()
 	return found_gyro && found_accel;
 }
 
-int main(int argc, char* argv[]) try
 
+int bag_counter(std::string file_name)
+{
+
+	size_t gryro_iter = 0;
+	size_t accel_iter = 0;
+	size_t depth_iter = 0;
+	size_t color_iter = 0;
+	double ts_gyro = 0.0;
+	double ts_accel = 0.0;
+	double ts_depth = 0.0;
+	double ts_color = 0.0;
+	double depth_gryo_latency = 0.0;
+	rs2_timestamp_domain gryo_domain;
+	rs2_timestamp_domain accel_domain;
+	rs2_timestamp_domain depth_domain;
+	rs2_timestamp_domain color_domain;
+
+	rs2::config config;
+	rs2::device device;
+	rs2::pipeline pipe;
+
+	// enable file playback with playback repeat disabled
+	config.enable_device_from_file(file_name, false);
+
+	// start pipeline and get device
+	// pipeline_profile = pipe.start( config );
+
+
+	rs2::frameset frames;
+
+	size_t frame_index = 0;
+
+	bool stop = false;
+	bool playing = false;
+
+	auto pipeline_profile = pipe.start(config, [&](rs2::frame frame) {
+		playing = true;
+		try
+		{
+			if (rs2::motion_frame motion = frame.as<rs2::motion_frame>())
+			{
+				if (motion.get_profile().stream_type() == RS2_STREAM_ACCEL)
+				{
+					std::cout<< std::setprecision(0) << std::fixed << "Got Accel. TS: " << motion.get_timestamp() << std::endl;
+				}
+				else if (motion.get_profile().stream_type() == RS2_STREAM_GYRO)
+				{
+					std::cout<< std::setprecision(0) << std::fixed << "Got Gyro. TS: " << motion.get_timestamp() << std::endl;
+				}
+				
+			}
+			else if (frame.get_profile().stream_type() == RS2_STREAM_COLOR)
+			{
+				std::cout<< std::setprecision(0) << std::fixed << "Got Color. TS: " << frame.get_timestamp() << std::endl;
+			}
+			else if (frame.get_profile().stream_type() == RS2_STREAM_DEPTH)
+			{
+				std::cout<< std::setprecision(0) << std::fixed << "Got Depth. TS: " << frame.get_timestamp() << std::endl;
+			}
+			else if (frame.get_profile().stream_type() == RS2_STREAM_INFRARED)
+			{
+				std::cout<< std::setprecision(0) << std::fixed << "Got Infrared. TS: " << frame.get_timestamp() << std::endl;
+			}
+
+			// auto fs = frames.get_color_frame();
+			// Add some frames processing here...
+
+			std::cout << "successfully retrieved frame #" << ++frame_index << " (" << ")" <<std::endl;
+			/* code */
+		}
+		catch(const std::exception& e)
+		{
+			std::cerr << e.what() << '\n';
+		}
+		});
+
+	// get playback device and disable realtime mode
+	// device = pipeline_profile.get_device();
+	// auto playback = device.as<rs2::playback>();
+	// playback.set_real_time( false );
+
+	while (!stop)
+	{
+		using namespace std::chrono_literals;
+		// stop = playing && ( playback.current_status() == RS2_PLAYBACK_STATUS_STOPPED );
+		// std::cout <<"Stop: "<<  stop <<std::endl;
+		std::this_thread::sleep_for( 10ms );
+	}
+
+
+
+	std::cout << std::endl << "successfully ended file playback" << std::endl;
+
+	pipe.stop();
+
+	return EXIT_SUCCESS;
+}
+
+
+int live_counter()
 {
 	using namespace std::chrono_literals;
 
 	// Before running the example, check that a device supporting IMU is connected
 
 	if (!check_imu_is_supported())
-
 	{
 
 		std::cerr << "Device supporting IMU (D435i) not found";
@@ -154,6 +258,9 @@ int main(int argc, char* argv[]) try
 	rs2_timestamp_domain accel_domain;
 	rs2_timestamp_domain depth_domain;
 	rs2_timestamp_domain color_domain;
+
+	rs2::log_to_console(rs2_log_severity::RS2_LOG_SEVERITY_WARN);
+	
 	// Create pipeline for gyro and accelerometer. Run in seperate thread.
 	// Declare RealSense pipeline, encapsulating the actual device and sensors
 	rs2::pipeline pipe_motion;
@@ -203,7 +310,17 @@ int main(int argc, char* argv[]) try
 	cfg_camera.enable_stream(RS2_STREAM_COLOR, 640, 480, RS2_FORMAT_BGR8, 30);
 	cfg_camera.enable_stream(RS2_STREAM_DEPTH, 640, 480, RS2_FORMAT_Z16, 30);
 	rs2::pipeline_profile profile_camera;
+
+
 	profile_camera = pipe_camera.start(cfg_camera);
+
+	// const std::vector<rs2::sensor> &vector = profile_camera.get_device().query_sensors();
+	// for (const auto & i : vector) {
+	// 	if (i.is<rs2::roi_sensor>()){
+	// 		i.set_option(RS2_OPTION_GLOBAL_TIME_ENABLED, 0);
+	// 	}
+	// }
+
 	while (true)
 	{
 		rs2::frameset data = pipe_camera.wait_for_frames();
@@ -257,6 +374,22 @@ int main(int argc, char* argv[]) try
 	return EXIT_SUCCESS;
 }
 
+
+
+int main(int argc, char* argv[]) try
+{
+	gflags::ParseCommandLineFlags(&argc, &argv, true);
+	if (FLAGS_bag == "")
+	{
+		live_counter();
+	}
+	else
+	{
+		bag_counter(FLAGS_bag);
+	}
+	
+	
+}
 catch (const rs2::error & e)
 
 {

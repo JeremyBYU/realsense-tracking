@@ -1,0 +1,3 @@
+[submodule "thirdparty/xivo"]
+	path = thirdparty/xivo
+	url = https://github.com/JeremyBYU/xivo.git

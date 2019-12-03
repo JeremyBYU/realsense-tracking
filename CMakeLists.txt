@@ -11,18 +11,21 @@ add_definitions(-DNDEBUG)
 # find_package(OpenCV REQUIRED)
 find_package(realsense2 REQUIRED)
 find_package(OpenGL)
+# add_subdirectory(thirdparty/xivo/thirdparty/gflags)
+find_package(gflags REQUIRED)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib)
 
-set(DEPENDENCIES glfw realsense2-gl ${OPENGL_LIBRARIES} ${DEPENDENCIES})
+set(DEPENDENCIES glfw realsense2-gl ${OPENGL_LIBRARIES} ${DEPENDENCIES} ${gflags_LIBRARIES} ) 
 
 link_directories(
     /usr/lib
     /usr/lib/x86_64-linux-gnu
     /usr/local/lib
     ${DEPENDENCIES}
+    ${PROJECT_SOURCE_DIR}/thirdparty/xivo/thirdparty/gflags/lib
 )
 
 include_directories(
@@ -32,6 +35,7 @@ include_directories(
     /usr/local/include/opencv2
     ${PROJECT_SOURCE_DIR}/../librealsense/common/res
     ${PROJECT_SOURCE_DIR}/../librealsense/src
+    ${PROJECT_SOURCE_DIR}/thirdparty/xivo/thirdparty/gflags/include
 )
 
 
@@ -42,8 +46,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 
 # Add the application sources to the target
 add_executable(rs-motion src/rs-motion.cpp)
+add_executable(rs-motion-2 src/rs-motion-2.cpp)
 add_executable(rs-motion-syncer src/rs-motion-syncer.cpp)
 
 # Link librealsense2 to the target
 target_link_libraries(rs-motion ${realsense2_LIBRARY} ${DEPENDENCIES})
+target_link_libraries(rs-motion-2 ${realsense2_LIBRARY} ${DEPENDENCIES})
 target_link_libraries(rs-motion-syncer ${realsense2_LIBRARY} ${DEPENDENCIES})
