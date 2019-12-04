@@ -50,7 +50,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 # Add the application sources to the target
 add_executable(rs-motion src/rs-motion.cpp)
 add_executable(rs-motion-2 src/rs-motion-2.cpp)
-add_executable(rs-tracker src/rs-tracker.cpp)
+add_executable(rs-tracker src/rs-tracker.cpp src/utility.cpp)
 
 # Link librealsense2 to the target
 target_link_libraries(rs-motion ${realsense2_LIBRARY} ${DEPENDENCIES})

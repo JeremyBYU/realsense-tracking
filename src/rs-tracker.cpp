@@ -17,10 +17,13 @@
 #include <sstream>
 #include <list>
 #include <iostream>
+#include <algorithm>
 #include <iomanip>
 
 #include <librealsense2/rs.hpp>
 #include <gflags/gflags.h>
+
+#include "utility.hpp"
 
 using namespace std::chrono_literals;
 
@@ -32,139 +35,12 @@ DEFINE_string(bag, "",
 namespace rstracker
 {
 
-class float3
-{
-    public:
-        float x, y, z;
-
-    public:
-        float3& operator*=(const float& factor)
-        {
-            x*=factor;
-            y*=factor;
-            z*=factor;
-            return (*this);
-        }
-        float3 operator*(const float& factor)
-        {
-            float3 data(*this);
-            data.x*=factor;
-            data.y*=factor;
-            data.z*=factor;
-            return data;
-        }
-        float3& operator+=(const float3& other)
-        {
-            x+=other.x;
-            y+=other.y;
-            z+=other.z;
-            return (*this);
-        }
-        float3 operator+(const float3& other)
-        {
-            float3 data(*this);
-            data.x+=other.x;
-            data.y+=other.y;
-            data.z+=other.z;
-            return data;
-        }
-};
-
-
-class IMUMessage
-{
-    public:
-        IMUMessage():
-            gyro(),
-            accel(),
-            ts()
-            {};
-        IMUMessage(const float3 gyro, const float3 accel, double time):
-            gyro(gyro),
-            accel(accel),
-            ts(time)
-            {};
-        
-    public:
-        float3 gyro;
-        float3 accel;
-        double ts;
-};
-
-class IMUData
-{
-    public:
-        IMUData(const IMUData& other):
-            IMUData(other.data, other.ts)
-            {};
-        IMUData(const float3 reading, double time):
-            data(reading),
-            ts(time)
-            {};
-        IMUData operator*(const double factor);
-        IMUData operator+(const IMUData& other);
-    public:
-        float3 data;
-        double ts;
-};
-enum sensor_name {mGYRO, mACCEL};
-
-class IMUHistory
-{
-
-    private:
-        size_t m_max_size;
-        std::map<sensor_name, std::list<IMUData> > m_map;
-
-    public:
-        IMUHistory(size_t size);
-        void add_data(sensor_name module, IMUData data);
-        bool is_data_full(sensor_name);
-        // bool is_data(sensor_name);
-        const std::list<IMUData>& get_data(sensor_name module);
-        IMUData recent_data(sensor_name module);
-        IMUData old_data(sensor_name module);
-};
-
-IMUHistory::IMUHistory(size_t size)
-{
-    m_max_size = size;
-}
-
-void IMUHistory::add_data(sensor_name module, IMUData data)
-{
-    m_map[module].push_front(data);
-    if (m_map[module].size() > m_max_size)
-        m_map[module].pop_back();
-}
-bool IMUHistory::is_data_full(sensor_name module)
-{
-    return m_map[module].size() == m_max_size;
-}
-// bool IMUHistory::is_data(sensor_name module)
-// {
-//     return m_map[module].size() > 0;
-// }
-const std::list<IMUData>& IMUHistory::get_data(sensor_name module)
-{
-    return m_map[module];
-}
-IMUData IMUHistory::recent_data(sensor_name module)
-{
-    return m_map[module].front();
-}
-IMUData IMUHistory::old_data(sensor_name module)
-{
-    return m_map[module].back();
-}
-
-
 // This global variable holds history for collected IMU data
 // TODO - Add mutex locking?
 static IMUHistory imu_hist(2);
 
 // The slow_sensor has the lower fps/frequency
-// This funciton should be immediatly called AFTER a measurement update is given for the slow_sensor
+// This function should be immediatly called AFTER a measurement update is given for the slow_sensor
 // This measurement update is stored inside global variable imu_hist
 double IMUData_LinearInterpolation(const sensor_name slow_sensor, IMUMessage& imu_msg)
 {
@@ -214,77 +90,7 @@ double IMUData_LinearInterpolation(const sensor_name slow_sensor, IMUMessage& im
 }
 
 
-bool check_imu_is_supported()
-{
 
-	bool found_gyro = false;
-	bool found_accel = false;
-	rs2::context ctx;
-	for (auto dev : ctx.query_devices())
-	{
-		// The same device should support gyro and accel
-		found_gyro = false;
-		found_accel = false;
-		for (auto sensor : dev.query_sensors())
-		{
-			for (auto profile : sensor.get_stream_profiles())
-			{
-				if (profile.stream_type() == RS2_STREAM_GYRO)
-					found_gyro = true;
-				if (profile.stream_type() == RS2_STREAM_ACCEL)
-					found_accel = true;
-			}
-		}
-		if (found_gyro && found_accel)
-			break;
-	}
-	return found_gyro && found_accel;
-}
-
-
-std::string float3_to_string(float3 v)
-{
-    std::stringstream ss;
-    ss << "(" << v.x << ", " << v.y << ", " << v.z << ")";
-    return ss.str();
-}
-
-void print_message(IMUMessage msg, IMUHistory imu_hist)
-{
-    // values for controlling format
-    const int time_width = 15 ;
-    const int sensor_width = 40;
-    const int num_flds = 4;
-    const std::string sep = " |" ;
-    const int total_width = time_width*2 + sensor_width*2 + sep.size() * num_flds ;
-    const std::string line = sep + std::string( total_width-1, '-' ) + '|' ;
-
-    std::cout << line << '\n' << sep
-              << std::setw(time_width) <<"timestamp" << sep
-              << std::setw(sensor_width) << "accel" << sep 
-              << std::setw(time_width) << "timestamp" << sep
-              << std::setw(sensor_width) << "gryo" << sep << '\n' << line << '\n' ;
-
-    std::cout << sep << std::setw(time_width) << std::setprecision(0) << std::fixed << imu_hist.old_data(mACCEL).ts << sep
-              << std::setw(sensor_width) << float3_to_string(imu_hist.old_data(mACCEL).data) << sep 
-              << std::setw(time_width) << std::setprecision(0) << std::fixed << imu_hist.old_data(mGYRO).ts << sep
-              << std::setw(sensor_width) << float3_to_string(imu_hist.old_data(mGYRO).data) << sep <<  '\n';
-
-    std::cout << sep << std::setw(time_width) << std::setprecision(0) << std::fixed << imu_hist.recent_data(mACCEL).ts << sep
-              << std::setw(sensor_width) << float3_to_string(imu_hist.recent_data(mACCEL).data) << sep 
-              << std::setw(time_width) << std::setprecision(0) << std::fixed << imu_hist.recent_data(mGYRO).ts << sep
-              << std::setw(sensor_width) << float3_to_string(imu_hist.recent_data(mGYRO).data) << sep << "\n";
-    // Interplated
-    std::cout << sep << std::setw(time_width) << std::setprecision(0) << std::fixed << msg.ts << sep
-              << std::setw(sensor_width) << float3_to_string(msg.accel) << sep 
-              << std::setw(time_width) << std::setprecision(0) << std::fixed << msg.ts  << sep
-              << std::setw(sensor_width) << float3_to_string(msg.gyro) << sep << "\n";
-    
-
-    std::cout << line << '\n' ;
-
-    std::cout << std::endl;
-}
 
 
 int read_bag(std::string file_name)
@@ -301,10 +107,21 @@ int read_bag(std::string file_name)
     auto playback = device.as<rs2::playback>();
     playback.set_real_time(false);
 
-    bool sync_with_accel = true;
-	// DONT START THE PIPELINE, you will always get dropped frames from high frequency data if paired with low frequency images
-	// pipeline_profile = pipe.start( config );
 
+	auto streams = profile.get_streams();
+	auto accel_stream = std::find_if(streams.begin(), streams.end(),
+									[](const rs2::stream_profile& x) { return x.stream_type() == RS2_STREAM_ACCEL;});
+	auto gryo_stream = std::find_if(streams.begin(), streams.end(),
+									[](const rs2::stream_profile& x) { return x.stream_type() == RS2_STREAM_GYRO;});
+	if (accel_stream == streams.end() || gryo_stream == streams.end())
+	{
+		// This bag file doesn't have any gryo and accelerometer data! Exit early.
+		std::cout << "This bag file does not have any gyro or accel data. Exiting";
+		return EXIT_FAILURE;
+	}
+
+	// Which sensor has the lower frame rate.
+	bool sync_with_accel = accel_stream->fps() <= gryo_stream->fps();
 	auto sensors = playback.query_sensors();
 
 	for (auto &sensor : sensors)
@@ -368,34 +185,6 @@ int read_bag(std::string file_name)
     {
         std::this_thread::sleep_for( 1000ms );
     }
-
-	// while (true)
-	// {
-		
-	// 	double my_clock = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
-	// 	std::cout << std::setprecision(0) << std::fixed << "FPS --- "
-	// 		<< "Gryo: " << gryro_iter << "; Accel: " << accel_iter
-
-	// 		<< "; Depth: " << depth_iter << "; RGB: " << color_iter << std::endl;
-
-	// 	std::cout << std::setprecision(0) << std::fixed << "Timing --- Now: " << my_clock << "; Gryo: " << ts_gyro << "; Accel: " << ts_accel
-	// 		<< "; Depth: " << ts_depth << "; RGB: " << ts_color << std::endl;
-
-	// 	std::cout << std::setprecision(0) << std::fixed << "Time Domain --- Now: " << my_clock << "; Gryo: " << gyro_domain << "; Accel: " << accel_domain
-	// 			<< "; Depth: " << depth_domain << "; RGB: " << color_domain << std::endl;
-
-	// 	std::cout << std::setprecision(0) << std::fixed << "Latency --- GyroToColor: " << ts_gyro - ts_color << std::endl;
-	// 	std::cout <<std::endl;
-	// 	if (gryro_iter == 0)
-	// 		break;
-	// 	gryro_iter = 0;
-	// 	accel_iter = 0;
-	// 	depth_iter = 0;
-	// 	color_iter = 0;
-
-	// 	std::this_thread::sleep_for( 1000ms );
-	// }
-
 	return EXIT_SUCCESS;
 }
 
