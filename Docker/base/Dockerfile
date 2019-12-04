@@ -69,6 +69,13 @@ RUN bash /tmp/opencv.sh ${TARGETPLATFORM}
 
 RUN apt-get install --no-install-recommends -y libglew-dev liblz4-dev
 
+# Prepare for ECAL
+RUN apt-get install --no-install-recommends -y git doxygen graphviz build-essential zlib1g-dev libhdf5-dev libprotobuf-dev libprotoc-dev protobuf-compiler
+RUN cd /opt && \
+    git clone --recursive git://github.com/continental/ecal.git && \
+    cd ecal && mkdir build_ &&  cd build_ && \
+    cmake .. -DCMAKE_BUILD_TYPE=Release -DECAL_THIRDPARTY_BUILD_PROTOBUF=OFF -DHAS_QT5=OFF
+
 COPY xivo.sh /tmp/  
 RUN chmod u+x /tmp/xivo.sh
 RUN bash /tmp/xivo.sh ${TARGETPLATFORM} 

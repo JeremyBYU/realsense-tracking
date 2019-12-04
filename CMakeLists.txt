@@ -5,13 +5,14 @@ project(realsensetracking)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -std=c++14 -Wno-narrowing -Wno-register -fPIC -g")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mtune=native -march=native")
 set(CMAKE_BUILD_TYPE "Release")
+set(XIVO_DIR "/opt/xivo")
 add_definitions(-DNDEBUG)
 
 
 # find_package(OpenCV REQUIRED)
 find_package(realsense2 REQUIRED)
 find_package(OpenGL)
-add_subdirectory(thirdparty/xivo)
+add_subdirectory(${XIVO_DIR} build)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib)
@@ -24,8 +25,8 @@ link_directories(
     /usr/lib/x86_64-linux-gnu
     /usr/local/lib
     ${DEPENDENCIES}
-    ${PROJECT_SOURCE_DIR}/thirdparty/xivo/thirdparty/gflags/lib
-    ${PROJECT_SOURCE_DIR}/thirdparty/xivo/lib
+    ${XIVO_DIR}/thirdparty/gflags/lib
+    ${XIVO_DIR}/lib
 )
 
 include_directories(
@@ -35,9 +36,9 @@ include_directories(
     /usr/local/include/opencv2
     ${PROJECT_SOURCE_DIR}/../librealsense/common/res
     ${PROJECT_SOURCE_DIR}/../librealsense/src
-    ${PROJECT_SOURCE_DIR}/thirdparty/xivo/thirdparty/gflags/include
-    ${PROJECT_SOURCE_DIR}/thirdparty/xivo/common
-    ${PROJECT_SOURCE_DIR}/thirdparty/xivo/src
+    ${XIVO_DIR}/thirdparty/gflags/include
+    ${XIVO_DIR}/common
+    ${XIVO_DIR}/src
 )
 
 
@@ -49,9 +50,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 # Add the application sources to the target
 add_executable(rs-motion src/rs-motion.cpp)
 add_executable(rs-motion-2 src/rs-motion-2.cpp)
-add_executable(rs-motion-syncer src/rs-motion-syncer.cpp)
+add_executable(rs-tracker src/rs-tracker.cpp)
 
 # Link librealsense2 to the target
 target_link_libraries(rs-motion ${realsense2_LIBRARY} ${DEPENDENCIES})
 target_link_libraries(rs-motion-2 ${realsense2_LIBRARY} ${DEPENDENCIES})
-target_link_libraries(rs-motion-syncer ${realsense2_LIBRARY} ${DEPENDENCIES})
+target_link_libraries(rs-tracker ${realsense2_LIBRARY} ${DEPENDENCIES})
