@@ -11,14 +11,13 @@ add_definitions(-DNDEBUG)
 # find_package(OpenCV REQUIRED)
 find_package(realsense2 REQUIRED)
 find_package(OpenGL)
-# add_subdirectory(thirdparty/xivo/thirdparty/gflags)
-find_package(gflags REQUIRED)
+add_subdirectory(thirdparty/xivo)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib)
 
-set(DEPENDENCIES glfw realsense2-gl ${OPENGL_LIBRARIES} ${DEPENDENCIES} ${gflags_LIBRARIES} ) 
+set(DEPENDENCIES glfw realsense2-gl ${OPENGL_LIBRARIES} ${DEPENDENCIES} ${libxivo} gflags::gflags) 
 
 link_directories(
     /usr/lib
@@ -26,6 +25,7 @@ link_directories(
     /usr/local/lib
     ${DEPENDENCIES}
     ${PROJECT_SOURCE_DIR}/thirdparty/xivo/thirdparty/gflags/lib
+    ${PROJECT_SOURCE_DIR}/thirdparty/xivo/lib
 )
 
 include_directories(
@@ -36,6 +36,8 @@ include_directories(
     ${PROJECT_SOURCE_DIR}/../librealsense/common/res
     ${PROJECT_SOURCE_DIR}/../librealsense/src
     ${PROJECT_SOURCE_DIR}/thirdparty/xivo/thirdparty/gflags/include
+    ${PROJECT_SOURCE_DIR}/thirdparty/xivo/common
+    ${PROJECT_SOURCE_DIR}/thirdparty/xivo/src
 )
 
 
