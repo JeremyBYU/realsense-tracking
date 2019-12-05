@@ -12,9 +12,13 @@ Taken from here mostly: https://engineering.docker.com/2019/06/getting-started-w
 
 Actually build dockerimage 
 
-1. `cd Docker` - Make sure your in the Docker directory
+1. `cd Docker/base` - Make sure your in the Docker directory
 2. `docker buildx build --platform linux/arm64 -t jeremybyu/ros2 --output type=docker . `
+
+Build with regular x86 docker
+1. `cd Docker/base`
+2. `docker build -t jeremybyu/realsense:latest .`
 
 Running the image as a container
 1. cd `realsense-tracking` - The main direcotry
-1. `docker run --rm --privileged -it --env="DISPLAY" --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" --volume="$(pwd)/src:/opt/worksapce/src:rw" jeremybyu/realsense:latest`
+2. `docker run  --rm --privileged -it --env="DISPLAY" --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" --volume="$(pwd):/opt/workspace:rw" jeremybyu/realsense:latest`
