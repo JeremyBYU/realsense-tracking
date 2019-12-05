@@ -24,13 +24,13 @@
 #include <gflags/gflags.h>
 
 #include "utility.hpp"
+#include "ImageData.pb.h"
 
 using namespace std::chrono_literals;
 
 // Command line flags
 DEFINE_string(bag, "",
 				"Path to bag file");
-
 
 namespace rstracker
 {
@@ -136,6 +136,14 @@ int read_bag(std::string file_name)
 		sensor.start([&](rs2::frame frame){
 			if (frame.get_profile().stream_type() == RS2_STREAM_COLOR)
 			{
+				const int w = frame.as<rs2::video_frame>().get_width();
+        		const int h = frame.as<rs2::video_frame>().get_height();
+				const char* image_data = static_cast<const char*>(frame.as<rs2::video_frame>().get_data());
+
+				rstracker::ImageData test;
+				test.set_hardware_ts(frame.get_timestamp());
+				test.set_image_data(image_data);
+				
 
 			}
 			else if(frame.get_profile().stream_type() == RS2_STREAM_GYRO)
