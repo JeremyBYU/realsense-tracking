@@ -10,5 +10,5 @@ message Vec3 {
 message IMUMessage {
     Vec3 gyro = 1;
     Vec3 accel = 2;
-    double ts = 3;
+    double hardware_ts = 3;
 }

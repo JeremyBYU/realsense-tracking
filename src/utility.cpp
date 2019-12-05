@@ -73,6 +73,15 @@ bool check_imu_is_supported()
 	return found_gyro && found_accel;
 }
 
+void print_profiles(std::vector<rs2::stream_profile> streams)
+{
+	for (auto &stream: streams)
+	{
+		std::cout << "Stream Name: " << stream.stream_name() << "; Format: " << stream.format() << "; Index: " << stream.stream_index() << "; FPS: " << stream.fps() <<std::endl;
+	}
+}
+
+
 void print_message(rstracker_pb::IMUMessage &msg, IMUHistory &imu_hist)
 {
     // values for controlling format
@@ -83,6 +92,8 @@ void print_message(rstracker_pb::IMUMessage &msg, IMUHistory &imu_hist)
     const int total_width = time_width*2 + sensor_width*2 + sep.size() * num_flds ;
     const std::string line = sep + std::string( total_width-1, '-' ) + '|' ;
 
+    double now = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
+    std::cout<< std::setprecision(0) << std::fixed << "Current ts: " << now << std::endl;
     std::cout << line << '\n' << sep
               << std::setw(time_width) <<"timestamp" << sep
               << std::setw(sensor_width) << "accel" << sep 
@@ -99,9 +110,9 @@ void print_message(rstracker_pb::IMUMessage &msg, IMUHistory &imu_hist)
               << std::setw(time_width) << std::setprecision(0) << std::fixed << imu_hist.recent_data(mGYRO).ts << sep
               << std::setw(sensor_width) << float3_to_string(imu_hist.recent_data(mGYRO).data) << sep << "\n";
     // Interplated
-    std::cout << sep << std::setw(time_width) << std::setprecision(0) << std::fixed << msg.ts() << sep
+    std::cout << sep << std::setw(time_width) << std::setprecision(0) << std::fixed << msg.hardware_ts() << sep
               << std::setw(sensor_width) << vec3_to_string(msg.accel()) << sep 
-              << std::setw(time_width) << std::setprecision(0) << std::fixed << msg.ts()  << sep
+              << std::setw(time_width) << std::setprecision(0) << std::fixed << msg.hardware_ts()  << sep
               << std::setw(sensor_width) << vec3_to_string(msg.gyro()) << sep << "\n";
     
 

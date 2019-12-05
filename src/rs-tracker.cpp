@@ -90,7 +90,7 @@ double IMUData_LinearInterpolation(const sensor_name slow_sensor, rstracker_pb::
 		accel_vec->set_y(slow_interp.y);
 		accel_vec->set_z(slow_interp.z);
 
-		imu_msg.set_ts(united_imu_ts);
+		imu_msg.set_hardware_ts(united_imu_ts);
     }
     else
     {
@@ -104,14 +104,90 @@ double IMUData_LinearInterpolation(const sensor_name slow_sensor, rstracker_pb::
 		accel_vec->set_y(fast_sensor_recent.data.y);
 		accel_vec->set_z(fast_sensor_recent.data.z);
 
-		imu_msg.set_ts(united_imu_ts);
+		imu_msg.set_hardware_ts(united_imu_ts);
     }
+	// double now = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
+	// imu_msg.set_send_ts(now);
     
     return united_imu_ts;
 }
 
+void rs_callback(rs2::frame frame, bool sync_with_accel, eCAL::protobuf::CPublisher<rstracker_pb::ImageData> &pub_image, eCAL::protobuf::CPublisher<rstracker_pb::IMUMessage> &pub_imu)
+{
+	if (frame.get_profile().stream_type() == RS2_STREAM_COLOR)
+	{
+		const int w = frame.as<rs2::video_frame>().get_width();
+		const int h = frame.as<rs2::video_frame>().get_height();
+		const char* image_data = static_cast<const char*>(frame.as<rs2::video_frame>().get_data());
+
+		rstracker_pb::ImageData frame_image;
+		frame_image.set_hardware_ts(frame.get_timestamp());
+		frame_image.set_width(w);
+		frame_image.set_height(h);
+		frame_image.set_image_data(image_data);
+		pub_image.Send(frame_image);
+		
+	}
+	else if(frame.get_profile().stream_type() == RS2_STREAM_GYRO)
+	{
+		rs2_vector gyro_sample = frame.as<rs2::motion_frame>().get_motion_data();
+		IMUData data({gyro_sample.x, gyro_sample.y, gyro_sample.z}, frame.get_timestamp());
+		imu_hist.add_data(mGYRO, data);
+		if (!sync_with_accel)
+		{
+			rstracker_pb::IMUMessage msg;
+			double ts_ = IMUData_LinearInterpolation(mGYRO, msg);
+			if (ts_ > 0)
+			{
+				// no issues with linear interpolation and the msg
+				print_message(msg, imu_hist);
+				pub_imu.Send(msg);
+			}
+		}
+
+	}
+	else if(frame.get_profile().stream_type() == RS2_STREAM_ACCEL)
+	{
+		rs2_vector accel_sample = frame.as<rs2::motion_frame>().get_motion_data();
+		IMUData data({accel_sample.x, accel_sample.y, accel_sample.z}, frame.get_timestamp());
+		imu_hist.add_data(mACCEL, data);
+		if (sync_with_accel)
+		{
+			rstracker_pb::IMUMessage msg;
+			double ts_ = IMUData_LinearInterpolation(mACCEL, msg);
+			if (ts_ > 0)
+			{
+				// no issues with linear interpolation and the msg
+				print_message(msg, imu_hist);
+				pub_imu.Send(msg);
+			}
+		}
+
+	}
+	else if(frame.get_profile().stream_type() == RS2_STREAM_DEPTH)
+	{
+
+	}
+
+}
 
 
+bool accel_is_slower_than_gryo(std::vector<rs2::stream_profile> &streams)
+{
+	auto accel_stream = std::find_if(streams.begin(), streams.end(),
+									[](const rs2::stream_profile& x) { return x.stream_type() == RS2_STREAM_ACCEL;});
+	auto gryo_stream = std::find_if(streams.begin(), streams.end(),
+									[](const rs2::stream_profile& x) { return x.stream_type() == RS2_STREAM_GYRO;});
+	if (accel_stream == streams.end() || gryo_stream == streams.end())
+	{
+		// This bag file doesn't have any gryo and accelerometer data! Exit early.
+		std::cout << "This data stream (bag or live) does not have any gyro or accel data. Exiting";
+		throw "This data stream (bag or live) does not have any gyro or accel data. Exiting";
+	}
+
+	bool sync_with_accel = accel_stream->fps() <= gryo_stream->fps();
+	return sync_with_accel;
+}
 
 
 int read_bag(std::string file_name)
@@ -135,23 +211,9 @@ int read_bag(std::string file_name)
     auto playback = device.as<rs2::playback>();
     playback.set_real_time(false);
 
-	
-
-
 	auto streams = profile.get_streams();
-	auto accel_stream = std::find_if(streams.begin(), streams.end(),
-									[](const rs2::stream_profile& x) { return x.stream_type() == RS2_STREAM_ACCEL;});
-	auto gryo_stream = std::find_if(streams.begin(), streams.end(),
-									[](const rs2::stream_profile& x) { return x.stream_type() == RS2_STREAM_GYRO;});
-	if (accel_stream == streams.end() || gryo_stream == streams.end())
-	{
-		// This bag file doesn't have any gryo and accelerometer data! Exit early.
-		std::cout << "This bag file does not have any gyro or accel data. Exiting";
-		return EXIT_FAILURE;
-	}
-
 	// Which sensor has the lower frame rate.
-	bool sync_with_accel = accel_stream->fps() <= gryo_stream->fps();
+	bool sync_with_accel = accel_is_slower_than_gryo(streams);
 	auto sensors = playback.query_sensors();
 
 	for (auto &sensor : sensors)
@@ -164,65 +226,11 @@ int read_bag(std::string file_name)
 		}
 		// Sensor Callback
 		sensor.start([&](rs2::frame frame){
-			if (frame.get_profile().stream_type() == RS2_STREAM_COLOR)
-			{
-				const int w = frame.as<rs2::video_frame>().get_width();
-        		const int h = frame.as<rs2::video_frame>().get_height();
-				const char* image_data = static_cast<const char*>(frame.as<rs2::video_frame>().get_data());
-
-				rstracker_pb::ImageData frame_image;
-				frame_image.set_hardware_ts(frame.get_timestamp());
-				frame_image.set_width(w);
-				frame_image.set_height(h);
-				frame_image.set_image_data(image_data);
-				pub_image.Send(frame_image);
-				
-			}
-			else if(frame.get_profile().stream_type() == RS2_STREAM_GYRO)
-			{
-                rs2_vector gyro_sample = frame.as<rs2::motion_frame>().get_motion_data();
-                IMUData data({gyro_sample.x, gyro_sample.y, gyro_sample.z}, frame.get_timestamp());
-                imu_hist.add_data(mGYRO, data);
-                if (!sync_with_accel)
-                {
-                    rstracker_pb::IMUMessage msg;
-                    double ts_ = IMUData_LinearInterpolation(mGYRO, msg);
-                    if (ts_ > 0)
-                    {
-                        // no issues with linear interpolation and the msg
-                        print_message(msg, imu_hist);
-						pub_imu.Send(msg);
-                    }
-                }
-
-			}
-			else if(frame.get_profile().stream_type() == RS2_STREAM_ACCEL)
-			{
-                rs2_vector accel_sample = frame.as<rs2::motion_frame>().get_motion_data();
-                IMUData data({accel_sample.x, accel_sample.y, accel_sample.z}, frame.get_timestamp());
-                imu_hist.add_data(mACCEL, data);
-                if (sync_with_accel)
-                {
-                    rstracker_pb::IMUMessage msg;
-                    double ts_ = IMUData_LinearInterpolation(mACCEL, msg);
-                    if (ts_ > 0)
-                    {
-                        // no issues with linear interpolation and the msg
-                        // print_message(msg, imu_hist);
-						pub_imu.Send(msg);
-                    }
-                }
-
-			}
-			else if(frame.get_profile().stream_type() == RS2_STREAM_DEPTH)
-			{
-
-			}
+			rs_callback(frame, sync_with_accel, pub_image, pub_imu);
 			std::this_thread::sleep_for( 1ms );
-
 		});
 	}
-
+	// This while loop is just to keep the thread alive while sensor callback are being performed
     while(true)
     {
         std::this_thread::sleep_for( 1000ms );
@@ -231,36 +239,21 @@ int read_bag(std::string file_name)
 }
 
 
-void print_profiles(std::vector<rs2::stream_profile> streams)
-{
-	for (auto &stream: streams)
-	{
-		std::cout << "Stream Name: " << stream.stream_name() << "; Format: " << stream.format() << "; Index: " << stream.stream_index() << "FPS: " << stream.fps() <<std::endl;
-	}
-}
-
 // This example demonstrates live streaming motion data as well as video data
-int live_counter()
+int live_stream()
 {
+	// create a publisher (topic name "person")
+	std::cout << "Creating LiveStream of RealSense" << std::endl;
+	eCAL::Initialize(0, nullptr, "RSTrackerPub");
+	eCAL::protobuf::CPublisher<rstracker_pb::ImageData> pub_image("ImageData");
+	eCAL::protobuf::CPublisher<rstracker_pb::IMUMessage> pub_imu("IMUMessage");
+	std::cout << "Make Publisher" << std::endl;
 	// Before running the example, check that a device supporting IMU is connected
 	if (!check_imu_is_supported())
 	{
 		std::cerr << "Device supporting IMU (D435i) not found";
 		return EXIT_FAILURE;
 	}
-
-	size_t gryro_iter = 0;
-	size_t accel_iter = 0;
-	size_t depth_iter = 0;
-	size_t color_iter = 0;
-	double ts_gyro = 0.0;
-	double ts_accel = 0.0;
-	double ts_depth = 0.0;
-	double ts_color = 0.0;
-	rs2_timestamp_domain gyro_domain;
-	rs2_timestamp_domain accel_domain;
-	rs2_timestamp_domain depth_domain;
-	rs2_timestamp_domain color_domain;
 	
 	// Declare RealSense pipeline, encapsulating the actual device and sensors
 	rs2::pipeline pipe;
@@ -279,12 +272,28 @@ int live_counter()
 	auto streams =  profile.get_streams(); // 0=Depth, 1=RGB, 2=Gryo, 3=Accel
 	std::cout << "Profiles that will be activated: "<< std::endl; 
 	print_profiles(streams);
+	std::cout << std::endl;
 
-	// Create a mapping between sensor name and the desired profiles
+	bool sync_with_accel = accel_is_slower_than_gryo(streams);
+
+	std::map<std::string, std::string> stream_to_sensor_name = {{"Depth", "Stereo Module"}, {"Color", "RGB Camera"}, {"Gyro", "Motion Module"}, {"Accel", "Motion Module"}};
 	std::map<std::string, std::vector<rs2::stream_profile>> sensor_to_streams; 
-	sensor_to_streams.insert(std::pair<std::string, std::vector<rs2::stream_profile>>(std::string("Stereo Module"), {streams[0]}));
-	sensor_to_streams.insert(std::pair<std::string, std::vector<rs2::stream_profile>>(std::string("RGB Camera"), {streams[1]}));
-	sensor_to_streams.insert(std::pair<std::string, std::vector<rs2::stream_profile>>(std::string("Motion Module"), {streams[2], streams[3]}));
+	for (auto &stream_profile: streams)
+	{
+		auto stream_name = stream_profile.stream_name();
+		auto sensor_name_str = stream_to_sensor_name[stream_name];
+		try
+		{
+			// get sensor streams that are mapped to this sensor name
+			std::vector<rs2::stream_profile> &sensor_streams = sensor_to_streams.at(sensor_name_str);
+			sensor_streams.push_back(stream_profile);
+
+		}
+		catch(const std::exception& e)
+		{
+			sensor_to_streams.insert(std::pair<std::string, std::vector<rs2::stream_profile>>(sensor_name_str, {stream_profile}));
+		}
+	}
 
 	auto sensors = device.query_sensors();
 	for (auto &sensor : sensors)
@@ -308,103 +317,65 @@ int live_counter()
 		if (make_callback)
 		{
 			std::cout << "Creating callback for " << sensor_name << std::endl;
+			// Sensor Callback
 			sensor.start([&](rs2::frame frame){
-				if (frame.get_profile().stream_type() == RS2_STREAM_COLOR)
-				{
-					color_iter +=1;
-					ts_color = frame.get_timestamp();
-					color_domain = frame.get_frame_timestamp_domain();
-				}
-				else if(frame.get_profile().stream_type() == RS2_STREAM_GYRO)
-				{
-					gryro_iter +=1;
-					ts_gyro = frame.get_timestamp();
-					gyro_domain = frame.get_frame_timestamp_domain();
-				}
-				else if(frame.get_profile().stream_type() == RS2_STREAM_ACCEL)
-				{
-					accel_iter +=1;
-					ts_accel = frame.get_timestamp();
-					accel_domain = frame.get_frame_timestamp_domain();
-				}
-				else if(frame.get_profile().stream_type() == RS2_STREAM_DEPTH)
-				{
-					depth_iter +=1;
-					ts_depth = frame.get_timestamp();
-					depth_domain = frame.get_frame_timestamp_domain();
-				}
+				rs_callback(frame, sync_with_accel, pub_image, pub_imu);
 			});
 
 		}
 	}
 
-	while (true)
-	{
-		double my_clock = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
-		std::cout << std::setprecision(0) << std::fixed << "FPS --- "
-			<< "Gryo: " << gryro_iter << "; Accel: " << accel_iter
-
-			<< "; Depth: " << depth_iter << "; RGB: " << color_iter << std::endl;
-
-		std::cout << std::setprecision(0) << std::fixed << "Timing --- Now: " << my_clock << "; Gryo: " << ts_gyro << "; Accel: " << ts_accel
-			<< "; Depth: " << ts_depth << "; RGB: " << ts_color << std::endl;
-
-		std::cout << std::setprecision(0) << std::fixed << "Time Domain --- Now: " << my_clock << "; Gryo: " << gyro_domain << "; Accel: " << accel_domain
-				<< "; Depth: " << depth_domain << "; RGB: " << color_domain << std::endl;
-
-		std::cout << std::setprecision(0) << std::fixed << "Latency --- GyroToColor: " << ts_gyro - ts_color << std::endl;
-		std::cout <<std::endl;
-
-		gryro_iter = 0;
-		accel_iter = 0;
-		depth_iter = 0;
-		color_iter = 0;
-
-		std::this_thread::sleep_for( 1000ms );
-	}
-
+	// This while loop is just to keep the thread alive while sensor callback are being performed
+    while(true)
+    {
+        std::this_thread::sleep_for( 1000ms );
+    }
 	return EXIT_SUCCESS;
 }
 
 void OnIMUMessage(const char* topic_name_, const rstracker_pb::IMUMessage& imu_msg, const long long time_, const long long clock_)
 {
-	std::cout<< std::setprecision(0) << std::fixed << "Received IMUMessage; ts: " << imu_msg.ts() << std::endl;
+	double now = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
+	std::cout<< std::setprecision(0) << std::fixed << "Received IMUMessage; now: " << now << "; send_ts: " << time_/1000  << "; hardware_ts: " << imu_msg.hardware_ts()  << std::endl;
 }
 
+void OnImageData(const char* topic_name_, const rstracker_pb::ImageData& img, const long long time_, const long long clock_)
+{
+	double now = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
+	// std::cout<< std::setprecision(0) << std::fixed << "Received ImageData; now: " << now << "; send_ts: " << time_/1000  << ";hardware_ts: " << img.hardware_ts()  << std::endl;
+
+}
 
 }
 
 int main(int argc, char* argv[]) try
 {
-	  // initialize eCAL API
+	// initialize eCAL API
 	eCAL::Initialize(0, nullptr, "RSTrackerSub");
+	// create subscriber
 	eCAL::protobuf::CSubscriber<rstracker_pb::IMUMessage> sub_imu("IMUMessage");
+	eCAL::protobuf::CSubscriber<rstracker_pb::ImageData> sub_image("ImageData");
+	// add receive callback function (_1 = topic_name, _2 = msg, _3 = time, , _4 = clock)
   	auto imu_rec_callback = std::bind(rstracker::OnIMUMessage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
 	sub_imu.AddReceiveCallback(imu_rec_callback);
+	auto image_rec_callback = std::bind(rstracker::OnImageData, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
+	sub_image.AddReceiveCallback(image_rec_callback);
 
-	// create subscriber
-	std::cout << "To here" << std::endl;
+	// enable to receive process internal publications
+  	eCAL::Util::EnableLoopback(true);
+
 	gflags::ParseCommandLineFlags(&argc, &argv, true);
 	std::thread t1;
 	if (FLAGS_bag == "")
 	{
-		rstracker::live_counter();
+		t1 = std::thread(rstracker::live_stream);
 	}
 	else
 	{
 		t1 = std::thread(rstracker::read_bag, FLAGS_bag);
-		// t1 = std::thread(test);
-		std::cout << "To here" << std::endl;
 	}
 
-	  // add receive callback function (_1 = topic_name, _2 = msg, _3 = time, , _4 = clock)
 	eCAL::Process::SleepMS(1000);
-	std::cout << "Before main loop" << std::endl;
-    // while(true)
-    // {
-    //     std::this_thread::sleep_for( 1000ms );
-	// 	std::cout<< "Test" <<std::endl;
-    // }
 	while(eCAL::Ok())
 	{
 		// sleep 100 ms

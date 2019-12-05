@@ -6,6 +6,5 @@ message ImageData {
     int32 height = 2;
     int32 width = 3;
     int64 hardware_ts = 4;
-    int64 send_ts=5;
     int64 channels=6;
 }

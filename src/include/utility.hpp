@@ -117,6 +117,8 @@ bool check_imu_is_supported();
 
 void print_message(rstracker_pb::IMUMessage &msg, IMUHistory &imu_hist);
 
+void print_profiles(std::vector<rs2::stream_profile> streams);
+
 }
 
 #endif // RSTRACKER_UTILITY_H
