@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.1.0)
 project(realsensetracking)
 
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -std=c++14 -Wno-narrowing -Wno-register -fPIC -g")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -std=c++17 -Wno-narrowing -Wno-register -fPIC -g")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mtune=native -march=native")
 set(CMAKE_BUILD_TYPE "Release")
 set(XIVO_DIR "/opt/xivo")
@@ -27,7 +27,14 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib)
 
 set(DEPENDENCIES glfw realsense2-gl ${OPENGL_LIBRARIES} ${DEPENDENCIES} 
-                 ${libxivo} ${PROTOBUF_LIBRARIES} gflags::gflags eCAL::core) 
+                 ${libxivo} ${PROTOBUF_LIBRARIES} ${OpenCV_LIBRARIES} gflags::gflags eCAL::core) 
+
+
+# get_cmake_property(_variableNames VARIABLES)
+# list (SORT _variableNames)
+# foreach (_variableName ${_variableNames})
+#     message(STATUS "${_variableName}=${${_variableName}}")
+# endforeach()
 
 link_directories(
     /usr/lib
@@ -35,6 +42,9 @@ link_directories(
     /usr/local/lib
     ${DEPENDENCIES}
     ${XIVO_DIR}/thirdparty/gflags/lib
+    ${XIVO_DIR}/thirdparty/glog/lib
+    ${XIVO_DIR}/thirdparty/Pangolin/lib
+    ${XIVO_DIR}/thirdparty/jsoncpp/lib
     ${XIVO_DIR}/lib
 )
 
@@ -48,6 +58,10 @@ include_directories(
     ${XIVO_DIR}/thirdparty/gflags/include
     ${XIVO_DIR}/common
     ${XIVO_DIR}/src
+    ${XIVO_DIR}/thirdparty/eigen-3.3.7/include/eigen3
+    ${XIVO_DIR}/thirdparty/glog/include
+    ${XIVO_DIR}/thirdparty/Pangolin/include
+    ${XIVO_DIR}/thirdparty/jsoncpp/include
     ${PROTOBUF_INCLUDE_DIRS}
     ${PROJECT_SOURCE_DIR}/build
 )
@@ -55,7 +69,7 @@ include_directories(
 
 # Find librealsense2 installed package
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 
 # Add the application sources to the target
@@ -67,5 +81,5 @@ add_executable(rs-test src/rs-test.cpp src/utility.cpp ${PROTO_SRCS} ${PROTO_HDR
 # Link librealsense2 to the target
 target_link_libraries(rs-motion ${realsense2_LIBRARY} ${DEPENDENCIES})
 target_link_libraries(rs-motion-2 ${realsense2_LIBRARY} ${DEPENDENCIES})
-target_link_libraries(rs-tracker ${realsense2_LIBRARY} ${DEPENDENCIES})
-target_link_libraries(rs-test ${realsense2_LIBRARY} ${DEPENDENCIES})
+target_link_libraries(rs-tracker ${realsense2_LIBRARY} ${DEPENDENCIES} xest)
+target_link_libraries(rs-test ${realsense2_LIBRARY} ${DEPENDENCIES}) 

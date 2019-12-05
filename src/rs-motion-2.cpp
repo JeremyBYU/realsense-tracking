@@ -235,7 +235,9 @@ int live_counter()
 		if (make_callback)
 		{
 			std::cout << "Creating callback for " << sensor_name << std::endl;
+			double old_clock = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
 			sensor.start([&](rs2::frame frame){
+				double my_clock = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
 				if (frame.get_profile().stream_type() == RS2_STREAM_COLOR)
 				{
 					color_iter +=1;
@@ -247,6 +249,13 @@ int live_counter()
 					gryro_iter +=1;
 					ts_gyro = frame.get_timestamp();
 					gyro_domain = frame.get_frame_timestamp_domain();
+					if ((my_clock - old_clock) > 1000)
+					{
+						std::cout << std::setprecision(0) << std::fixed << "now:" << my_clock
+						<< "; Gryo ts: " << ts_gyro << std::endl;
+						old_clock = my_clock;
+
+					}
 				}
 				else if(frame.get_profile().stream_type() == RS2_STREAM_ACCEL)
 				{

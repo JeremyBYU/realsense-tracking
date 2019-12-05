@@ -48,14 +48,14 @@ RUN wget -O /opt/cmake-3.15.5.tar.gz https://cmake.org/files/v3.15/cmake-3.15.5.
 # RUN tar -xzvf /opt/cmake-3.15.5.tar.gz -C /opt/ && rm -rf /opt/cmake-3.15.5.tar.gz
 ENV PATH "/opt/cmake-3.15.5/bin:$PATH"
 
-# Clone Realsense
+# Clone Realsense - Depth and IMU Sensor SDK
 RUN git clone https://github.com/IntelRealSense/librealsense.git /opt/librealsense && cd /opt/librealsense && \
     mkdir build && cd build && \
     cmake ../ -DFORCE_RSUSB_BACKEND=true -DCMAKE_BUILD_TYPE=release -DBUILD_EXAMPLES=true -DBUILD_GRAPHICAL_EXAMPLES=true -DBUILD_PYTHON_BINDINGS=true && \
     make -j 18 && \
     make install
 
-# Clone OpenCV
+# Clone OpenCV - Computer Vision
 RUN git clone -b '3.4.7' --single-branch https://github.com/opencv/opencv.git /opt/opencv
 RUN git clone -b '3.4.7' --single-branch https://github.com/opencv/opencv_contrib.git /opt/opencv_contrib
 
@@ -69,7 +69,7 @@ RUN bash /tmp/opencv.sh ${TARGETPLATFORM}
 
 RUN apt-get install --no-install-recommends -y libglew-dev liblz4-dev
 
-# Prepare for ECAL
+# Prepare for ECAL - Shareed Memory Marshalling and Communication
 RUN apt-get install --no-install-recommends -y git doxygen graphviz build-essential zlib1g-dev libhdf5-dev libprotobuf-dev libprotoc-dev protobuf-compiler
 RUN cd /opt && \
     git clone --recursive git://github.com/continental/ecal.git && \
@@ -77,9 +77,17 @@ RUN cd /opt && \
     cmake .. -DCMAKE_BUILD_TYPE=Release -DECAL_THIRDPARTY_BUILD_PROTOBUF=OFF -DHAS_QT5=OFF && \
     make -j16
 
+RUN cd /opt/ecal/build_ && \
+    cpack -G DEB && \
+    dpkg -i _deploy/eCAL-*
+
+# Prepare XIVO - Visual SLAM
 COPY xivo.sh /tmp/  
 RUN chmod u+x /tmp/xivo.sh
 RUN bash /tmp/xivo.sh ${TARGETPLATFORM} 
+
+# Stuff I like/need
+RUN apt-get install --no-install-recommends -y nano htop
 
 # setup entrypoint
 COPY ./base_entrypoint.sh /

@@ -27,6 +27,13 @@
 #include <ecal/msg/protobuf/publisher.h>
 #include <ecal/msg/protobuf/subscriber.h>
 
+
+#include "estimator.h"
+#include "estimator_process.h"
+#include "metrics.h"
+#include "tracker.h"
+#include "loader.h"
+
 #include "utility.hpp"
 #include "ImageData.pb.h"
 #include "IMUMessage.pb.h"
@@ -260,7 +267,7 @@ int live_stream()
 	// Create a configuration for configuring the pipeline with a non default profile
 	rs2::config config;
 	// Add streams of gyro and accelerometer to configuration
-	config.enable_stream(RS2_STREAM_ACCEL, RS2_FORMAT_MOTION_XYZ32F);
+	config.enable_stream(RS2_STREAM_ACCEL, RS2_FORMAT_MOTION_XYZ32F, 250);
 	config.enable_stream(RS2_STREAM_GYRO, RS2_FORMAT_MOTION_XYZ32F);
 	// Add dpeth and color streams
 	config.enable_stream(RS2_STREAM_COLOR, 640, 480, RS2_FORMAT_BGR8, 30);
@@ -332,6 +339,8 @@ int live_stream()
     }
 	return EXIT_SUCCESS;
 }
+auto ESTIMATOR_CFG = xivo::LoadJson("/opt/workspace/config/xivo_d435i.json");
+auto est_ = xivo::CreateSystem(ESTIMATOR_CFG);
 
 void OnIMUMessage(const char* topic_name_, const rstracker_pb::IMUMessage& imu_msg, const long long time_, const long long clock_)
 {
@@ -343,7 +352,6 @@ void OnImageData(const char* topic_name_, const rstracker_pb::ImageData& img, co
 {
 	double now = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
 	// std::cout<< std::setprecision(0) << std::fixed << "Received ImageData; now: " << now << "; send_ts: " << time_/1000  << ";hardware_ts: " << img.hardware_ts()  << std::endl;
-
 }
 
 }
