@@ -19,12 +19,17 @@
 #include <iostream>
 #include <algorithm>
 #include <iomanip>
+#include <thread>
 
 #include <librealsense2/rs.hpp>
 #include <gflags/gflags.h>
+#include <ecal/ecal.h>
+#include <ecal/msg/protobuf/publisher.h>
+#include <ecal/msg/protobuf/subscriber.h>
 
 #include "utility.hpp"
 #include "ImageData.pb.h"
+#include "IMUMessage.pb.h"
 
 using namespace std::chrono_literals;
 
@@ -42,7 +47,7 @@ static IMUHistory imu_hist(2);
 // The slow_sensor has the lower fps/frequency
 // This function should be immediatly called AFTER a measurement update is given for the slow_sensor
 // This measurement update is stored inside global variable imu_hist
-double IMUData_LinearInterpolation(const sensor_name slow_sensor, IMUMessage& imu_msg)
+double IMUData_LinearInterpolation(const sensor_name slow_sensor, rstracker_pb::IMUMessage& imu_msg)
 {
     sensor_name fast_sensor(static_cast<sensor_name>(!slow_sensor));
     
@@ -71,19 +76,35 @@ double IMUData_LinearInterpolation(const sensor_name slow_sensor, IMUMessage& im
     // Perform interpolation for the slow sensor
     double united_imu_ts = fast_sensor_recent.ts;
     double factor =  (united_imu_ts - slow_sensor_old.ts) / (slow_sensor_recent.ts - slow_sensor_old.ts);
-    float3 slow_interp = slow_sensor_old.data * (1-factor) + slow_sensor_recent.data * factor;
+    Float3 slow_interp = slow_sensor_old.data * (1-factor) + slow_sensor_recent.data * factor;
 
     if (slow_sensor == mACCEL)
     {
-        imu_msg.accel = slow_interp;
-        imu_msg.gyro = fast_sensor_recent.data;
-        imu_msg.ts = united_imu_ts;
+		auto gyro_vec = imu_msg.mutable_gyro();
+		gyro_vec->set_x(fast_sensor_recent.data.x);
+		gyro_vec->set_y(fast_sensor_recent.data.y);
+		gyro_vec->set_z(fast_sensor_recent.data.z);
+
+		auto accel_vec = imu_msg.mutable_accel();
+		accel_vec->set_x(slow_interp.x);
+		accel_vec->set_y(slow_interp.y);
+		accel_vec->set_z(slow_interp.z);
+
+		imu_msg.set_ts(united_imu_ts);
     }
     else
     {
-        imu_msg.accel = fast_sensor_recent.data;
-        imu_msg.gyro = slow_interp;
-        imu_msg.ts = united_imu_ts;
+		auto gyro_vec = imu_msg.mutable_gyro();
+		gyro_vec->set_x(slow_interp.x);
+		gyro_vec->set_y(slow_interp.y);
+		gyro_vec->set_z(slow_interp.z);
+
+		auto accel_vec = imu_msg.mutable_accel();
+		accel_vec->set_x(fast_sensor_recent.data.x);
+		accel_vec->set_y(fast_sensor_recent.data.y);
+		accel_vec->set_z(fast_sensor_recent.data.z);
+
+		imu_msg.set_ts(united_imu_ts);
     }
     
     return united_imu_ts;
@@ -95,6 +116,13 @@ double IMUData_LinearInterpolation(const sensor_name slow_sensor, IMUMessage& im
 
 int read_bag(std::string file_name)
 {
+		// create a publisher (topic name "person")
+	std::cout << "Read bag" << std::endl;
+	eCAL::Initialize(0, nullptr, "RSTrackerPub");
+	eCAL::protobuf::CPublisher<rstracker_pb::ImageData> pub_image("ImageData");
+	eCAL::protobuf::CPublisher<rstracker_pb::IMUMessage> pub_imu("IMUMessage");
+	std::cout << "Make Publisher" << std::endl;
+
 	rs2::config config;
 	rs2::device device;
 	rs2::pipeline pipe;
@@ -106,6 +134,8 @@ int read_bag(std::string file_name)
     device = profile.get_device();
     auto playback = device.as<rs2::playback>();
     playback.set_real_time(false);
+
+	
 
 
 	auto streams = profile.get_streams();
@@ -140,11 +170,13 @@ int read_bag(std::string file_name)
         		const int h = frame.as<rs2::video_frame>().get_height();
 				const char* image_data = static_cast<const char*>(frame.as<rs2::video_frame>().get_data());
 
-				rstracker::ImageData test;
-				test.set_hardware_ts(frame.get_timestamp());
-				test.set_image_data(image_data);
+				rstracker_pb::ImageData frame_image;
+				frame_image.set_hardware_ts(frame.get_timestamp());
+				frame_image.set_width(w);
+				frame_image.set_height(h);
+				frame_image.set_image_data(image_data);
+				pub_image.Send(frame_image);
 				
-
 			}
 			else if(frame.get_profile().stream_type() == RS2_STREAM_GYRO)
 			{
@@ -153,12 +185,13 @@ int read_bag(std::string file_name)
                 imu_hist.add_data(mGYRO, data);
                 if (!sync_with_accel)
                 {
-                    IMUMessage msg;
+                    rstracker_pb::IMUMessage msg;
                     double ts_ = IMUData_LinearInterpolation(mGYRO, msg);
                     if (ts_ > 0)
                     {
                         // no issues with linear interpolation and the msg
                         print_message(msg, imu_hist);
+						pub_imu.Send(msg);
                     }
                 }
 
@@ -170,12 +203,13 @@ int read_bag(std::string file_name)
                 imu_hist.add_data(mACCEL, data);
                 if (sync_with_accel)
                 {
-                    IMUMessage msg;
+                    rstracker_pb::IMUMessage msg;
                     double ts_ = IMUData_LinearInterpolation(mACCEL, msg);
                     if (ts_ > 0)
                     {
                         // no issues with linear interpolation and the msg
-                        print_message(msg, imu_hist);
+                        // print_message(msg, imu_hist);
+						pub_imu.Send(msg);
                     }
                 }
 
@@ -332,18 +366,50 @@ int live_counter()
 	return EXIT_SUCCESS;
 }
 
+void OnIMUMessage(const char* topic_name_, const rstracker_pb::IMUMessage& imu_msg, const long long time_, const long long clock_)
+{
+	std::cout<< std::setprecision(0) << std::fixed << "Received IMUMessage; ts: " << imu_msg.ts() << std::endl;
+}
+
+
 }
 
 int main(int argc, char* argv[]) try
 {
+	  // initialize eCAL API
+	eCAL::Initialize(0, nullptr, "RSTrackerSub");
+	eCAL::protobuf::CSubscriber<rstracker_pb::IMUMessage> sub_imu("IMUMessage");
+  	auto imu_rec_callback = std::bind(rstracker::OnIMUMessage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
+	sub_imu.AddReceiveCallback(imu_rec_callback);
+
+	// create subscriber
+	std::cout << "To here" << std::endl;
 	gflags::ParseCommandLineFlags(&argc, &argv, true);
+	std::thread t1;
 	if (FLAGS_bag == "")
 	{
 		rstracker::live_counter();
 	}
 	else
 	{
-		rstracker::read_bag(FLAGS_bag);
+		t1 = std::thread(rstracker::read_bag, FLAGS_bag);
+		// t1 = std::thread(test);
+		std::cout << "To here" << std::endl;
+	}
+
+	  // add receive callback function (_1 = topic_name, _2 = msg, _3 = time, , _4 = clock)
+	eCAL::Process::SleepMS(1000);
+	std::cout << "Before main loop" << std::endl;
+    // while(true)
+    // {
+    //     std::this_thread::sleep_for( 1000ms );
+	// 	std::cout<< "Test" <<std::endl;
+    // }
+	while(eCAL::Ok())
+	{
+		// sleep 100 ms
+		eCAL::Process::SleepMS(10);
+		
 	}
 	
 	

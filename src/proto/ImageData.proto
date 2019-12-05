@@ -1,5 +1,5 @@
 syntax = 'proto3';
-package rstracker;
+package rstracker_pb;
 
 message ImageData {
     bytes image_data = 1;

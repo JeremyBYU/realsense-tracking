@@ -32,10 +32,17 @@ IMUData IMUHistory::old_data(sensor_name module)
     return m_map[module].back();
 }
 
-std::string float3_to_string(float3 v)
+std::string float3_to_string(Float3 v)
 {
     std::stringstream ss;
     ss << "(" << v.x << ", " << v.y << ", " << v.z << ")";
+    return ss.str();
+}
+
+std::string vec3_to_string(rstracker_pb::Vec3 v)
+{
+    std::stringstream ss;
+    ss << "(" << v.x() << ", " << v.y() << ", " << v.z() << ")";
     return ss.str();
 }
 
@@ -66,7 +73,7 @@ bool check_imu_is_supported()
 	return found_gyro && found_accel;
 }
 
-void print_message(IMUMessage msg, IMUHistory imu_hist)
+void print_message(rstracker_pb::IMUMessage &msg, IMUHistory &imu_hist)
 {
     // values for controlling format
     const int time_width = 15 ;
@@ -92,10 +99,10 @@ void print_message(IMUMessage msg, IMUHistory imu_hist)
               << std::setw(time_width) << std::setprecision(0) << std::fixed << imu_hist.recent_data(mGYRO).ts << sep
               << std::setw(sensor_width) << float3_to_string(imu_hist.recent_data(mGYRO).data) << sep << "\n";
     // Interplated
-    std::cout << sep << std::setw(time_width) << std::setprecision(0) << std::fixed << msg.ts << sep
-              << std::setw(sensor_width) << float3_to_string(msg.accel) << sep 
-              << std::setw(time_width) << std::setprecision(0) << std::fixed << msg.ts  << sep
-              << std::setw(sensor_width) << float3_to_string(msg.gyro) << sep << "\n";
+    std::cout << sep << std::setw(time_width) << std::setprecision(0) << std::fixed << msg.ts() << sep
+              << std::setw(sensor_width) << vec3_to_string(msg.accel()) << sep 
+              << std::setw(time_width) << std::setprecision(0) << std::fixed << msg.ts()  << sep
+              << std::setw(sensor_width) << vec3_to_string(msg.gyro()) << sep << "\n";
     
 
     std::cout << line << '\n' ;

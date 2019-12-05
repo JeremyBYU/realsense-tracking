@@ -14,40 +14,42 @@
 #include <iomanip>
 #include <librealsense2/rs.hpp>
 
+#include "IMUMessage.pb.h"
+
 namespace rstracker
 {
 
-class float3
+class Float3
 {
     public:
         float x, y, z;
 
     public:
-        float3& operator*=(const float& factor)
+        Float3& operator*=(const float& factor)
         {
             x*=factor;
             y*=factor;
             z*=factor;
             return (*this);
         }
-        float3 operator*(const float& factor)
+        Float3 operator*(const float& factor)
         {
-            float3 data(*this);
+            Float3 data(*this);
             data.x*=factor;
             data.y*=factor;
             data.z*=factor;
             return data;
         }
-        float3& operator+=(const float3& other)
+        Float3& operator+=(const Float3& other)
         {
             x+=other.x;
             y+=other.y;
             z+=other.z;
             return (*this);
         }
-        float3 operator+(const float3& other)
+        Float3 operator+(const Float3& other)
         {
-            float3 data(*this);
+            Float3 data(*this);
             data.x+=other.x;
             data.y+=other.y;
             data.z+=other.z;
@@ -56,25 +58,25 @@ class float3
 };
 
 
-class IMUMessage
-{
-    public:
-        IMUMessage():
-            gyro(),
-            accel(),
-            ts()
-            {};
-        IMUMessage(const float3 gyro, const float3 accel, double time):
-            gyro(gyro),
-            accel(accel),
-            ts(time)
-            {};
+// class IMUMessage
+// {
+//     public:
+//         IMUMessage():
+//             gyro(),
+//             accel(),
+//             ts()
+//             {};
+//         IMUMessage(const Float3 gyro, const Float3 accel, double time):
+//             gyro(gyro),
+//             accel(accel),
+//             ts(time)
+//             {};
         
-    public:
-        float3 gyro;
-        float3 accel;
-        double ts;
-};
+//     public:
+//         Float3 gyro;
+//         Float3 accel;
+//         double ts;
+// };
 
 class IMUData
 {
@@ -82,14 +84,14 @@ class IMUData
         IMUData(const IMUData& other):
             IMUData(other.data, other.ts)
             {};
-        IMUData(const float3 reading, double time):
+        IMUData(const Float3 reading, double time):
             data(reading),
             ts(time)
             {};
         IMUData operator*(const double factor);
         IMUData operator+(const IMUData& other);
     public:
-        float3 data;
+        Float3 data;
         double ts;
 };
 enum sensor_name {mGYRO, mACCEL};
@@ -113,10 +115,8 @@ class IMUHistory
 
 bool check_imu_is_supported();
 
-void print_message(IMUMessage msg, IMUHistory imu_hist);
+void print_message(rstracker_pb::IMUMessage &msg, IMUHistory &imu_hist);
 
 }
-
-
 
 #endif // RSTRACKER_UTILITY_H
