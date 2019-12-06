@@ -317,6 +317,7 @@ int live_stream()
 	// Add dpeth and color streams
 	config.enable_stream(RS2_STREAM_COLOR, 640, 480, RS2_FORMAT_BGR8, 30);
 	config.enable_stream(RS2_STREAM_DEPTH, 640, 480, RS2_FORMAT_Z16, 30);
+	config.enable_stream(RS2_STREAM_INFRARED, 1, 640, 480, RS2_FORMAT_Y8, 30);
 
 	auto profile = config.resolve(pipe); // allows us to get device
     auto device = profile.get_device();
@@ -328,7 +329,7 @@ int live_stream()
 
 	bool sync_with_accel = accel_is_slower_than_gryo(streams);
 
-	std::map<std::string, std::string> stream_to_sensor_name = {{"Depth", "Stereo Module"}, {"Color", "RGB Camera"}, {"Gyro", "Motion Module"}, {"Accel", "Motion Module"}};
+	std::map<std::string, std::string> stream_to_sensor_name = {{"Depth", "Stereo Module"}, {"Infrared 1", "Stereo Module"}, {"Color", "RGB Camera"}, {"Gyro", "Motion Module"}, {"Accel", "Motion Module"}};
 	std::map<std::string, std::vector<rs2::stream_profile>> sensor_to_streams; 
 	for (auto &stream_profile: streams)
 	{
@@ -358,6 +359,7 @@ int live_stream()
 			// get sensor streams that are mapped to this sensor name
 			auto sensor_streams = sensor_to_streams.at(sensor_name);
 			std::cout << "Opening stream for " << sensor_name << std::endl;
+			print_profiles(sensor_streams);
 			sensor.open(sensor_streams);
 			make_callback = true;
 
@@ -388,10 +390,20 @@ auto ESTIMATOR_CFG = xivo::LoadJson("/opt/workspace/config/xivo_d435i.json");
 auto ESTIMATOR = xivo::CreateSystem(ESTIMATOR_CFG);
 // const auto window_name = "Display Image";
 
+template <typename T>
+auto nanoseconds_to_duration(T ns) {
+    return std::chrono::duration<T, std::ratio<1, 1000000000>>(ns);
+}
+
 void OnIMUMessage(const char* topic_name_, const rstracker_pb::IMUMessage& imu_msg, const long long time_, const long long clock_)
 {
 	double now = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
 	// std::cout<< std::setprecision(0) << std::fixed << "Received IMUMessage; now: " << now << "; send_ts: " << time_/1000  << "; hardware_ts: " << imu_msg.hardware_ts()  << std::endl;
+	xivo::timestamp_t ts_ = xivo::timestamp_t(static_cast<uint64_t>(imu_msg.hardware_ts() * MS_TO_NS));
+	// LOG(INFO) << "New ts: " << ts_.count();
+	xivo::Vec3 gyro(imu_msg.gyro().x(), imu_msg.gyro().y(), imu_msg.gyro().z());
+	xivo::Vec3 accel(imu_msg.accel().x(), imu_msg.accel().y(), imu_msg.accel().z());
+	ESTIMATOR->InertialMeas(ts_, gyro, accel);
 }
 
 // using timestamp_t = std::chrono::nanoseconds::nanoseconds;
@@ -408,9 +420,12 @@ void OnImageData(const char* topic_name_, const rstracker_pb::ImageData& img, co
 	// std::cout<< std::setprecision(0) << std::fixed << "Image size: " << img_size_bytes << std::endl;
 	// cv::imshow(window_name, image);
 	// cv::waitKey(1); 
-	xivo::timestamp_t ts_ = xivo::timestamp_t(img.hardware_ts() * MS_TO_NS);
+	xivo::timestamp_t ts_ = xivo::timestamp_t(static_cast<uint64_t>(img.hardware_ts() * MS_TO_NS));
 	// LOG(INFO) << "New ts: " << ts_.count();
 	ESTIMATOR->VisualMeas(ts_, image);
+	auto gsb_ = ESTIMATOR->gsb();
+	auto translation = gsb_.translation();
+	std::cout << "New translation: " << translation << std::endl;
 
 }
 
