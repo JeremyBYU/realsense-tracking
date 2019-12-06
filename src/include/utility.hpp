@@ -16,6 +16,8 @@
 
 #include "IMUMessage.pb.h"
 
+#define MS_TO_NS 1000000
+
 namespace rstracker
 {
 
@@ -94,7 +96,8 @@ class IMUData
         Float3 data;
         double ts;
 };
-enum sensor_name {mGYRO, mACCEL};
+enum 
+sensor_name {mGYRO, mACCEL};
 
 class IMUHistory
 {
@@ -111,6 +114,7 @@ class IMUHistory
         const std::list<IMUData>& get_data(sensor_name module);
         IMUData recent_data(sensor_name module);
         IMUData old_data(sensor_name module);
+        IMUData really_old_data(sensor_name module);
 };
 
 bool check_imu_is_supported();

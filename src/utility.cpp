@@ -29,6 +29,12 @@ IMUData IMUHistory::recent_data(sensor_name module)
 }
 IMUData IMUHistory::old_data(sensor_name module)
 {
+    auto old = std::next(m_map[module].begin(), 1);
+    return *old;
+}
+
+IMUData IMUHistory::really_old_data(sensor_name module)
+{
     return m_map[module].back();
 }
 
@@ -100,6 +106,11 @@ void print_message(rstracker_pb::IMUMessage &msg, IMUHistory &imu_hist)
               << std::setw(time_width) << "timestamp" << sep
               << std::setw(sensor_width) << "gryo" << sep << '\n' << line << '\n' ;
 
+    std::cout << sep << std::setw(time_width) << std::setprecision(0) << std::fixed << imu_hist.really_old_data(mACCEL).ts << sep
+              << std::setw(sensor_width) << float3_to_string(imu_hist.really_old_data(mACCEL).data) << sep 
+              << std::setw(time_width) << std::setprecision(0) << std::fixed << imu_hist.really_old_data(mGYRO).ts << sep
+              << std::setw(sensor_width) << float3_to_string(imu_hist.really_old_data(mGYRO).data) << sep <<  '\n';
+    
     std::cout << sep << std::setw(time_width) << std::setprecision(0) << std::fixed << imu_hist.old_data(mACCEL).ts << sep
               << std::setw(sensor_width) << float3_to_string(imu_hist.old_data(mACCEL).data) << sep 
               << std::setw(time_width) << std::setprecision(0) << std::fixed << imu_hist.old_data(mGYRO).ts << sep

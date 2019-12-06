@@ -20,12 +20,14 @@
 #include <algorithm>
 #include <iomanip>
 #include <thread>
+#include <time.h>
 
 #include <librealsense2/rs.hpp>
 #include <gflags/gflags.h>
 #include <ecal/ecal.h>
 #include <ecal/msg/protobuf/publisher.h>
 #include <ecal/msg/protobuf/subscriber.h>
+#include <opencv2/opencv.hpp>
 
 
 #include "estimator.h"
@@ -49,7 +51,7 @@ namespace rstracker
 
 // This global variable holds history for collected IMU data
 // TODO - Add mutex locking?
-static IMUHistory imu_hist(2);
+static IMUHistory imu_hist(3);
 
 // The slow_sensor has the lower fps/frequency
 // This function should be immediatly called AFTER a measurement update is given for the slow_sensor
@@ -70,8 +72,22 @@ double IMUData_LinearInterpolation(const sensor_name slow_sensor, rstracker_pb::
     if(fast_sensor_recent.ts < slow_sensor_old.ts)
     {
         // this should not happen. The fast sensor should have a more recent timestamp than the old timestamp for the slow sensor
-        std::cout<< "Fast sensor has an older timestamp than the old timestamp from the slow sensor!" << std::endl;
-        return -1;
+		// Our backup is to use the previous sensor
+        // std::cout<< "Fast sensor has an older timestamp than the old timestamp from the slow sensor!" << std::endl;
+		// std::cout << std::setprecision(0) << std::fixed << "fast_sensor_recent.ts: " << fast_sensor_recent.ts <<  "; slow_sensor_old.ts: " << slow_sensor_old.ts << 
+		// 		  "; slow_sensor_recent.ts: " << slow_sensor_recent.ts << "; Diff: " << fast_sensor_recent.ts - slow_sensor_old.ts << std::endl;
+
+		IMUData slow_sensor_really_old = imu_hist.really_old_data(slow_sensor);
+		if(fast_sensor_recent.ts < slow_sensor_really_old.ts)
+		{
+			// this should not happen. The fast sensor has a timestamp that is older then last 3 stamples of the slow sensor.
+			std::cout<< "Fast sensor has an older timestamp that is older then the last 3 samples of the slow sensor" << std::endl;
+        	return -1;
+		}
+		// std::cout << "Using a much older timestamp from the slow sensor to compensate; increased latency by a max of: " << fast_sensor_recent.ts - slow_sensor_old.ts << std::endl;
+		slow_sensor_recent = slow_sensor_old;
+		slow_sensor_old = slow_sensor_really_old;
+
     }
     if(fast_sensor_recent.ts > slow_sensor_recent.ts)
     {
@@ -121,18 +137,44 @@ double IMUData_LinearInterpolation(const sensor_name slow_sensor, rstracker_pb::
 
 void rs_callback(rs2::frame frame, bool sync_with_accel, eCAL::protobuf::CPublisher<rstracker_pb::ImageData> &pub_image, eCAL::protobuf::CPublisher<rstracker_pb::IMUMessage> &pub_imu)
 {
-	if (frame.get_profile().stream_type() == RS2_STREAM_COLOR)
+	if (frame.get_profile().stream_type() == RS2_STREAM_INFRARED)
 	{
-		const int w = frame.as<rs2::video_frame>().get_width();
-		const int h = frame.as<rs2::video_frame>().get_height();
-		const char* image_data = static_cast<const char*>(frame.as<rs2::video_frame>().get_data());
+		auto vframe = frame.as<rs2::video_frame>();
+		const int w = vframe.get_width();
+		const int h = vframe.get_height();
+		const char* image_data = static_cast<const char*>(vframe.get_data());
+		int nbytes = w * h * vframe.get_bytes_per_pixel();
+		auto format = vframe.get_profile().format();
+		// std::cout << "Infrared bpp: " << vframe.get_bytes_per_pixel() << "; Total Bytes: " <<  nbytes << std::endl;
 
 		rstracker_pb::ImageData frame_image;
 		frame_image.set_hardware_ts(frame.get_timestamp());
 		frame_image.set_width(w);
 		frame_image.set_height(h);
-		frame_image.set_image_data(image_data);
+		frame_image.set_image_data(image_data, nbytes);
+		frame_image.set_bpp(vframe.get_bytes_per_pixel());
+		frame_image.set_format(format);
 		pub_image.Send(frame_image);
+		
+	}
+	if (frame.get_profile().stream_type() == RS2_STREAM_COLOR)
+	{
+		auto vframe = frame.as<rs2::video_frame>();
+		const int w = vframe.get_width();
+		const int h = vframe.get_height();
+		const char* image_data = static_cast<const char*>(vframe.get_data());
+		int nbytes = w * h * vframe.get_bytes_per_pixel();
+		auto format = vframe.get_profile().format();
+		// std::cout << "Color bpp: " << vframe.get_bytes_per_pixel() << "; Total Bytes: " <<  nbytes << std::endl;
+
+		rstracker_pb::ImageData frame_image;
+		frame_image.set_hardware_ts(frame.get_timestamp());
+		frame_image.set_width(w);
+		frame_image.set_height(h);
+		frame_image.set_image_data(image_data, nbytes);
+		frame_image.set_bpp(vframe.get_bytes_per_pixel());
+		frame_image.set_format(format);
+		// pub_image.Send(frame_image);
 		
 	}
 	else if(frame.get_profile().stream_type() == RS2_STREAM_GYRO)
@@ -147,7 +189,7 @@ void rs_callback(rs2::frame frame, bool sync_with_accel, eCAL::protobuf::CPublis
 			if (ts_ > 0)
 			{
 				// no issues with linear interpolation and the msg
-				print_message(msg, imu_hist);
+				// print_message(msg, imu_hist);
 				pub_imu.Send(msg);
 			}
 		}
@@ -165,7 +207,7 @@ void rs_callback(rs2::frame frame, bool sync_with_accel, eCAL::protobuf::CPublis
 			if (ts_ > 0)
 			{
 				// no issues with linear interpolation and the msg
-				print_message(msg, imu_hist);
+				// print_message(msg, imu_hist);
 				pub_imu.Send(msg);
 			}
 		}
@@ -219,9 +261,12 @@ int read_bag(std::string file_name)
     playback.set_real_time(false);
 
 	auto streams = profile.get_streams();
+	print_profiles(streams);
 	// Which sensor has the lower frame rate.
 	bool sync_with_accel = accel_is_slower_than_gryo(streams);
 	auto sensors = playback.query_sensors();
+
+	std::cout << "Syncing with accel: " << sync_with_accel << std::endl; 
 
 	for (auto &sensor : sensors)
 	{
@@ -234,7 +279,7 @@ int read_bag(std::string file_name)
 		// Sensor Callback
 		sensor.start([&](rs2::frame frame){
 			rs_callback(frame, sync_with_accel, pub_image, pub_imu);
-			std::this_thread::sleep_for( 1ms );
+			std::this_thread::sleep_for( 1000us );
 		});
 	}
 	// This while loop is just to keep the thread alive while sensor callback are being performed
@@ -340,24 +385,42 @@ int live_stream()
 	return EXIT_SUCCESS;
 }
 auto ESTIMATOR_CFG = xivo::LoadJson("/opt/workspace/config/xivo_d435i.json");
-auto est_ = xivo::CreateSystem(ESTIMATOR_CFG);
+auto ESTIMATOR = xivo::CreateSystem(ESTIMATOR_CFG);
+// const auto window_name = "Display Image";
 
 void OnIMUMessage(const char* topic_name_, const rstracker_pb::IMUMessage& imu_msg, const long long time_, const long long clock_)
 {
 	double now = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
-	std::cout<< std::setprecision(0) << std::fixed << "Received IMUMessage; now: " << now << "; send_ts: " << time_/1000  << "; hardware_ts: " << imu_msg.hardware_ts()  << std::endl;
+	// std::cout<< std::setprecision(0) << std::fixed << "Received IMUMessage; now: " << now << "; send_ts: " << time_/1000  << "; hardware_ts: " << imu_msg.hardware_ts()  << std::endl;
 }
 
+// using timestamp_t = std::chrono::nanoseconds::nanoseconds;
 void OnImageData(const char* topic_name_, const rstracker_pb::ImageData& img, const long long time_, const long long clock_)
 {
 	double now = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
-	// std::cout<< std::setprecision(0) << std::fixed << "Received ImageData; now: " << now << "; send_ts: " << time_/1000  << ";hardware_ts: " << img.hardware_ts()  << std::endl;
+	auto w = img.width();
+	auto h = img.height();
+	auto image_data_str = img.image_data();
+	const char* image_data_ptr = image_data_str.c_str();
+	auto img_size_bytes = image_data_str.size();
+	cv::Mat image(cv::Size(w, h), CV_8UC1, (void*)image_data_ptr, cv::Mat::AUTO_STEP);
+	// std::cout<< std::setprecision(0) << std::fixed << "Received ImageData; now: " << now << "; send_ts: " << time_/1000  << "; hardware_ts: " << img.hardware_ts()  << std::endl;
+	// std::cout<< std::setprecision(0) << std::fixed << "Image size: " << img_size_bytes << std::endl;
+	// cv::imshow(window_name, image);
+	// cv::waitKey(1); 
+	xivo::timestamp_t ts_ = xivo::timestamp_t(img.hardware_ts() * MS_TO_NS);
+	// LOG(INFO) << "New ts: " << ts_.count();
+	ESTIMATOR->VisualMeas(ts_, image);
+
 }
 
 }
 
 int main(int argc, char* argv[]) try
 {
+	// cv::namedWindow(rstracker::window_name, cv::WINDOW_AUTOSIZE);
+	google::InitGoogleLogging(argv[0]);
+	LOG(INFO) << "Starting RealSense Tracker";
 	// initialize eCAL API
 	eCAL::Initialize(0, nullptr, "RSTrackerSub");
 	// create subscriber

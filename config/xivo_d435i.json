@@ -1,7 +1,7 @@
 {
     // verbose
     "simulation": false,
-    "print_timing": false,
+    "print_timing": true,
     "print_calibration": true,
     "use_canvas": true,
     "use_debug_view": true,  // draw rejected & dropped features on canvas
@@ -59,11 +59,11 @@
       "T"   : [0, 0, 0],
       "V"   : [0, 0, 0],
   
-      "bg"  : [8.93594e-05, -0.000113499, -4.95253e-05],
-      "ba"  : [0.106957, 0.0822465, -0.092585],
+      "bg"  : [0.0, 0.0, 0.0],
+      "ba"  : [0.0, 0.0, 0.0],
   
-      "Wbc" : [1.87, 1.98, -0.0048],
-      "Tbc": [-0.025, 0.025, -0.040],
+      "Wbc" : [1, 1, 1],
+      "Tbc": [0, 0, 0],
   
       "Wg"  : [0, 0, 0],
       "td"  : 0.0
