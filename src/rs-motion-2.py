@@ -49,7 +49,7 @@ def main():
     global playback
     config = rs.config()
     pipeline = rs.pipeline()
-    rs.config.enable_device_from_file(config, "/media/jeremy/Samsung_T5/jeremy/realsense-tracking/20191201_154627.bag", False)
+    rs.config.enable_device_from_file(config, "../data/20191205_115956_noemitter.bag", False)
     
     profile = config.resolve(pipeline)
     dev = profile.get_device()

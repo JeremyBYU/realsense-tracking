@@ -55,6 +55,9 @@ RUN git clone https://github.com/IntelRealSense/librealsense.git /opt/librealsen
     make -j 18 && \
     make install
 
+ENV PYTHONPATH $PYTHONPATH:/usr/local/lib
+
+
 # Clone OpenCV - Computer Vision
 RUN git clone -b '3.4.7' --single-branch https://github.com/opencv/opencv.git /opt/opencv
 RUN git clone -b '3.4.7' --single-branch https://github.com/opencv/opencv_contrib.git /opt/opencv_contrib
