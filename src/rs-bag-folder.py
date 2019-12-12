@@ -69,7 +69,7 @@ class Converter(object):
         fpath = data_dir / fname
 
         # write file
-        # cv2.imwrite(str(fpath), image_data)
+        cv2.imwrite(str(fpath), image_data)
         # record data in list of dicts
         data_repo.append(dict(timestamp=ts, filename=fname))
 
@@ -96,8 +96,8 @@ class Converter(object):
     def convert_numpy_imu(self, data_repo):
         accel_np = np.array([[data['timestamp'], data['x'], data['y'], data['z']] for data in data_repo if data['sensor'] == 'accel'])
         gyro_np = np.array([[data['timestamp'], data['x'], data['y'], data['z']] for data in data_repo if data['sensor'] == 'gyro'])
-        print(accel_np.shape)
-        print(gyro_np.shape)
+        # print(accel_np.shape)
+        # print(gyro_np.shape)
         return accel_np, gyro_np
 
     def accel_is_slower(self, accel_np, gyro_np):
@@ -172,7 +172,7 @@ class DefaultListSensors(argparse.Action):
 def callback(frame):
     # print(frame.profile.stream_type(), frame.timestamp)
     if frame.profile.stream_type() == rs.stream.infrared:
-        print('infrared1')
+        # print('infrared1')
         CONVERTER.handle_image('infrared1', frame)
         pass
     elif frame.profile.stream_type() == rs.stream.color:
