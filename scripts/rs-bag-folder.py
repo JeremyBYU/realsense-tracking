@@ -233,8 +233,9 @@ def main():
 
     for sensor in sensors:
         profiles = sensor.profiles
-        sensor.open(profiles)
-        sensor.start(callback)
+        if profiles:
+            sensor.open(profiles)
+            sensor.start(callback)
 
     while True:
         # print(dir(playback))
