@@ -25,7 +25,6 @@ ENV LC_ALL C.UTF-8
     
 # clone source
 ENV MYWS /opt/workspace
-RUN mkdir -p $MYWS/src
 WORKDIR $MYWS
 
 # Prepare realsense
@@ -85,12 +84,15 @@ RUN cd /opt/ecal/build_ && \
     dpkg -i _deploy/eCAL-*
 
 # Prepare XIVO - Visual SLAM
-COPY xivo.sh /tmp/  
-RUN chmod u+x /tmp/xivo.sh
-RUN bash /tmp/xivo.sh ${TARGETPLATFORM} 
+# COPY xivo.sh /tmp/  
+# RUN chmod u+x /tmp/xivo.sh
+# RUN bash /tmp/xivo.sh ${TARGETPLATFORM} 
 
 # Stuff I like/need
 RUN apt-get install --no-install-recommends -y nano htop
+
+# Our Project Dependencies
+RUN apt-get install --no-install-recommends -y libgflags-dev
 
 # setup entrypoint
 COPY ./base_entrypoint.sh /

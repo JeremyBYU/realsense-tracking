@@ -24,3 +24,4 @@ cmake -D CMAKE_BUILD_TYPE=RELEASE \
 make -j 18 
 make install
 rm -rf /opt/opencv_contrib
+rm -rf /opt/opencv

@@ -13,7 +13,8 @@ Taken from here mostly: https://engineering.docker.com/2019/06/getting-started-w
 Actually build dockerimage 
 
 1. `cd Docker/base` - Make sure your in the Docker directory
-2. `docker buildx build --platform linux/arm64 -t jeremybyu/ros2 --output type=docker . `
+2. `docker buildx build --platform linux/arm64 -t jeremybyu/realsense:buildx --output type=docker . ` - Build local arm instance
+3. `docker buildx build --platform linux/arm64 -t jeremybyu/realsense:buildx --push .`
 
 Build with regular x86 docker
 1. `cd Docker/base`
