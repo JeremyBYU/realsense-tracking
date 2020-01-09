@@ -329,7 +329,7 @@ int live_stream()
 
 	bool sync_with_accel = accel_is_slower_than_gryo(streams);
 
-	std::map<std::string, std::string> stream_to_sensor_name = {{"Depth", "Stereo Module"}, {"Infrared 1", "Stereo Module"}, {"Color", "RGB Camera"}, {"Gyro", "Motion Module"}, {"Accel", "Motion Module"}, {"Pose", "Tracking Module"}};
+	std::map<std::string, std::string> stream_to_sensor_name = {{"Depth", "Stereo Module"}, {"Infrared 1", "Stereo Module"}, {"Color", "RGB Camera"}, {"Gyro", "Motion Module"}, {"Accel", "Motion Module"}};
 	std::map<std::string, std::vector<rs2::stream_profile>> sensor_to_streams; 
 	for (auto &stream_profile: streams)
 	{

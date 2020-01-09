@@ -76,7 +76,7 @@ RUN apt-get install --no-install-recommends -y git doxygen graphviz build-essent
 RUN cd /opt && \
     git clone --recursive git://github.com/continental/ecal.git && \
     cd ecal && mkdir build_ &&  cd build_ && \
-    cmake .. -DCMAKE_BUILD_TYPE=Release -DECAL_THIRDPARTY_BUILD_PROTOBUF=OFF -DHAS_QT5=OFF && \
+    cmake .. -DCMAKE_BUILD_TYPE=Release -DECAL_THIRDPARTY_BUILD_PROTOBUF=OFF -DHAS_QT5=OFF -DBUILD_DOCS=OFF && \
     make -j16
 
 RUN cd /opt/ecal/build_ && \

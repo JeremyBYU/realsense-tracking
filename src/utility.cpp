@@ -79,12 +79,52 @@ bool check_imu_is_supported()
 	return found_gyro && found_accel;
 }
 
+void print_profiles(std::vector<StreamDetail> stream_details)
+{
+
+    std::cout << std::setw(22) << "    device"  << std::setw(16) << "    stream" << std::setw(16)
+            << " resolution" << std::setw(10) << " fps" << std::setw(10) << " format" << std::endl;
+	for (auto &stream: stream_details)
+	{
+        std::string res = std::to_string(stream.width) + "x" + std::to_string(stream.height);
+        std::string fps = "@ " + std::to_string(stream.fps) + "Hz";
+        std::cout << std::setw(22) << stream.device_name << std::setw(16) << stream.name << std::setw(16) <<  res 
+        << std::setw(10) << fps<< std::setw(10) << stream.format << std::endl;
+
+	}
+}
+
 void print_profiles(std::vector<rs2::stream_profile> streams)
 {
+
+
+    std::cout << "Supported modes:\n" << std::setw(16) << "    stream" << std::setw(16)
+            << " resolution" << std::setw(10) << " fps" << std::setw(10) << " format" << std::endl;
 	for (auto &stream: streams)
 	{
-		std::cout << "Stream Name: " << stream.stream_name() << "; Format: " << stream.format() << "; Index: " << stream.stream_index() << "; FPS: " << stream.fps() <<std::endl;
+        if (auto video = stream.as<rs2::video_stream_profile>())
+        {
+            std::cout << "    " << stream.stream_name() << "\t\t  " << video.width() << "x"
+                << video.height() << "\t@ " << stream.fps() << std::setw(6) << "Hz\t" << stream.format() << std::endl;
+        }
+        else
+        {
+            std::cout << "    " << stream.stream_name() << "\t N/A\t\t@ " << stream.fps()
+                << std::setw(6) << "Hz\t" << stream.format() << std::endl;
+        }
 	}
+}
+
+StreamDetail stream_profile_to_details(rs2::stream_profile sp)
+{
+    int w=0,h=0;
+    if (auto video = sp.as<rs2::video_stream_profile>())
+    {
+        w = video.width();
+        h = video.height();
+    }
+    StreamDetail sd_ = {"", sp.stream_name(), w, h, sp.fps(), sp.format()};
+    return sd_;
 }
 
 

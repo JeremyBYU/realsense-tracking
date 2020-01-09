@@ -119,9 +119,29 @@ class IMUHistory
 
 bool check_imu_is_supported();
 
-void print_message(rstracker_pb::IMUMessage &msg, IMUHistory &imu_hist);
+struct StreamDetail
+{
+    std::string device_name;
+	std::string name;
+	int width;
+	int height;
+	int fps;
+	rs2_format format;
 
+	bool operator==(const StreamDetail& rhs) const
+	{
+		return name == rhs.name && width == rhs.width && height == rhs.height && fps == rhs.fps && format == rhs.format;
+	}
+};
+
+void print_message(rstracker_pb::IMUMessage &msg, IMUHistory &imu_hist);
 void print_profiles(std::vector<rs2::stream_profile> streams);
+void print_profiles(std::vector<StreamDetail> stream_details);
+
+
+
+
+StreamDetail stream_profile_to_details(rs2::stream_profile sp);
 
 }
 
