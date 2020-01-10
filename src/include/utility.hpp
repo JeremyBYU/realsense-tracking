@@ -123,6 +123,7 @@ struct StreamDetail
 {
     std::string device_name;
 	std::string name;
+    rs2_stream stream_type;
 	int width;
 	int height;
 	int fps;
@@ -137,7 +138,18 @@ struct StreamDetail
 void print_message(rstracker_pb::IMUMessage &msg, IMUHistory &imu_hist);
 void print_profiles(std::vector<rs2::stream_profile> streams);
 void print_profiles(std::vector<StreamDetail> stream_details);
-
+const static std::unordered_map<std::string,rs2_stream> STRM_ENUM{
+    {"Any",RS2_STREAM_ANY},
+    {"Depth",RS2_STREAM_DEPTH},
+    {"Color",RS2_STREAM_COLOR},
+    {"Infrared 1",RS2_STREAM_INFRARED},
+    {"Infrared 2",RS2_STREAM_INFRARED},
+    {"Fisheye 1",RS2_STREAM_FISHEYE},
+    {"Fisheye 2",RS2_STREAM_FISHEYE},
+    {"Gyro",RS2_STREAM_GYRO},
+    {"Accel",RS2_STREAM_ACCEL},
+    {"Pose",RS2_STREAM_POSE}
+};
 
 
 

@@ -123,7 +123,7 @@ StreamDetail stream_profile_to_details(rs2::stream_profile sp)
         w = video.width();
         h = video.height();
     }
-    StreamDetail sd_ = {"", sp.stream_name(), w, h, sp.fps(), sp.format()};
+    StreamDetail sd_ = {"", sp.stream_name(), STRM_ENUM.at(sp.stream_name()), w, h, sp.fps(), sp.format()};
     return sd_;
 }
 
@@ -171,5 +171,6 @@ void print_message(rstracker_pb::IMUMessage &msg, IMUHistory &imu_hist)
 
     std::cout << std::endl;
 }
+
 
 } // namespace rstracker
