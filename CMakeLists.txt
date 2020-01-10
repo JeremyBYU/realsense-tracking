@@ -16,9 +16,10 @@ find_package(Protobuf REQUIRED)
 find_package(eCAL REQUIRED)
 find_package(OpenGL)
 find_package(gflags REQUIRED)
+find_package(glog REQUIRED)
 # add_subdirectory(${XIVO_DIR} build)
 
-PROTOBUF_GENERATE_CPP(PROTO_SRCS PROTO_HDRS ${PROTO_DIR}/ImageData.proto ${PROTO_DIR}/IMUMessage.proto)
+PROTOBUF_GENERATE_CPP(PROTO_SRCS PROTO_HDRS ${PROTO_DIR}/Common.proto  ${PROTO_DIR}/ImageData.proto ${PROTO_DIR}/IMUMessage.proto ${PROTO_DIR}/PoseMessage.proto)
 # Print path to generated files
 message ("PROTO_SRCS = ${PROTO_SRCS}")
 message ("PROTO_HDRS = ${PROTO_HDRS}")
@@ -27,7 +28,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib)
 
-set(DEPENDENCIES glfw realsense2-gl ${OPENGL_LIBRARIES} ${DEPENDENCIES} ${PROTOBUF_LIBRARIES} ${OpenCV_LIBRARIES} gflags eCAL::core) 
+set(DEPENDENCIES glfw realsense2-gl ${OPENGL_LIBRARIES} ${DEPENDENCIES} ${PROTOBUF_LIBRARIES} ${OpenCV_LIBRARIES} gflags glog eCAL::core) 
 
 
 # get_cmake_property(_variableNames VARIABLES)
@@ -64,6 +65,7 @@ include_directories(
     # ${XIVO_DIR}/thirdparty/jsoncpp/include
     ${PROTOBUF_INCLUDE_DIRS}
     ${PROJECT_SOURCE_DIR}/build
+    ${GFLAG_INCLUDE_DIRS}
 )
 
 
@@ -77,9 +79,11 @@ add_executable(rs-motion src/rs-motion.cpp)
 add_executable(rs-motion-2 src/rs-motion-2.cpp)
 # add_executable(rs-tracker src/rs-tracker.cpp src/utility.cpp ${PROTO_SRCS} ${PROTO_HDRS})
 add_executable(rs-test src/rs-test.cpp src/utility.cpp ${PROTO_SRCS} ${PROTO_HDRS})
+add_executable(rs-track-depth src/rs-track-depth.cpp src/utility.cpp ${PROTO_SRCS} ${PROTO_HDRS})
 
 # Link librealsense2 to the target
 target_link_libraries(rs-motion ${realsense2_LIBRARY} ${DEPENDENCIES})
 target_link_libraries(rs-motion-2 ${realsense2_LIBRARY} ${DEPENDENCIES})
 # target_link_libraries(rs-tracker ${realsense2_LIBRARY} ${DEPENDENCIES} xest)
+target_link_libraries(rs-track-depth ${realsense2_LIBRARY} ${DEPENDENCIES})
 target_link_libraries(rs-test ${realsense2_LIBRARY} ${DEPENDENCIES}) 

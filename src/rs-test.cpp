@@ -115,7 +115,8 @@ int main(int argc, char *argv[])
 	std::vector<rstracker::StreamDetail> desired_manual_streams = {{"Intel RealSense T265", "Pose", rstracker::STRM_ENUM.at("Pose"s), 0, 0, 200, RS2_FORMAT_6DOF}};
 	// Desired streams that should be controlled and SYNCED through a pipeline. Like Depth and Color.
 	std::vector<rstracker::StreamDetail> desired_pipeline_streams = {{"Intel RealSense D435I", "Depth", rstracker::STRM_ENUM.at("Depth"s), 640, 480, 30, RS2_FORMAT_Z16},
-										{"Intel RealSense D435I", "Color", rstracker::STRM_ENUM.at("Color"s), 640, 480, 30, RS2_FORMAT_BGR8}};
+																	{"Intel RealSense D435I", "Color", rstracker::STRM_ENUM.at("Color"s), 640, 480, 30, RS2_FORMAT_BGR8}};
+	// std::vector<rstracker::StreamDetail> desired_pipeline_streams;
 
 	// needed this variable to keep sensors 'alive'
 	std::map<std::string, std::vector<rs2::sensor>> device_sensors;

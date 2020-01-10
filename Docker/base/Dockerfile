@@ -92,7 +92,7 @@ RUN cd /opt/ecal/build_ && \
 RUN apt-get install --no-install-recommends -y nano htop
 
 # Our Project Dependencies
-RUN apt-get install --no-install-recommends -y libgflags-dev
+RUN apt-get install --no-install-recommends -y libgflags-dev libgoogle-glog-dev
 
 # setup entrypoint
 COPY ./base_entrypoint.sh /
