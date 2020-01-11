@@ -16,6 +16,7 @@
 
 #include "IMUMessage.pb.h"
 #include "PoseMessage.pb.h"
+#include "ImageMessage.pb.h"
 
 #define MS_TO_NS 1000000
 
@@ -137,6 +138,7 @@ struct StreamDetail
 };
 
 void fill_pose_message(rs2_pose &pose, rspub_pb::PoseMessage &pm, double ts);
+void fill_image_message(rs2::video_frame &dframe, rspub_pb::ImageMessage &frame_image);
 
 void print_message(rspub_pb::IMUMessage &msg, IMUHistory &imu_hist);
 void print_profiles(std::vector<rs2::stream_profile> streams);

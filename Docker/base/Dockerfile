@@ -96,5 +96,8 @@ RUN apt-get install --no-install-recommends -y libgflags-dev libgoogle-glog-dev
 # setup entrypoint
 COPY ./base_entrypoint.sh /
 
+# TO ADD LATER
+# RUN cd /opt/ecal/build_ && cmake --build . --target create_python_egg --config Release && cd python && pip3 install .
+
 ENTRYPOINT ["/base_entrypoint.sh"]
 CMD ["bash"]

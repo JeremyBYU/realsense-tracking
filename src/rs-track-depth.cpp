@@ -43,23 +43,6 @@ namespace rspub
 {
 
 
-void fill_image_message(rs2::video_frame &dframe, rspub_pb::ImageMessage &frame_image)
-{
-	const int w = dframe.get_width();
-	const int h = dframe.get_height();
-	const char *image_data = static_cast<const char *>(dframe.get_data());
-	int nbytes = w * h * dframe.get_bytes_per_pixel();
-	auto format = dframe.get_profile().format();
-	// std::cout << "Infrared bpp: " << vframe.get_bytes_per_pixel() << "; Total Bytes: " <<  nbytes << std::endl;
-
-	frame_image.set_hardware_ts(dframe.get_timestamp());
-	frame_image.set_width(w);
-	frame_image.set_height(h);
-	frame_image.set_image_data(image_data, nbytes);
-	frame_image.set_bpp(dframe.get_bytes_per_pixel());
-	frame_image.set_format(format);
-}
-
 void rs_callback(rs2::frame &frame, eCAL::protobuf::CPublisher<rspub_pb::PoseMessage> *pose_pub)
 {
 	if (frame.get_profile().stream_type() == RS2_STREAM_GYRO)

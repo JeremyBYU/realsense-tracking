@@ -3,6 +3,24 @@
 namespace rspub
 {
 
+void fill_image_message(rs2::video_frame &dframe, rspub_pb::ImageMessage &frame_image)
+{
+	const int w = dframe.get_width();
+	const int h = dframe.get_height();
+	const char *image_data = static_cast<const char *>(dframe.get_data());
+	// int nbytes = w * h * dframe.get_bytes_per_pixel();
+	auto format = dframe.get_profile().format();
+	std::cout << "Depth bpp: " << dframe.get_bytes_per_pixel() << "; Total Bytes: " <<  nbytes << std::endl;
+
+
+	frame_image.set_hardware_ts(dframe.get_timestamp());
+	frame_image.set_width(w);
+	frame_image.set_height(h);
+	frame_image.set_image_data(image_data, nbytes);
+	frame_image.set_bpp(dframe.get_bytes_per_pixel());
+	frame_image.set_format(format);
+}
+
 void fill_pose_message(rs2_pose &pose, rspub_pb::PoseMessage &pm, double ts)
 {
 	auto tr = pm.mutable_translation();
