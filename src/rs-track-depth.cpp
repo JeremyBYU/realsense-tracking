@@ -264,6 +264,19 @@ void process_pipeline(std::vector<rspub::StreamDetail> dsp, rs2::pipeline &pipe,
 	const bool align = create_filters(filters, tcf);
 	rs2::align align_to_color(RS2_STREAM_COLOR);
 
+	auto depth_cfg = toml::find(tcf, "publish", "depth");
+	auto depth_cfg_active = toml::find_or<bool>(depth_cfg, "active", false);
+
+	auto color_cfg = toml::find(tcf, "publish", "color");
+	auto color_cfg_active = toml::find_or<bool>(color_cfg, "active", false);
+
+	auto pc_cfg = toml::find(tcf, "publish", "pointcloud");
+	bool pc_cfg_active = toml::find_or<bool>(pc_cfg, "active", false);
+	bool pc_cfg_color = toml::find_or<bool>(pc_cfg, "color", false);
+
+	rs2::pointcloud pc;
+	rs2::points points;
+
 	if (dsp.size() > 0)
 	{
 		while(true)
@@ -272,30 +285,69 @@ void process_pipeline(std::vector<rspub::StreamDetail> dsp, rs2::pipeline &pipe,
 
 			auto dframe = frames.get_depth_frame();
 			auto cframe = frames.get_color_frame();
-
-			DLOG(INFO) << "num_filters: " <<  static_cast<int>(filters.size());
+			double now = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
+			// LOG(INFO) << std::setprecision(0) << std::fixed << "Received FrameSet; now: " << now << "; dwidth: " << dframe.get_width();
+			// LOG(INFO) << std::setprecision(0) << std::fixed << "Received FrameSet; now: " << now << "; cwidth: " << cframe.get_width();
+			VLOG(2) << "num_filters: " <<  static_cast<int>(filters.size());
 			for (std::vector<NamedFilter>::const_iterator filter_it = filters.begin(); filter_it != filters.end(); filter_it++)
 			{
-				DLOG(INFO) << "Applying filter: " << filter_it->_name;
+				VLOG(2) << "Applying filter: " << filter_it->_name;
 				frames = filter_it->_filter->process(frames);
+				// if (filter_it->_name == "decimation"s)
+				// {
+				// 	LOG(INFO) << std::setprecision(0) << std::fixed << "Inside Decimation Filter";
+				// 	auto dec_filt = rs2::decimation_filter(2.0);
+				// 	auto cframe = frames.get_color_frame();
+				// 	if (cframe)
+				// 	{
+				// 		auto cframe2 = dec_filt.process(cframe).as<rs2::video_frame>();
+				// 		LOG(INFO) << std::setprecision(0) << std::fixed << "After decimating color frames" << now << "; cwidth: " << cframe2.get_width();
+				// 		cframe.swap(cframe2);
+				// 		LOG(INFO) << std::setprecision(0) << std::fixed << "After swapping frames" << now << "; cwidth: " << cframe.get_width();
+				// 		auto cframe3 = frames.get_color_frame();
+				// 		auto cframe4 = frames.get_depth_frame();
+				// 		LOG(INFO) << std::setprecision(0) << std::fixed << "Verify frameset" << now << "; cwidth: " << cframe3.get_width();
+				// 		LOG(INFO) << std::setprecision(0) << std::fixed << "Verify frameset" << now << "; dwidth: " << cframe4.get_width();
+				// 	}
+
+				// }
 			}
-			// double now = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
-			// LOG(INFO) << std::setprecision(0) << std::fixed << "Received DepthMessage; now: " << now << "; hardware_ts: " << dframe.get_timestamp();
+
+			dframe = frames.get_depth_frame();
+			// cframe = frames.get_color_frame();
+			// now = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
+			// LOG(INFO) << std::setprecision(0) << std::fixed << "Received FrameSet; now: " << now << "; dwidth: " << dframe.get_width();
+			// LOG(INFO) << std::setprecision(0) << std::fixed << "Received FrameSet; now: " << now << "; cwidth: " << cframe.get_width();
 
 			if (dframe && cframe && align)
 			{
-				LOG(INFO) << "Applying filter: align";
+				VLOG(2) << "Applying filter: align";
 				frames = align_to_color.process(frames);
 			}
 
 			dframe = frames.get_depth_frame();
 			cframe = frames.get_color_frame();
 
-			if (dframe)
+			if (dframe && depth_cfg_active)
 			{
 				rspub_pb::ImageMessage depth_message;
 				fill_image_message(dframe, depth_message);
 				pub_depth.Send(depth_message);
+			}
+
+			now = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
+			LOG(INFO) << std::setprecision(0) << std::fixed << "Received FrameSet; now: " << now << "; hardware_ts: " << dframe.get_timestamp();
+			// LOG(INFO) << std::setprecision(0) << std::fixed << "Received FrameSet; now: " << now << "; dwidth: " << dframe.get_width();
+			// LOG(INFO) << std::setprecision(0) << std::fixed << "Received FrameSet; now: " << now << "; cwidth: " << cframe.get_width();
+			if (dframe && pc_cfg_active)
+			{
+				rspub_pb::PointCloudMessage pc_message;
+				fill_pointcloud(dframe, cframe, pc, points, pc_cfg_color);
+				fill_pointcloud_message(points, pc_message, dframe.get_timestamp(), pc_cfg_color);
+				double now1 = std::chrono::duration<double, std::micro>(std::chrono::system_clock::now().time_since_epoch()).count();
+				pub_pc.Send(pc_message);
+				double now2 = std::chrono::duration<double, std::micro>(std::chrono::system_clock::now().time_since_epoch()).count();
+				// LOG(INFO) << std::setprecision(0) << std::fixed <<  "now: " << now << "; Going to send a pc, time to send:" << now2-now1;
 			}
 
 
@@ -379,7 +431,7 @@ int live_stream(const toml::value &tcf)
 	eCAL::protobuf::CPublisher<rspub_pb::ImageMessage> pub_depth("DepthMessage");
 	eCAL::protobuf::CPublisher<rspub_pb::ImageMessage> pub_color("ColorMessage");
 	eCAL::protobuf::CPublisher<rspub_pb::ImageMessage> pub_align("RGBDMessage");
-	eCAL::protobuf::CPublisher<rspub_pb::PointCloudMessage> pub_pc("PointCloud");
+	eCAL::protobuf::CPublisher<rspub_pb::PointCloudMessage> pub_pc("PointCloudMessage");
 	// Create librealsense context for managing devices
 	rs2::context ctx;
 	// Desired streams that should be manually controlled (no pipeline, i.e., sensor.open)
@@ -427,6 +479,12 @@ void OnDepthMessage(const char *topic_name_, const rspub_pb::ImageMessage &im_ms
 	LOG(INFO) << std::setprecision(0) << std::fixed << "Received DepthMessage; now: " << now << "; send_ts: " << time_ / 1000 << "; hardware_ts: " << im_msg.hardware_ts() << std::endl;
 }
 
+void OnPointCloudMessage(const char *topic_name_, const rspub_pb::PointCloudMessage &im_msg, const long long time_, const long long clock_)
+{
+	double now = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
+	LOG(INFO) << std::setprecision(0) << std::fixed << "Received PointCloudMessage; now: " << now << "; send_ts: " << time_ / 1000 << "; hardware_ts: " << im_msg.hardware_ts() << std::endl;
+}
+
 
 } // namespace rstracker
 
@@ -438,10 +496,13 @@ int main(int argc, char *argv[]) try
 	eCAL::Initialize(0, nullptr, "RSPub");
 	// create subscriber
 	eCAL::protobuf::CSubscriber<rspub_pb::PoseMessage> sub_pose("PoseMessage");
+	eCAL::protobuf::CSubscriber<rspub_pb::PointCloudMessage> sub_pc("PointCloudMessage");
 	// eCAL::protobuf::CSubscriber<rspub_pb::ImageMessage> sub_depth("DepthMessage");
 	// add receive callback function (_1 = topic_name, _2 = msg, _3 = time, , _4 = clock)
 	auto pose_rec_callback = std::bind(rspub::OnPoseMessage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
 	sub_pose.AddReceiveCallback(pose_rec_callback);
+	auto pc_rec_callback = std::bind(rspub::OnPointCloudMessage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
+	sub_pc.AddReceiveCallback(pc_rec_callback);
 	// auto depth_rec_callback = std::bind(rspub::OnDepthMessage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
 	// sub_depth.AddReceiveCallback(depth_rec_callback);
 	// enable to receive process internal publications

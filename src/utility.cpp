@@ -1,7 +1,40 @@
 #include "rspub/utility.hpp"
+
 #include "PoseMessage.pb.h"
 namespace rspub
 {
+
+void fill_pointcloud(rs2::depth_frame &dframe, rs2::video_frame &cframe, rs2::pointcloud &pc, rs2::points &points, bool color=false)
+{
+    if (color)
+    {
+        pc.map_to(cframe);
+    }
+    points = pc.calculate(dframe);
+}
+
+void fill_pointcloud_message(rs2::points points, rspub_pb::PointCloudMessage &pc_message, double hardware_ts, bool color=false)
+{
+    auto n_points = points.size();
+    auto bpp = 4 * 3; //  4 bytes per float, xyz=3,
+    auto n_bytes = n_points * bpp;
+    auto vertices = points.get_vertices();
+    const char *pc_data = (const char *)(vertices);
+    auto format = color ? 0:1;
+
+    // LOG(INFO) << "n_points: " << n_points << "; n_bytes: " << n_bytes;
+
+    double now1 = std::chrono::duration<double, std::micro>(std::chrono::system_clock::now().time_since_epoch()).count();
+    pc_message.set_pc_data(pc_data, n_bytes);
+    pc_message.set_n_points(n_points);
+    pc_message.set_hardware_ts(hardware_ts);
+    pc_message.set_bpp(4);
+    pc_message.set_format(format);
+    double now2 = std::chrono::duration<double, std::micro>(std::chrono::system_clock::now().time_since_epoch()).count();
+    // LOG(INFO) << "Copy PC to Protobuff Message: " << now2 -now1;
+
+
+}
 
 void fill_image_message(rs2::video_frame &dframe, rspub_pb::ImageMessage &frame_image)
 {
@@ -11,7 +44,6 @@ void fill_image_message(rs2::video_frame &dframe, rspub_pb::ImageMessage &frame_
 	int nbytes = w * h * dframe.get_bytes_per_pixel();
 	auto format = dframe.get_profile().format();
 	// std::cout << "Depth bpp: " << dframe.get_bytes_per_pixel() << "; Total Bytes: " <<  nbytes << std::endl;
-
 
 	frame_image.set_hardware_ts(dframe.get_timestamp());
 	frame_image.set_width(w);

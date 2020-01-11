@@ -23,8 +23,8 @@ active = true
 [[pipeline_streams]]
 device_name = "Intel RealSense D435i"
 stream_name = "Color"
-width = 848
-height = 480
+width = 424
+height = 240
 framerate = 30
 format = "BGR8"
 active = true
@@ -68,6 +68,8 @@ active = true
   active = true
   color= true
   rate = 30
+  ds_x=2
+  ds_y=2
 
 
 

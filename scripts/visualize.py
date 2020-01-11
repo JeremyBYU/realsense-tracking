@@ -16,11 +16,11 @@ THIS_DIR = Path(__file__).parent
 BUILD_DIR = (THIS_DIR / ".." / "build").resolve()
 
 sys.path.insert(1, str(BUILD_DIR))
-import ImageMessage_pb2, PoseMessage_pb2
+import ImageMessage_pb2, PoseMessage_pb2, PointCloudMessage_pb2
 
 logging.basicConfig(level=logging.INFO)
 
-def callback(topic_name, image, send_ts):
+def callback_depth(topic_name, image, send_ts):
     now = time.time() * 1000
     send_ts = send_ts / 1000
     logging.info("Received Depth Message; now: %.0f; send_ts: %.0f; hardware_ts: %.0f", now, send_ts, image.hardware_ts)
@@ -38,6 +38,21 @@ def callback(topic_name, image, send_ts):
         print(e)
     # img = None
 
+def callback_points(topic_name, pc, send_ts):
+    now = time.time() * 1000
+    send_ts = send_ts / 1000
+    n_points = pc.n_points
+    logging.info("Received PC Message; now: %.0f; send_ts: %.0f; hardware_ts: %.0f; # Points: %d", now, send_ts, pc.hardware_ts, n_points)
+    try:
+        pc_data = pc.pc_data
+        bpp = pc.bpp
+        points = np.frombuffer(pc_data, dtype=np.float32).reshape((n_points,3))
+
+        # print(n_points, len(pc_data))
+    except Exception as e:
+        print(e)
+    # img = None
+
 
 def main():
     # print eCAL version and date
@@ -50,9 +65,11 @@ def main():
     ecal_core.set_process_state(1, 1, "Healthy")
 
     # create subscriber and connect callback
-    sub = ProtoSubscriber("DepthMessage", ImageMessage_pb2.ImageMessage)
-    # sub = ProtoSubscriber("PoseMessage", PoseMessage_pb2.PoseMessage)
-    sub.set_callback(callback)
+    sub_depth = ProtoSubscriber("DepthMessage", ImageMessage_pb2.ImageMessage)
+    sub_depth.set_callback(callback_depth)
+
+    sub_points = ProtoSubscriber("PointCloudMessage", PointCloudMessage_pb2.PointCloudMessage)
+    sub_points.set_callback(callback_points)
 
     # idle main thread
     while ecal_core.ok():
