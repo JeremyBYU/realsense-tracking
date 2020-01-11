@@ -28,9 +28,7 @@
 // #include <opencv2/opencv.hpp>
 
 #include "rspub/utility.hpp"
-#include "PoseMessage.pb.h"
-#include "ImageMessage.pb.h"
-#include "IMUMessage.pb.h"
+
 
 using namespace std::chrono_literals;
 using namespace std::string_literals;
@@ -43,7 +41,32 @@ namespace rspub
 {
 
 
-void create_filters(std::vector<NamedFilter> &filters, const toml::value &tcf)
+void parse_desired_stream(std::vector<StreamDetail> &sds, const toml::value &tcf, std::string streams_str)
+{
+	try
+	{
+		auto streams  = toml::find<std::vector<toml::value>>(tcf, streams_str);
+		for (auto &stream: streams)
+		{
+			try
+			{
+				auto active = toml::find<bool>(stream, "active");
+				auto device_name = toml::find<std::string>(stream, "device_name");
+				auto stream_name = toml::find<std::string>(stream, "stream_name");
+				auto width = toml::find<int>(stream, "width");
+				auto height = toml::find<int>(stream, "height");
+				auto framerate = toml::find<int>(stream, "framerate");
+				auto format = toml::find<std::string>(stream, "format");
+				if (active)
+					sds.push_back({device_name, stream_name, rspub::STRM_ENUM.at(stream_name), width, height, framerate, rspub::FMT_ENUM.at(format)});
+			}
+			catch(const std::exception& e){std::cerr << e.what() << '\n';}
+		}
+	}
+	catch(const std::exception& e){std::cerr << e.what() << '\n';}
+}
+
+bool create_filters(std::vector<NamedFilter> &filters, const toml::value &tcf)
 {
 	try
 	{
@@ -101,6 +124,16 @@ void create_filters(std::vector<NamedFilter> &filters, const toml::value &tcf)
 		// Reverse Disparity
 		if (disparity)
 			filters.push_back(NamedFilter("disparity", std::make_shared<rs2::disparity_transform>(false)));
+
+		// Alignment Filter
+		try
+		{
+			auto filter  = toml::find(filters_t, "align");
+			auto active = toml::find<bool>(filter, "active");
+			if (active)
+				return active;
+		}
+		catch(const std::exception& e){std::cerr << e.what() << '\n';}
 		
 		/* code */
 	}
@@ -108,6 +141,8 @@ void create_filters(std::vector<NamedFilter> &filters, const toml::value &tcf)
 	{
 		std::cerr << e.what() << '\n';
 	}
+
+	return false;
 	
 }
 
@@ -184,7 +219,7 @@ void enable_manual_streams(rs2::context &ctx, std::vector<rspub::StreamDetail> &
 	std::vector<std::string> desired_devices;
 	std::transform(desired_streams.begin(), desired_streams.end(), std::back_inserter(desired_devices), [](auto const &sd) { return sd.device_name; });
 
-	LOG(INFO) << "Requesting to start: " << std::endl;
+	LOG(INFO) << "Requesting to start manual streams: " << std::endl;
 	rspub::print_profiles(desired_streams);
 
 	if (single_device)
@@ -209,6 +244,8 @@ void enable_manual_streams(rs2::context &ctx, std::vector<rspub::StreamDetail> &
 
 void enable_pipe_streams(std::vector<rspub::StreamDetail> &desired_pipeline_streams, rs2::config &cfg, rs2::pipeline &pipe)
 {
+	LOG(INFO) << "Requesting to start pipeline streams: " << std::endl;
+	rspub::print_profiles(desired_pipeline_streams);
 	for (auto &pipe_stream : desired_pipeline_streams)
 	{
 		cfg.enable_stream(pipe_stream.stream_type, pipe_stream.width, pipe_stream.height, pipe_stream.format, pipe_stream.fps);
@@ -218,11 +255,14 @@ void enable_pipe_streams(std::vector<rspub::StreamDetail> &desired_pipeline_stre
 }
 
 void process_pipeline(std::vector<rspub::StreamDetail> dsp, rs2::pipeline &pipe, 
-						const toml::value &tcf, eCAL::protobuf::CPublisher<rspub_pb::ImageMessage> &pub_depth, bool wait=false)
+						const toml::value &tcf, eCAL::protobuf::CPublisher<rspub_pb::ImageMessage> &pub_depth,
+						eCAL::protobuf::CPublisher<rspub_pb::PointCloudMessage> &pub_pc, bool wait=false)
 {
 
+	// create filters for depth image
 	std::vector<NamedFilter> filters;
-	create_filters(filters, tcf);
+	const bool align = create_filters(filters, tcf);
+	rs2::align align_to_color(RS2_STREAM_COLOR);
 
 	if (dsp.size() > 0)
 	{
@@ -231,20 +271,33 @@ void process_pipeline(std::vector<rspub::StreamDetail> dsp, rs2::pipeline &pipe,
 			auto frames = pipe.wait_for_frames();
 
 			auto dframe = frames.get_depth_frame();
+			auto cframe = frames.get_color_frame();
+
+			DLOG(INFO) << "num_filters: " <<  static_cast<int>(filters.size());
+			for (std::vector<NamedFilter>::const_iterator filter_it = filters.begin(); filter_it != filters.end(); filter_it++)
+			{
+				DLOG(INFO) << "Applying filter: " << filter_it->_name;
+				frames = filter_it->_filter->process(frames);
+			}
+			// double now = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
+			// LOG(INFO) << std::setprecision(0) << std::fixed << "Received DepthMessage; now: " << now << "; hardware_ts: " << dframe.get_timestamp();
+
+			if (dframe && cframe && align)
+			{
+				LOG(INFO) << "Applying filter: align";
+				frames = align_to_color.process(frames);
+			}
+
+			dframe = frames.get_depth_frame();
+			cframe = frames.get_color_frame();
+
 			if (dframe)
 			{
-				DLOG(INFO) << "num_filters: " <<  static_cast<int>(filters.size());
-				for (std::vector<NamedFilter>::const_iterator filter_it = filters.begin(); filter_it != filters.end(); filter_it++)
-				{
-					DLOG(INFO) << "Applying filter: " << filter_it->_name;
-					dframe = filter_it->_filter->process(dframe);
-				}
-				// double now = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
-				// LOG(INFO) << std::setprecision(0) << std::fixed << "Received DepthMessage; now: " << now << "; hardware_ts: " << dframe.get_timestamp();
 				rspub_pb::ImageMessage depth_message;
 				fill_image_message(dframe, depth_message);
 				pub_depth.Send(depth_message);
 			}
+
 
 			if (wait)
 				std::this_thread::sleep_for(1000us);
@@ -266,15 +319,24 @@ int read_bag(std::string file_name, const toml::value &tcf)
 	LOG(INFO) << "Creating BagReader of RealSense" << std::endl;
 	// create a publisher (topic name "RSPub")
 	eCAL::Initialize(0, nullptr, "RSPub");
+	// std::make_unique<eCAL::protobuf::CPublisher<rspub_pb::PoseMessage>>("PoseMessage");
 	eCAL::protobuf::CPublisher<rspub_pb::PoseMessage> pub_pose("PoseMessage");
 	eCAL::protobuf::CPublisher<rspub_pb::ImageMessage> pub_depth("DepthMessage");
+	eCAL::protobuf::CPublisher<rspub_pb::PointCloudMessage> pub_pc("PointCloud");
+
 	// Create librealsense context for managing devices
 	rs2::context ctx;
 	// Desired streams that should be manually controlled (no pipeline, i.e., sensor.open)
-	std::vector<rspub::StreamDetail> desired_manual_streams = {{"Intel RealSense T265", "Pose", rspub::STRM_ENUM.at("Pose"s), 0, 0, 200, rspub::FMT_ENUM.at("6DOF"s)}};
+	std::vector<rspub::StreamDetail> desired_manual_streams;
 	// Desired streams that should be controlled and SYNCED through a pipeline. Like Depth and Color.
-	std::vector<rspub::StreamDetail> desired_pipeline_streams = {{"Intel RealSense D435I", "Depth", rspub::STRM_ENUM.at("Depth"s), 640, 480, 30, rspub::FMT_ENUM.at("Z16"s)},
-																	 {"Intel RealSense D435I", "Color", rspub::STRM_ENUM.at("Color"s), 640, 480, 30, rspub::FMT_ENUM.at("BGR8"s)}};
+	std::vector<rspub::StreamDetail> desired_pipeline_streams;
+	// Read from TOML Config file
+	parse_desired_stream(desired_manual_streams, tcf, "manual_streams");
+	parse_desired_stream(desired_pipeline_streams, tcf, "pipeline_streams");
+	// std::vector<rspub::StreamDetail> desired_manual_streams = {{"Intel RealSense T265", "Pose", rspub::STRM_ENUM.at("Pose"s), 0, 0, 200, rspub::FMT_ENUM.at("6DOF"s)}};
+	// std::vector<rspub::StreamDetail> desired_pipeline_streams = {{"Intel RealSense D435I", "Depth", rspub::STRM_ENUM.at("Depth"s), 640, 480, 30, rspub::FMT_ENUM.at("Z16"s)},
+	// 																 {"Intel RealSense D435I", "Color", rspub::STRM_ENUM.at("Color"s), 640, 480, 30, rspub::FMT_ENUM.at("BGR8"s)}};
+
 	// needed this variable to keep sensors 'alive'
 	std::map<std::string, std::vector<rs2::sensor>> device_sensors;
 	auto pose_rec_callback = [&pub_pose](rs2::frame frame) { rs_callback(frame, &pub_pose); std::this_thread::sleep_for( 1000us ); };
@@ -303,7 +365,7 @@ int read_bag(std::string file_name, const toml::value &tcf)
 		pipe.start(config);
 	}
 
-	process_pipeline(desired_pipeline_streams, pipe, tcf, pub_depth);
+	process_pipeline(desired_pipeline_streams, pipe, tcf, pub_depth, pub_pc);
 	return EXIT_SUCCESS;
 }
 
@@ -315,14 +377,21 @@ int live_stream(const toml::value &tcf)
 	eCAL::Initialize(0, nullptr, "RSPub");
 	eCAL::protobuf::CPublisher<rspub_pb::PoseMessage> pub_pose("PoseMessage");
 	eCAL::protobuf::CPublisher<rspub_pb::ImageMessage> pub_depth("DepthMessage");
+	eCAL::protobuf::CPublisher<rspub_pb::ImageMessage> pub_color("ColorMessage");
+	eCAL::protobuf::CPublisher<rspub_pb::ImageMessage> pub_align("RGBDMessage");
+	eCAL::protobuf::CPublisher<rspub_pb::PointCloudMessage> pub_pc("PointCloud");
 	// Create librealsense context for managing devices
 	rs2::context ctx;
 	// Desired streams that should be manually controlled (no pipeline, i.e., sensor.open)
-	std::vector<rspub::StreamDetail> desired_manual_streams = {{"Intel RealSense T265", "Pose", rspub::STRM_ENUM.at("Pose"s), 0, 0, 200, rspub::FMT_ENUM.at("6DOF"s)}};
+	std::vector<rspub::StreamDetail> desired_manual_streams;
 	// Desired streams that should be controlled and SYNCED through a pipeline. Like Depth and Color.
-	std::vector<rspub::StreamDetail> desired_pipeline_streams = {{"Intel RealSense D435I", "Depth", rspub::STRM_ENUM.at("Depth"s), 640, 480, 30, rspub::FMT_ENUM.at("Z16"s)},
-																	 {"Intel RealSense D435I", "Color", rspub::STRM_ENUM.at("Color"s), 640, 480, 30, rspub::FMT_ENUM.at("BGR8"s)}};
-	// std::vector<rstracker::StreamDetail> desired_pipeline_streams;
+	std::vector<rspub::StreamDetail> desired_pipeline_streams;
+	// Read from TOML Config file
+	parse_desired_stream(desired_manual_streams, tcf, "manual_streams");
+	parse_desired_stream(desired_pipeline_streams, tcf, "pipeline_streams");
+	// std::vector<rspub::StreamDetail> desired_manual_streams = {{"Intel RealSense T265", "Pose", rspub::STRM_ENUM.at("Pose"s), 0, 0, 200, rspub::FMT_ENUM.at("6DOF"s)}};
+	// std::vector<rspub::StreamDetail> desired_pipeline_streams = {{"Intel RealSense D435I", "Depth", rspub::STRM_ENUM.at("Depth"s), 640, 480, 30, rspub::FMT_ENUM.at("Z16"s)},
+	// 																 {"Intel RealSense D435I", "Color", rspub::STRM_ENUM.at("Color"s), 640, 480, 30, rspub::FMT_ENUM.at("BGR8"s)}};
 
 	// needed this variable to keep sensors 'alive'
 	std::map<std::string, std::vector<rs2::sensor>> device_sensors;
@@ -340,7 +409,7 @@ int live_stream(const toml::value &tcf)
 		enable_pipe_streams(desired_pipeline_streams, cfg, pipe);
 	}
 	
-	process_pipeline(desired_pipeline_streams, pipe, tcf, pub_depth);
+	process_pipeline(desired_pipeline_streams, pipe, tcf, pub_depth, pub_pc);
 
 	return EXIT_SUCCESS;
 }

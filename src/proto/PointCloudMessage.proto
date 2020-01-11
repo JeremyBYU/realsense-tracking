@@ -1,0 +1,10 @@
+syntax = 'proto3';
+package rspub_pb;
+
+message PointCloudMessage {
+    bytes pc_data = 1;
+    int32 n_points = 2;
+    double hardware_ts = 3;
+    int32 bpp=4;
+    int32 format=5;
+}

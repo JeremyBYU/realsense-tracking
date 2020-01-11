@@ -47,3 +47,10 @@ Date:   Tue Jan 7 17:17:02 2020 +0200
 
 D435i SN - 844212071822
 T265 SN - 943222110884, 0000943222110884
+
+## All dependencies in one folder
+
+1. `./scripts/cpld.sh ./bin/rs-track-depth ./dependencies`
+2. `LD_LIBRARY_PATH=./dependencies:$LD_LIBRARY_PATH GLOG_logtostderr=1 ./bin/rs-track-depth`
+
+No idea if this should work, need to try out on an untainted ubuntu 18.04 5.3 kernel computer.

@@ -14,9 +14,10 @@
 #include <iomanip>
 #include <librealsense2/rs.hpp>
 
-#include "IMUMessage.pb.h"
 #include "PoseMessage.pb.h"
 #include "ImageMessage.pb.h"
+#include "IMUMessage.pb.h"
+#include "PointCloudMessage.pb.h"
 
 #define MS_TO_NS 1000000
 

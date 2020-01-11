@@ -22,7 +22,7 @@ find_package(gflags REQUIRED)
 find_package(glog) # Docker ubuntu can not find when REQUIRED, but logging still works?!?!?
 # add_subdirectory(${XIVO_DIR} build)
 
-set(PROTO_FILES ${PROTO_DIR}/Common.proto  ${PROTO_DIR}/ImageMessage.proto ${PROTO_DIR}/IMUMessage.proto ${PROTO_DIR}/PoseMessage.proto)
+set(PROTO_FILES ${PROTO_DIR}/Common.proto  ${PROTO_DIR}/ImageMessage.proto ${PROTO_DIR}/PointCloudMessage.proto  ${PROTO_DIR}/IMUMessage.proto ${PROTO_DIR}/PoseMessage.proto)
 PROTOBUF_GENERATE_CPP(PROTO_SRCS PROTO_HDRS ${PROTO_FILES})
 protobuf_generate_python(PY_SOURCES ${PROTO_FILES})
 # Print path to generated files
