@@ -32,6 +32,9 @@ format = "BGR8"
   active = true
   magnitude = 2.0
 
+  [filters.disparity]
+  active = true
+
   [filters.temporal]
   active = true
   smooth_alpha = 0.4

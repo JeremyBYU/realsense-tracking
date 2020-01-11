@@ -43,6 +43,74 @@ namespace rspub
 {
 
 
+void create_filters(std::vector<NamedFilter> &filters, const toml::value &tcf)
+{
+	try
+	{
+		auto filters_t  = toml::find(tcf, "filters");
+		auto disparity = false;
+		// Decimation Filter
+		try
+		{
+			auto filter  = toml::find(filters_t, "decimation");
+			auto active = toml::find<bool>(filter, "active");
+			auto magnitude = toml::find<float>(filter, "magnitude");
+			if (active)
+				filters.push_back(NamedFilter("decimation", std::make_shared<rs2::decimation_filter>(magnitude)));
+		}
+		catch(const std::exception& e){std::cerr << e.what() << '\n';}
+
+		// Disparity Filter
+		try
+		{
+			auto filter  = toml::find(filters_t, "disparity");
+			auto active = toml::find<bool>(filter, "active");
+			disparity = true;
+			if (active)
+				filters.push_back(NamedFilter("disparity", std::make_shared<rs2::disparity_transform>(true)));
+		}
+		catch(const std::exception& e){std::cerr << e.what() << '\n';}
+
+		// Temporal Filter
+		try
+		{
+			auto filter  = toml::find(filters_t, "temporal");
+			auto active = toml::find<bool>(filter, "active");
+			auto smooth_alpha = toml::find<float>(filter, "smooth_alpha");
+			auto smooth_delta = toml::find<float>(filter, "smooth_delta");
+			auto persistence_control = toml::find<float>(filter, "persistence_control");
+			if (active)
+				filters.push_back(NamedFilter("temporal", std::make_shared<rs2::temporal_filter>(smooth_alpha, smooth_delta, persistence_control)));
+		}
+		catch(const std::exception& e){std::cerr << e.what() << '\n';}
+
+		// Spatial Filter
+		try
+		{
+			auto filter  = toml::find(filters_t, "spatial");
+			auto active = toml::find<bool>(filter, "active");
+			auto smooth_alpha = toml::find<float>(filter, "smooth_alpha");
+			auto smooth_delta = toml::find<float>(filter, "smooth_delta");
+			auto magnitude = toml::find<float>(filter, "magnitude");
+			auto hole_fill = toml::find<float>(filter, "hole_fill");
+			if (active)
+				filters.push_back(NamedFilter("spatial", std::make_shared<rs2::spatial_filter>(smooth_alpha, smooth_delta, magnitude, hole_fill)));
+		}
+		catch(const std::exception& e){std::cerr << e.what() << '\n';}
+
+		// Reverse Disparity
+		if (disparity)
+			filters.push_back(NamedFilter("disparity", std::make_shared<rs2::disparity_transform>(false)));
+		
+		/* code */
+	}
+	catch(const std::exception& e)
+	{
+		std::cerr << e.what() << '\n';
+	}
+	
+}
+
 void rs_callback(rs2::frame &frame, eCAL::protobuf::CPublisher<rspub_pb::PoseMessage> *pose_pub)
 {
 	if (frame.get_profile().stream_type() == RS2_STREAM_GYRO)
@@ -153,6 +221,9 @@ void process_pipeline(std::vector<rspub::StreamDetail> dsp, rs2::pipeline &pipe,
 						const toml::value &tcf, eCAL::protobuf::CPublisher<rspub_pb::ImageMessage> &pub_depth, bool wait=false)
 {
 
+	std::vector<NamedFilter> filters;
+	create_filters(filters, tcf);
+
 	if (dsp.size() > 0)
 	{
 		while(true)
@@ -162,7 +233,12 @@ void process_pipeline(std::vector<rspub::StreamDetail> dsp, rs2::pipeline &pipe,
 			auto dframe = frames.get_depth_frame();
 			if (dframe)
 			{
-
+				DLOG(INFO) << "num_filters: " <<  static_cast<int>(filters.size());
+				for (std::vector<NamedFilter>::const_iterator filter_it = filters.begin(); filter_it != filters.end(); filter_it++)
+				{
+					DLOG(INFO) << "Applying filter: " << filter_it->_name;
+					dframe = filter_it->_filter->process(dframe);
+				}
 				// double now = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
 				// LOG(INFO) << std::setprecision(0) << std::fixed << "Received DepthMessage; now: " << now << "; hardware_ts: " << dframe.get_timestamp();
 				rspub_pb::ImageMessage depth_message;

@@ -8,9 +8,9 @@ void fill_image_message(rs2::video_frame &dframe, rspub_pb::ImageMessage &frame_
 	const int w = dframe.get_width();
 	const int h = dframe.get_height();
 	const char *image_data = static_cast<const char *>(dframe.get_data());
-	// int nbytes = w * h * dframe.get_bytes_per_pixel();
+	int nbytes = w * h * dframe.get_bytes_per_pixel();
 	auto format = dframe.get_profile().format();
-	std::cout << "Depth bpp: " << dframe.get_bytes_per_pixel() << "; Total Bytes: " <<  nbytes << std::endl;
+	// std::cout << "Depth bpp: " << dframe.get_bytes_per_pixel() << "; Total Bytes: " <<  nbytes << std::endl;
 
 
 	frame_image.set_hardware_ts(dframe.get_timestamp());
