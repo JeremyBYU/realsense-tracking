@@ -1,0 +1,59 @@
+name = "Default Settings for D435 and T265."
+show_images = true
+show_polygon = true
+
+[[manual_streams]]
+device_name = "Intel RealSense T265"
+stream_name = "Pose"
+width = 0
+height = 0
+framerate = 200
+format = "6DOF"
+
+[[pipeline_streams]]
+device_name = "Intel RealSense D435i"
+stream_name = "Depth"
+width = 640
+height = 480
+framerate = 30
+format = "Z16"
+
+[[pipeline_streams]]
+device_name = "Intel RealSense D435i"
+stream_name = "Color"
+width = 640
+height = 480
+framerate = 30
+format = "BGR8"
+
+[filters]
+
+  [filters.decimation]
+  active = true
+  magnitude = 2.0
+
+  [filters.temporal]
+  active = true
+  smooth_alpha = 0.4
+  smooth_delta = 20.0
+  persistence_control = 2.0
+
+  [filters.spatial]
+  active = true
+  smooth_alpha = 0.5
+  smooth_delta = 20.0
+  magnitude = 2.0
+  hole_fill = 1.0
+
+[publish]
+
+  [publish.depth]
+  active = false
+  rate = 30
+
+  [publish.pointcloud]
+  active = true
+  rate = 10
+
+
+

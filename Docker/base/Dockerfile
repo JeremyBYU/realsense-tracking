@@ -47,16 +47,6 @@ RUN wget -O /opt/cmake-3.15.5.tar.gz https://cmake.org/files/v3.15/cmake-3.15.5.
 # RUN tar -xzvf /opt/cmake-3.15.5.tar.gz -C /opt/ && rm -rf /opt/cmake-3.15.5.tar.gz
 ENV PATH "/opt/cmake-3.15.5/bin:$PATH"
 
-# Clone Realsense - Depth and IMU Sensor SDK
-RUN git clone https://github.com/IntelRealSense/librealsense.git /opt/librealsense && cd /opt/librealsense && \
-    mkdir build && cd build && \
-    cmake ../ -DFORCE_RSUSB_BACKEND=true -DCMAKE_BUILD_TYPE=release -DBUILD_EXAMPLES=true -DBUILD_GRAPHICAL_EXAMPLES=true -DBUILD_PYTHON_BINDINGS=true && \
-    make -j 18 && \
-    make install
-
-ENV PYTHONPATH $PYTHONPATH:/usr/local/lib
-
-
 # Clone OpenCV - Computer Vision
 RUN git clone -b '3.4.7' --single-branch https://github.com/opencv/opencv.git /opt/opencv
 RUN git clone -b '3.4.7' --single-branch https://github.com/opencv/opencv_contrib.git /opt/opencv_contrib
@@ -82,6 +72,15 @@ RUN cd /opt && \
 RUN cd /opt/ecal/build_ && \
     cpack -G DEB && \
     dpkg -i _deploy/eCAL-*
+
+# Clone Realsense - Depth and IMU Sensor SDK
+RUN git clone https://github.com/IntelRealSense/librealsense.git /opt/librealsense && cd /opt/librealsense && git checkout development && \
+    mkdir build && cd build && \
+    cmake ../ -DFORCE_RSUSB_BACKEND=true -DCMAKE_BUILD_TYPE=release -DBUILD_EXAMPLES=true -DBUILD_GRAPHICAL_EXAMPLES=true -DBUILD_PYTHON_BINDINGS=true && \
+    make -j 18 && \
+    make install
+
+ENV PYTHONPATH $PYTHONPATH:/usr/local/lib
 
 # Prepare XIVO - Visual SLAM
 # COPY xivo.sh /tmp/  

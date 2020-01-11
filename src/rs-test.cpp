@@ -6,7 +6,7 @@
 #include <map>
 #include <chrono>
 #include <thread>
-#include "utility.hpp"
+#include "rspub/utility.hpp"
 
 using namespace std::string_literals;
 
@@ -34,14 +34,14 @@ void rs_callback(rs2::frame frame)
 	}
 }
 
-void enable_manual_streams(rs2::context &ctx, std::vector<rstracker::StreamDetail> &desired_streams, std::map<std::string, std::vector<rs2::sensor>> &device_sensors)
+void enable_manual_streams(rs2::context &ctx, std::vector<rspub::StreamDetail> &desired_streams, std::map<std::string, std::vector<rs2::sensor>> &device_sensors)
 {
 	// a vector of the devices that are being requested
 	std::vector<std::string> desired_devices;
 	std::transform(desired_streams.begin(), desired_streams.end(), std::back_inserter(desired_devices), [](auto const &sd) { return sd.device_name; });
 
 	std::cout << "Requesting to start: " << std::endl;
-	rstracker::print_profiles(desired_streams);
+	rspub::print_profiles(desired_streams);
 	std::cout << "Devices available: " << std::endl;
 	auto devices = ctx.query_devices();
 	for (auto dev_ : devices)
@@ -70,7 +70,7 @@ void enable_manual_streams(rs2::context &ctx, std::vector<rstracker::StreamDetai
 				// get desired stream profiles objects
 				for (auto &sp : sensor_streams)
 				{
-					auto sd_ = rstracker::stream_profile_to_details(sp);
+					auto sd_ = rspub::stream_profile_to_details(sp);
 					if (std::find(desired_streams.begin(), desired_streams.end(), sd_) != desired_streams.end())
 					{
 						allowed_streams.push_back(sp);
@@ -95,7 +95,7 @@ void enable_manual_streams(rs2::context &ctx, std::vector<rstracker::StreamDetai
 	}
 }
 
-void enable_pipe_streams(std::vector<rstracker::StreamDetail> &desired_pipeline_streams, rs2::config &cfg, rs2::pipeline &pipe)
+void enable_pipe_streams(std::vector<rspub::StreamDetail> &desired_pipeline_streams, rs2::config &cfg, rs2::pipeline &pipe)
 {
 	for (auto &pipe_stream : desired_pipeline_streams)
 	{
@@ -112,10 +112,10 @@ int main(int argc, char *argv[])
 
 	// std::vector<rstracker::StreamDetail> desired_streams = {{"Intel RealSense T265", "Pose", 0, 0, 200, RS2_FORMAT_6DOF}, {"Intel RealSense D435I", "Depth", 640, 480, 30, RS2_FORMAT_Z16}};
 	// Desired streams that should be manually controlled (no pipeline, i.e., sensor.open)
-	std::vector<rstracker::StreamDetail> desired_manual_streams = {{"Intel RealSense T265", "Pose", rstracker::STRM_ENUM.at("Pose"s), 0, 0, 200, RS2_FORMAT_6DOF}};
+	std::vector<rspub::StreamDetail> desired_manual_streams = {{"Intel RealSense T265", "Pose", rspub::STRM_ENUM.at("Pose"s), 0, 0, 200, rspub::FMT_ENUM.at("6DOF"s)}};
 	// Desired streams that should be controlled and SYNCED through a pipeline. Like Depth and Color.
-	std::vector<rstracker::StreamDetail> desired_pipeline_streams = {{"Intel RealSense D435I", "Depth", rstracker::STRM_ENUM.at("Depth"s), 640, 480, 30, RS2_FORMAT_Z16},
-																	{"Intel RealSense D435I", "Color", rstracker::STRM_ENUM.at("Color"s), 640, 480, 30, RS2_FORMAT_BGR8}};
+	std::vector<rspub::StreamDetail> desired_pipeline_streams = {{"Intel RealSense D435I", "Depth", rspub::STRM_ENUM.at("Depth"s), 640, 480, 30, rspub::FMT_ENUM.at("Z16"s)},
+																	{"Intel RealSense D435I", "Color", rspub::STRM_ENUM.at("Color"s), 640, 480, 30, rspub::FMT_ENUM.at("BGR8"s)}};
 	// std::vector<rstracker::StreamDetail> desired_pipeline_streams;
 
 	// needed this variable to keep sensors 'alive'

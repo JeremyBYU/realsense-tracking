@@ -24,60 +24,43 @@
 #include <ecal/ecal.h>
 #include <ecal/msg/protobuf/publisher.h>
 #include <ecal/msg/protobuf/subscriber.h>
+#include <toml.hpp> // that's all! now you can use it.
 // #include <opencv2/opencv.hpp>
 
-#include "utility.hpp"
+#include "rspub/utility.hpp"
 #include "PoseMessage.pb.h"
-// #include "IMUMessage.pb.h"
+#include "ImageMessage.pb.h"
+#include "IMUMessage.pb.h"
 
 using namespace std::chrono_literals;
 using namespace std::string_literals;
 
 // Command line flags
 DEFINE_string(bag, "", "Path to bag file");
+DEFINE_string(config, "../config/rspub_default.toml", "Path to config file");
 
-namespace rstracker
+namespace rspub
 {
 
-void fill_pose_message(rs2_pose &pose, rstracker_pb::PoseMessage &pm, double ts)
+
+void fill_image_message(rs2::video_frame &dframe, rspub_pb::ImageMessage &frame_image)
 {
-	auto tr = pm.mutable_translation();
-	tr->set_x(pose.translation.x);
-	tr->set_y(pose.translation.y);
-	tr->set_z(pose.translation.z);
+	const int w = dframe.get_width();
+	const int h = dframe.get_height();
+	const char *image_data = static_cast<const char *>(dframe.get_data());
+	int nbytes = w * h * dframe.get_bytes_per_pixel();
+	auto format = dframe.get_profile().format();
+	// std::cout << "Infrared bpp: " << vframe.get_bytes_per_pixel() << "; Total Bytes: " <<  nbytes << std::endl;
 
-	auto vl = pm.mutable_velocity();
-	vl->set_x(pose.velocity.x);
-	vl->set_y(pose.velocity.y);
-	vl->set_z(pose.velocity.z);
-
-	auto ac = pm.mutable_acceleration();
-	ac->set_x(pose.acceleration.x);
-	ac->set_y(pose.acceleration.y);
-	ac->set_z(pose.acceleration.z);
-
-	auto rot = pm.mutable_rotation();
-	rot->set_x(pose.rotation.x);
-	rot->set_y(pose.rotation.y);
-	rot->set_z(pose.rotation.z);
-	rot->set_w(pose.rotation.w);
-
-	auto avl = pm.mutable_angular_velocity();
-	avl->set_x(pose.angular_velocity.x);
-	avl->set_y(pose.angular_velocity.y);
-	avl->set_z(pose.angular_velocity.z);
-
-	auto aac = pm.mutable_angular_acceleration();
-	aac->set_x(pose.angular_acceleration.x);
-	aac->set_y(pose.angular_acceleration.y);
-	aac->set_z(pose.angular_acceleration.z);
-
-	pm.set_tracker_confidence(pose.tracker_confidence);
-	pm.set_mapper_confidence(pose.mapper_confidence);
-	pm.set_hardware_ts(ts);
+	frame_image.set_hardware_ts(dframe.get_timestamp());
+	frame_image.set_width(w);
+	frame_image.set_height(h);
+	frame_image.set_image_data(image_data, nbytes);
+	frame_image.set_bpp(dframe.get_bytes_per_pixel());
+	frame_image.set_format(format);
 }
 
-void rs_callback(rs2::frame &frame, eCAL::protobuf::CPublisher<rstracker_pb::PoseMessage> *pose_pub)
+void rs_callback(rs2::frame &frame, eCAL::protobuf::CPublisher<rspub_pb::PoseMessage> *pose_pub)
 {
 	if (frame.get_profile().stream_type() == RS2_STREAM_GYRO)
 	{
@@ -91,78 +74,14 @@ void rs_callback(rs2::frame &frame, eCAL::protobuf::CPublisher<rstracker_pb::Pos
 		rs2_pose pose = pframe.get_pose_data();
 		// std::cout << std::setprecision(0) << std::fixed << std::left << std::setw(11) << "POSE: " << frame.get_timestamp() << std::endl;
 
-		rstracker_pb::PoseMessage pose_message;
+		rspub_pb::PoseMessage pose_message;
 		fill_pose_message(pose, pose_message, frame.get_timestamp());
 		pose_pub->Send(pose_message);
 	}
 }
 
-// int read_bag(std::string file_name)
-// {
-// 	// create a publisher (topic name "RSPub")
-// 	LOG(INFO) << "Creating BagReader of RealSense" << std::endl;
-// 	eCAL::Initialize(0, nullptr, "RSPub");
-// 	eCAL::protobuf::CPublisher<rstracker_pb::PoseMessage> pub_pose("PoseMessage");
-// 	// eCAL::protobuf::CPublisher<rstracker_pb::IMUMessage> pub_imu("IMUMessage");
-
-// 	std::vector<rstracker::StreamDetail> desired_manual_streams = {{"Intel RealSense T265", "Pose", rstracker::STRM_ENUM.at("Pose"s), 0, 0, 200, RS2_FORMAT_6DOF}};
-// 	rs2::context ctx;
-// 	rs2::config config;
-// 	rs2::device device;
-// 	rs2::pipeline pipe(ctx);
-
-// 	// enable file playback with playback repeat disabled
-// 	config.enable_device_from_file(file_name, false);
-
-// 	auto profile = config.resolve(pipe);
-// 	device = profile.get_device();
-// 	auto playback = device.as<rs2::playback>();
-// 	playback.set_real_time(false);
-
-// 	auto streams = profile.get_streams();
-// 	print_profiles(streams);
-// 	// Which sensor has the lower frame rate.
-// 	auto sensors = playback.query_sensors();
-
-// 	for (auto &sensor : sensors)
-// 	{
-// 		auto sensor_name = std::string(sensor.get_info(RS2_CAMERA_INFO_NAME));
-// 		LOG(INFO) << "Sensor Name: " << sensor_name << std::endl;
-
-// 		auto sensor_streams = sensor.get_stream_profiles();
-// 		// rstracker::print_profiles(sensor_streams);
-// 		std::vector<rs2::stream_profile> allowed_streams;
-// 		// get desired stream profiles objects
-// 		for (auto &sp : sensor_streams)
-// 		{
-// 			auto sd_ = rstracker::stream_profile_to_details(sp);
-// 			if (std::find(desired_streams.begin(), desired_streams.end(), sd_) != desired_streams.end())
-// 			{
-// 				allowed_streams.push_back(sp);
-// 			}
-// 		}
-
-// 		if (allowed_streams.size() > 0)
-// 		{
-// 			// Open Sensor for streaming
-// 			LOG(INFO) << "Opening stream for " << sensor_name << std::endl;
-// 			sensor.open(allowed_streams);
-// 			// Sensor Callback
-// 			LOG(INFO) << "Creating callback for " << sensor_name << " streams" << std::endl;
-// 			// sensor.start([&](rs2::frame frame) { LOG(INFO) << "Inside sensor lambda"; callback(&frame);LOG(INFO) << "After callback";  });
-// 			sensor.start([&pub_pose](rs2::frame frame) { rs_callback(frame, &pub_pose);});
-// 		}
-// 	}
-// 	// This while loop is just to keep the thread alive while sensor callback are being performed
-// 	while (true)
-// 	{
-// 		std::this_thread::sleep_for(1000ms);
-// 	}
-// 	return EXIT_SUCCESS;
-// }
-
 void enable_device_stream(rs2::device &dev, std::vector<std::string> &desired_devices, rs2::context &ctx,
-						  std::vector<rstracker::StreamDetail> &desired_streams, std::map<std::string, std::vector<rs2::sensor>> &device_sensors,
+						  std::vector<rspub::StreamDetail> &desired_streams, std::map<std::string, std::vector<rs2::sensor>> &device_sensors,
 						  std::function<void(rs2::frame)> callback)
 {
 	auto name = std::string(dev.get_info(RS2_CAMERA_INFO_NAME));
@@ -183,7 +102,7 @@ void enable_device_stream(rs2::device &dev, std::vector<std::string> &desired_de
 			// get desired stream profiles objects
 			for (auto &sp : sensor_streams)
 			{
-				auto sd_ = rstracker::stream_profile_to_details(sp);
+				auto sd_ = rspub::stream_profile_to_details(sp);
 				if (std::find(desired_streams.begin(), desired_streams.end(), sd_) != desired_streams.end())
 				{
 					allowed_streams.push_back(sp);
@@ -208,14 +127,14 @@ void enable_device_stream(rs2::device &dev, std::vector<std::string> &desired_de
 	}
 }
 
-void enable_manual_streams(rs2::context &ctx, std::vector<rstracker::StreamDetail> &desired_streams, std::map<std::string, std::vector<rs2::sensor>> &device_sensors,
+void enable_manual_streams(rs2::context &ctx, std::vector<rspub::StreamDetail> &desired_streams, std::map<std::string, std::vector<rs2::sensor>> &device_sensors,
 						   std::function<void(rs2::frame)> callback, rs2::device *single_device = nullptr)
 {
 	std::vector<std::string> desired_devices;
 	std::transform(desired_streams.begin(), desired_streams.end(), std::back_inserter(desired_devices), [](auto const &sd) { return sd.device_name; });
 
 	LOG(INFO) << "Requesting to start: " << std::endl;
-	rstracker::print_profiles(desired_streams);
+	rspub::print_profiles(desired_streams);
 
 	if (single_device)
 	{
@@ -237,7 +156,7 @@ void enable_manual_streams(rs2::context &ctx, std::vector<rstracker::StreamDetai
 	}
 }
 
-void enable_pipe_streams(std::vector<rstracker::StreamDetail> &desired_pipeline_streams, rs2::config &cfg, rs2::pipeline &pipe)
+void enable_pipe_streams(std::vector<rspub::StreamDetail> &desired_pipeline_streams, rs2::config &cfg, rs2::pipeline &pipe)
 {
 	for (auto &pipe_stream : desired_pipeline_streams)
 	{
@@ -247,20 +166,56 @@ void enable_pipe_streams(std::vector<rstracker::StreamDetail> &desired_pipeline_
 	pipe.start(cfg);
 }
 
-int read_bag(std::string file_name)
+void process_pipeline(std::vector<rspub::StreamDetail> dsp, rs2::pipeline &pipe, 
+						const toml::value &tcf, eCAL::protobuf::CPublisher<rspub_pb::ImageMessage> &pub_depth, bool wait=false)
 {
-	// create a publisher (topic name "RSPub")
+
+	if (dsp.size() > 0)
+	{
+		while(true)
+		{
+			auto frames = pipe.wait_for_frames();
+
+			auto dframe = frames.get_depth_frame();
+			if (dframe)
+			{
+
+				// double now = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
+				// LOG(INFO) << std::setprecision(0) << std::fixed << "Received DepthMessage; now: " << now << "; hardware_ts: " << dframe.get_timestamp();
+				rspub_pb::ImageMessage depth_message;
+				fill_image_message(dframe, depth_message);
+				pub_depth.Send(depth_message);
+			}
+
+			if (wait)
+				std::this_thread::sleep_for(1000us);
+		}
+	}
+	else
+	{
+		while(true)
+		{
+			std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+		}
+	}
+
+}
+
+int read_bag(std::string file_name, const toml::value &tcf)
+{
+	// I'm not sure if this works method works full proof for bag files.
 	LOG(INFO) << "Creating BagReader of RealSense" << std::endl;
+	// create a publisher (topic name "RSPub")
 	eCAL::Initialize(0, nullptr, "RSPub");
-	eCAL::protobuf::CPublisher<rstracker_pb::PoseMessage> pub_pose("PoseMessage");
+	eCAL::protobuf::CPublisher<rspub_pb::PoseMessage> pub_pose("PoseMessage");
+	eCAL::protobuf::CPublisher<rspub_pb::ImageMessage> pub_depth("DepthMessage");
 	// Create librealsense context for managing devices
 	rs2::context ctx;
 	// Desired streams that should be manually controlled (no pipeline, i.e., sensor.open)
-	std::vector<rstracker::StreamDetail> desired_manual_streams = {{"Intel RealSense T265", "Pose", rstracker::STRM_ENUM.at("Pose"s), 0, 0, 200, RS2_FORMAT_6DOF}};
+	std::vector<rspub::StreamDetail> desired_manual_streams = {{"Intel RealSense T265", "Pose", rspub::STRM_ENUM.at("Pose"s), 0, 0, 200, rspub::FMT_ENUM.at("6DOF"s)}};
 	// Desired streams that should be controlled and SYNCED through a pipeline. Like Depth and Color.
-	std::vector<rstracker::StreamDetail> desired_pipeline_streams = {{"Intel RealSense D435I", "Depth", rstracker::STRM_ENUM.at("Depth"s), 640, 480, 30, RS2_FORMAT_Z16},
-																	 {"Intel RealSense D435I", "Color", rstracker::STRM_ENUM.at("Color"s), 640, 480, 30, RS2_FORMAT_BGR8}};
-
+	std::vector<rspub::StreamDetail> desired_pipeline_streams = {{"Intel RealSense D435I", "Depth", rspub::STRM_ENUM.at("Depth"s), 640, 480, 30, rspub::FMT_ENUM.at("Z16"s)},
+																	 {"Intel RealSense D435I", "Color", rspub::STRM_ENUM.at("Color"s), 640, 480, 30, rspub::FMT_ENUM.at("BGR8"s)}};
 	// needed this variable to keep sensors 'alive'
 	std::map<std::string, std::vector<rs2::sensor>> device_sensors;
 	auto pose_rec_callback = [&pub_pose](rs2::frame frame) { rs_callback(frame, &pub_pose); std::this_thread::sleep_for( 1000us ); };
@@ -284,38 +239,30 @@ int read_bag(std::string file_name)
 
 	if (desired_pipeline_streams.size() > 0)
 	{
+		LOG(INFO) << "Requesting to start: " << std::endl;
+		print_profiles(desired_pipeline_streams);
 		pipe.start(config);
 	}
 
-	while (true)
-	{
-		if (desired_pipeline_streams.size() > 0)
-		{
-			auto frames = pipe.wait_for_frames();
-			std::this_thread::sleep_for(1000us);
-			std::cout << std::setprecision(0) << std::fixed << std::left << std::setw(11) << "FrameSet: " << frames.get_timestamp() << std::endl;
-		}
-		else
-		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-		}
-	}
+	process_pipeline(desired_pipeline_streams, pipe, tcf, pub_depth);
+	return EXIT_SUCCESS;
 }
 
 // This example demonstrates live streaming motion data as well as video data
-int live_stream()
+int live_stream(const toml::value &tcf)
 {
 	// create a publisher (topic name "RSPub")
 	LOG(INFO) << "Creating LiveStream of RealSense" << std::endl;
 	eCAL::Initialize(0, nullptr, "RSPub");
-	eCAL::protobuf::CPublisher<rstracker_pb::PoseMessage> pub_pose("PoseMessage");
+	eCAL::protobuf::CPublisher<rspub_pb::PoseMessage> pub_pose("PoseMessage");
+	eCAL::protobuf::CPublisher<rspub_pb::ImageMessage> pub_depth("DepthMessage");
 	// Create librealsense context for managing devices
 	rs2::context ctx;
 	// Desired streams that should be manually controlled (no pipeline, i.e., sensor.open)
-	std::vector<rstracker::StreamDetail> desired_manual_streams = {{"Intel RealSense T265", "Pose", rstracker::STRM_ENUM.at("Pose"s), 0, 0, 200, RS2_FORMAT_6DOF}};
+	std::vector<rspub::StreamDetail> desired_manual_streams = {{"Intel RealSense T265", "Pose", rspub::STRM_ENUM.at("Pose"s), 0, 0, 200, rspub::FMT_ENUM.at("6DOF"s)}};
 	// Desired streams that should be controlled and SYNCED through a pipeline. Like Depth and Color.
-	std::vector<rstracker::StreamDetail> desired_pipeline_streams = {{"Intel RealSense D435I", "Depth", rstracker::STRM_ENUM.at("Depth"s), 640, 480, 30, RS2_FORMAT_Z16},
-																	 {"Intel RealSense D435I", "Color", rstracker::STRM_ENUM.at("Color"s), 640, 480, 30, RS2_FORMAT_BGR8}};
+	std::vector<rspub::StreamDetail> desired_pipeline_streams = {{"Intel RealSense D435I", "Depth", rspub::STRM_ENUM.at("Depth"s), 640, 480, 30, rspub::FMT_ENUM.at("Z16"s)},
+																	 {"Intel RealSense D435I", "Color", rspub::STRM_ENUM.at("Color"s), 640, 480, 30, rspub::FMT_ENUM.at("BGR8"s)}};
 	// std::vector<rstracker::StreamDetail> desired_pipeline_streams;
 
 	// needed this variable to keep sensors 'alive'
@@ -333,29 +280,25 @@ int live_stream()
 	{
 		enable_pipe_streams(desired_pipeline_streams, cfg, pipe);
 	}
-
-	while (true)
-	{
-		if (desired_pipeline_streams.size() > 0)
-		{
-			auto frames = pipe.wait_for_frames();
-			// std::cout << std::setprecision(0) << std::fixed << std::left << std::setw(11) << "FrameSet: " << frames.get_timestamp() << std::endl;
-		}
-		else
-		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-		}
-	}
+	
+	process_pipeline(desired_pipeline_streams, pipe, tcf, pub_depth);
 
 	return EXIT_SUCCESS;
 }
 
 // using timestamp_t = std::chrono::nanoseconds::nanoseconds;
-void OnPoseMessage(const char *topic_name_, const rstracker_pb::PoseMessage &pose, const long long time_, const long long clock_)
+void OnPoseMessage(const char *topic_name_, const rspub_pb::PoseMessage &pose, const long long time_, const long long clock_)
 {
 	double now = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
 	LOG(INFO) << std::setprecision(0) << std::fixed << "Received PoseMessage; now: " << now << "; send_ts: " << time_ / 1000 << "; hardware_ts: " << pose.hardware_ts() << std::endl;
 }
+
+void OnDepthMessage(const char *topic_name_, const rspub_pb::ImageMessage &im_msg, const long long time_, const long long clock_)
+{
+	double now = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
+	LOG(INFO) << std::setprecision(0) << std::fixed << "Received DepthMessage; now: " << now << "; send_ts: " << time_ / 1000 << "; hardware_ts: " << im_msg.hardware_ts() << std::endl;
+}
+
 
 } // namespace rstracker
 
@@ -366,22 +309,29 @@ int main(int argc, char *argv[]) try
 	// initialize eCAL API
 	eCAL::Initialize(0, nullptr, "RSPub");
 	// create subscriber
-	eCAL::protobuf::CSubscriber<rstracker_pb::PoseMessage> sub_pose("PoseMessage");
+	eCAL::protobuf::CSubscriber<rspub_pb::PoseMessage> sub_pose("PoseMessage");
+	// eCAL::protobuf::CSubscriber<rspub_pb::ImageMessage> sub_depth("DepthMessage");
 	// add receive callback function (_1 = topic_name, _2 = msg, _3 = time, , _4 = clock)
-	auto pose_rec_callback = std::bind(rstracker::OnPoseMessage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
+	auto pose_rec_callback = std::bind(rspub::OnPoseMessage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
 	sub_pose.AddReceiveCallback(pose_rec_callback);
+	// auto depth_rec_callback = std::bind(rspub::OnDepthMessage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
+	// sub_depth.AddReceiveCallback(depth_rec_callback);
 	// enable to receive process internal publications
 	eCAL::Util::EnableLoopback(true);
 	// Parse command line flags
 	gflags::ParseCommandLineFlags(&argc, &argv, true);
+	if(FLAGS_config == "")
+		LOG(ERROR) << "Must specify path to TOML config file";
+	
+	const auto tcf = toml::parse(FLAGS_config);
 	std::thread t1;
 	if (FLAGS_bag == "")
 	{
-		t1 = std::thread(rstracker::live_stream);
+		t1 = std::thread(rspub::live_stream, tcf);
 	}
 	else
 	{
-		t1 = std::thread(rstracker::read_bag, FLAGS_bag);
+		t1 = std::thread(rspub::read_bag, FLAGS_bag, tcf);
 	}
 
 	eCAL::Process::SleepMS(1000);

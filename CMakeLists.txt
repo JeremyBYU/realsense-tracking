@@ -10,16 +10,21 @@ set(PROTO_DIR "${PROJECT_SOURCE_DIR}/src/proto")
 
 add_definitions(-DNDEBUG)
 
+set(toml11_BUILD_TEST OFF CACHE BOOL "Build toml tests" FORCE)
+add_subdirectory("thirdparty/toml11")
+
 find_package(OpenCV REQUIRED)
 find_package(realsense2 REQUIRED)
 find_package(Protobuf REQUIRED)
 find_package(eCAL REQUIRED)
 find_package(OpenGL)
 find_package(gflags REQUIRED)
-find_package(glog REQUIRED)
+find_package(glog) # Docker ubuntu can not find when REQUIRED, but logging still works?!?!?
 # add_subdirectory(${XIVO_DIR} build)
 
-PROTOBUF_GENERATE_CPP(PROTO_SRCS PROTO_HDRS ${PROTO_DIR}/Common.proto  ${PROTO_DIR}/ImageData.proto ${PROTO_DIR}/IMUMessage.proto ${PROTO_DIR}/PoseMessage.proto)
+set(PROTO_FILES ${PROTO_DIR}/Common.proto  ${PROTO_DIR}/ImageMessage.proto ${PROTO_DIR}/IMUMessage.proto ${PROTO_DIR}/PoseMessage.proto)
+PROTOBUF_GENERATE_CPP(PROTO_SRCS PROTO_HDRS ${PROTO_FILES})
+protobuf_generate_python(PY_SOURCES ${PROTO_FILES})
 # Print path to generated files
 message ("PROTO_SRCS = ${PROTO_SRCS}")
 message ("PROTO_HDRS = ${PROTO_HDRS}")
@@ -66,6 +71,7 @@ include_directories(
     ${PROTOBUF_INCLUDE_DIRS}
     ${PROJECT_SOURCE_DIR}/build
     ${GFLAG_INCLUDE_DIRS}
+    ${toml11_SOURCE_DIR}
 )
 
 
@@ -87,3 +93,6 @@ target_link_libraries(rs-motion-2 ${realsense2_LIBRARY} ${DEPENDENCIES})
 # target_link_libraries(rs-tracker ${realsense2_LIBRARY} ${DEPENDENCIES} xest)
 target_link_libraries(rs-track-depth ${realsense2_LIBRARY} ${DEPENDENCIES})
 target_link_libraries(rs-test ${realsense2_LIBRARY} ${DEPENDENCIES}) 
+
+add_custom_target(DUMMY_TARGET ALL 
+                  DEPENDS ${PY_SOURCES})

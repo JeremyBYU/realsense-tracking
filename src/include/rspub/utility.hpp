@@ -15,10 +15,11 @@
 #include <librealsense2/rs.hpp>
 
 #include "IMUMessage.pb.h"
+#include "PoseMessage.pb.h"
 
 #define MS_TO_NS 1000000
 
-namespace rstracker
+namespace rspub
 {
 
 class Float3
@@ -122,7 +123,7 @@ bool check_imu_is_supported();
 struct StreamDetail
 {
     std::string device_name;
-	std::string name;
+	std::string stream_name;
     rs2_stream stream_type;
 	int width;
 	int height;
@@ -131,11 +132,13 @@ struct StreamDetail
 
 	bool operator==(const StreamDetail& rhs) const
 	{
-		return name == rhs.name && width == rhs.width && height == rhs.height && fps == rhs.fps && format == rhs.format;
+		return stream_name == rhs.stream_name && width == rhs.width && height == rhs.height && fps == rhs.fps && format == rhs.format;
 	}
 };
 
-void print_message(rstracker_pb::IMUMessage &msg, IMUHistory &imu_hist);
+void fill_pose_message(rs2_pose &pose, rspub_pb::PoseMessage &pm, double ts);
+
+void print_message(rspub_pb::IMUMessage &msg, IMUHistory &imu_hist);
 void print_profiles(std::vector<rs2::stream_profile> streams);
 void print_profiles(std::vector<StreamDetail> stream_details);
 const static std::unordered_map<std::string,rs2_stream> STRM_ENUM{
@@ -151,6 +154,12 @@ const static std::unordered_map<std::string,rs2_stream> STRM_ENUM{
     {"Pose",RS2_STREAM_POSE}
 };
 
+const static std::unordered_map<std::string,rs2_format> FMT_ENUM{
+    {"Any",RS2_FORMAT_ANY},
+    {"Z16",RS2_FORMAT_Z16},
+    {"BGR8",RS2_FORMAT_BGR8},
+    {"6DOF",RS2_FORMAT_6DOF}
+};
 
 
 StreamDetail stream_profile_to_details(rs2::stream_profile sp);

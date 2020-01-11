@@ -1,7 +1,45 @@
-#include "utility.hpp"
-
-namespace rstracker
+#include "rspub/utility.hpp"
+#include "PoseMessage.pb.h"
+namespace rspub
 {
+
+void fill_pose_message(rs2_pose &pose, rspub_pb::PoseMessage &pm, double ts)
+{
+	auto tr = pm.mutable_translation();
+	tr->set_x(pose.translation.x);
+	tr->set_y(pose.translation.y);
+	tr->set_z(pose.translation.z);
+
+	auto vl = pm.mutable_velocity();
+	vl->set_x(pose.velocity.x);
+	vl->set_y(pose.velocity.y);
+	vl->set_z(pose.velocity.z);
+
+	auto ac = pm.mutable_acceleration();
+	ac->set_x(pose.acceleration.x);
+	ac->set_y(pose.acceleration.y);
+	ac->set_z(pose.acceleration.z);
+
+	auto rot = pm.mutable_rotation();
+	rot->set_x(pose.rotation.x);
+	rot->set_y(pose.rotation.y);
+	rot->set_z(pose.rotation.z);
+	rot->set_w(pose.rotation.w);
+
+	auto avl = pm.mutable_angular_velocity();
+	avl->set_x(pose.angular_velocity.x);
+	avl->set_y(pose.angular_velocity.y);
+	avl->set_z(pose.angular_velocity.z);
+
+	auto aac = pm.mutable_angular_acceleration();
+	aac->set_x(pose.angular_acceleration.x);
+	aac->set_y(pose.angular_acceleration.y);
+	aac->set_z(pose.angular_acceleration.z);
+
+	pm.set_tracker_confidence(pose.tracker_confidence);
+	pm.set_mapper_confidence(pose.mapper_confidence);
+	pm.set_hardware_ts(ts);
+}
 
 IMUHistory::IMUHistory(size_t size)
 {
@@ -45,7 +83,7 @@ std::string float3_to_string(Float3 v)
     return ss.str();
 }
 
-std::string vec3_to_string(rstracker_pb::Vec3 v)
+std::string vec3_to_string(rspub_pb::Vec3 v)
 {
     std::stringstream ss;
     ss << "(" << v.x() << ", " << v.y() << ", " << v.z() << ")";
@@ -88,7 +126,7 @@ void print_profiles(std::vector<StreamDetail> stream_details)
 	{
         std::string res = std::to_string(stream.width) + "x" + std::to_string(stream.height);
         std::string fps = "@ " + std::to_string(stream.fps) + "Hz";
-        std::cout << std::setw(22) << stream.device_name << std::setw(16) << stream.name << std::setw(16) <<  res 
+        std::cout << std::setw(22) << stream.device_name << std::setw(16) << stream.stream_name << std::setw(16) <<  res 
         << std::setw(10) << fps<< std::setw(10) << stream.format << std::endl;
 
 	}
@@ -128,7 +166,7 @@ StreamDetail stream_profile_to_details(rs2::stream_profile sp)
 }
 
 
-void print_message(rstracker_pb::IMUMessage &msg, IMUHistory &imu_hist)
+void print_message(rspub_pb::IMUMessage &msg, IMUHistory &imu_hist)
 {
     // values for controlling format
     const int time_width = 15 ;

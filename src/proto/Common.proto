@@ -1,5 +1,5 @@
 syntax = 'proto3';
-package rstracker_pb;
+package rspub_pb;
 
 message Vec4 {
 	float x = 1;
