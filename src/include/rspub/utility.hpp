@@ -15,6 +15,7 @@
 
 #include <librealsense2/rs.hpp>
 #include <glog/logging.h>
+#include <toml.hpp>
 
 #include "PoseMessage.pb.h"
 #include "ImageMessage.pb.h"
@@ -139,6 +140,9 @@ struct StreamDetail
 		return stream_name == rhs.stream_name && width == rhs.width && height == rhs.height && fps == rhs.fps && format == rhs.format;
 	}
 };
+
+void parse_desired_stream(std::vector<StreamDetail> &sds, const toml::value &tcf, std::string streams_str);
+bool create_filters(std::vector<NamedFilter> &filters, const toml::value &tcf);
 
 void fill_pose_message(rs2_pose &pose, rspub_pb::PoseMessage &pm, double ts);
 void fill_image_message(rs2::video_frame &dframe, rspub_pb::ImageMessage &frame_image);

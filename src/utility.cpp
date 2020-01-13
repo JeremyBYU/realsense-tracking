@@ -4,6 +4,112 @@
 namespace rspub
 {
 
+    
+void parse_desired_stream(std::vector<StreamDetail> &sds, const toml::value &tcf, std::string streams_str)
+{
+	try
+	{
+		auto streams  = toml::find<std::vector<toml::value>>(tcf, streams_str);
+		for (auto &stream: streams)
+		{
+			try
+			{
+				auto active = toml::find<bool>(stream, "active");
+				auto device_name = toml::find<std::string>(stream, "device_name");
+				auto stream_name = toml::find<std::string>(stream, "stream_name");
+				auto width = toml::find<int>(stream, "width");
+				auto height = toml::find<int>(stream, "height");
+				auto framerate = toml::find<int>(stream, "framerate");
+				auto format = toml::find<std::string>(stream, "format");
+				if (active)
+					sds.push_back({device_name, stream_name, rspub::STRM_ENUM.at(stream_name), width, height, framerate, rspub::FMT_ENUM.at(format)});
+			}
+			catch(const std::exception& e){std::cerr << e.what() << '\n';}
+		}
+	}
+	catch(const std::exception& e){std::cerr << e.what() << '\n';}
+}
+
+bool create_filters(std::vector<NamedFilter> &filters, const toml::value &tcf)
+{
+	try
+	{
+		auto filters_t  = toml::find(tcf, "filters");
+		auto disparity = false;
+		// Decimation Filter
+		try
+		{
+			auto filter  = toml::find(filters_t, "decimation");
+			auto active = toml::find<bool>(filter, "active");
+			auto magnitude = toml::find<float>(filter, "magnitude");
+			if (active)
+				filters.push_back(NamedFilter("decimation", std::make_shared<rs2::decimation_filter>(magnitude)));
+		}
+		catch(const std::exception& e){std::cerr << e.what() << '\n';}
+
+		// Disparity Filter
+		try
+		{
+			auto filter  = toml::find(filters_t, "disparity");
+			auto active = toml::find<bool>(filter, "active");
+			disparity = true;
+			if (active)
+				filters.push_back(NamedFilter("disparity", std::make_shared<rs2::disparity_transform>(true)));
+		}
+		catch(const std::exception& e){std::cerr << e.what() << '\n';}
+
+		// Temporal Filter
+		try
+		{
+			auto filter  = toml::find(filters_t, "temporal");
+			auto active = toml::find<bool>(filter, "active");
+			auto smooth_alpha = toml::find<float>(filter, "smooth_alpha");
+			auto smooth_delta = toml::find<float>(filter, "smooth_delta");
+			auto persistence_control = toml::find<float>(filter, "persistence_control");
+			if (active)
+				filters.push_back(NamedFilter("temporal", std::make_shared<rs2::temporal_filter>(smooth_alpha, smooth_delta, persistence_control)));
+		}
+		catch(const std::exception& e){std::cerr << e.what() << '\n';}
+
+		// Spatial Filter
+		try
+		{
+			auto filter  = toml::find(filters_t, "spatial");
+			auto active = toml::find<bool>(filter, "active");
+			auto smooth_alpha = toml::find<float>(filter, "smooth_alpha");
+			auto smooth_delta = toml::find<float>(filter, "smooth_delta");
+			auto magnitude = toml::find<float>(filter, "magnitude");
+			auto hole_fill = toml::find<float>(filter, "hole_fill");
+			if (active)
+				filters.push_back(NamedFilter("spatial", std::make_shared<rs2::spatial_filter>(smooth_alpha, smooth_delta, magnitude, hole_fill)));
+		}
+		catch(const std::exception& e){std::cerr << e.what() << '\n';}
+
+		// Reverse Disparity
+		if (disparity)
+			filters.push_back(NamedFilter("disparity", std::make_shared<rs2::disparity_transform>(false)));
+
+		// Alignment Filter
+		try
+		{
+			auto filter  = toml::find(filters_t, "align");
+			auto active = toml::find<bool>(filter, "active");
+			if (active)
+				return active;
+		}
+		catch(const std::exception& e){std::cerr << e.what() << '\n';}
+		
+		/* code */
+	}
+	catch(const std::exception& e)
+	{
+		std::cerr << e.what() << '\n';
+	}
+
+	return false;
+	
+}
+
 void fill_pointcloud(rs2::depth_frame &dframe, rs2::video_frame &cframe, rs2::pointcloud &pc, rs2::points &points, bool color=false)
 {
     if (color)

@@ -25,8 +25,6 @@ H_t265_d400_r = R.from_matrix(H_t265_d400[:3,:3])
 
 class Integrator(object):
     def __init__(self, n_poses=100, all_points=[]):
-        # self.poses = np.zeros((n_poses, 7), dtype=np.float32)
-        # self.points_ts = np.zeros((n_pcs,), dtype=np.float32)
         self.poses = []
         self.all_points = all_points
 

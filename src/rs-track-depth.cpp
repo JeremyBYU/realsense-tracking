@@ -24,7 +24,6 @@
 #include <ecal/ecal.h>
 #include <ecal/msg/protobuf/publisher.h>
 #include <ecal/msg/protobuf/subscriber.h>
-#include <toml.hpp> // that's all! now you can use it.
 // #include <opencv2/opencv.hpp>
 
 #include "rspub/utility.hpp"
@@ -40,111 +39,6 @@ DEFINE_string(config, "../config/rspub_default.toml", "Path to config file");
 namespace rspub
 {
 
-
-void parse_desired_stream(std::vector<StreamDetail> &sds, const toml::value &tcf, std::string streams_str)
-{
-	try
-	{
-		auto streams  = toml::find<std::vector<toml::value>>(tcf, streams_str);
-		for (auto &stream: streams)
-		{
-			try
-			{
-				auto active = toml::find<bool>(stream, "active");
-				auto device_name = toml::find<std::string>(stream, "device_name");
-				auto stream_name = toml::find<std::string>(stream, "stream_name");
-				auto width = toml::find<int>(stream, "width");
-				auto height = toml::find<int>(stream, "height");
-				auto framerate = toml::find<int>(stream, "framerate");
-				auto format = toml::find<std::string>(stream, "format");
-				if (active)
-					sds.push_back({device_name, stream_name, rspub::STRM_ENUM.at(stream_name), width, height, framerate, rspub::FMT_ENUM.at(format)});
-			}
-			catch(const std::exception& e){std::cerr << e.what() << '\n';}
-		}
-	}
-	catch(const std::exception& e){std::cerr << e.what() << '\n';}
-}
-
-bool create_filters(std::vector<NamedFilter> &filters, const toml::value &tcf)
-{
-	try
-	{
-		auto filters_t  = toml::find(tcf, "filters");
-		auto disparity = false;
-		// Decimation Filter
-		try
-		{
-			auto filter  = toml::find(filters_t, "decimation");
-			auto active = toml::find<bool>(filter, "active");
-			auto magnitude = toml::find<float>(filter, "magnitude");
-			if (active)
-				filters.push_back(NamedFilter("decimation", std::make_shared<rs2::decimation_filter>(magnitude)));
-		}
-		catch(const std::exception& e){std::cerr << e.what() << '\n';}
-
-		// Disparity Filter
-		try
-		{
-			auto filter  = toml::find(filters_t, "disparity");
-			auto active = toml::find<bool>(filter, "active");
-			disparity = true;
-			if (active)
-				filters.push_back(NamedFilter("disparity", std::make_shared<rs2::disparity_transform>(true)));
-		}
-		catch(const std::exception& e){std::cerr << e.what() << '\n';}
-
-		// Temporal Filter
-		try
-		{
-			auto filter  = toml::find(filters_t, "temporal");
-			auto active = toml::find<bool>(filter, "active");
-			auto smooth_alpha = toml::find<float>(filter, "smooth_alpha");
-			auto smooth_delta = toml::find<float>(filter, "smooth_delta");
-			auto persistence_control = toml::find<float>(filter, "persistence_control");
-			if (active)
-				filters.push_back(NamedFilter("temporal", std::make_shared<rs2::temporal_filter>(smooth_alpha, smooth_delta, persistence_control)));
-		}
-		catch(const std::exception& e){std::cerr << e.what() << '\n';}
-
-		// Spatial Filter
-		try
-		{
-			auto filter  = toml::find(filters_t, "spatial");
-			auto active = toml::find<bool>(filter, "active");
-			auto smooth_alpha = toml::find<float>(filter, "smooth_alpha");
-			auto smooth_delta = toml::find<float>(filter, "smooth_delta");
-			auto magnitude = toml::find<float>(filter, "magnitude");
-			auto hole_fill = toml::find<float>(filter, "hole_fill");
-			if (active)
-				filters.push_back(NamedFilter("spatial", std::make_shared<rs2::spatial_filter>(smooth_alpha, smooth_delta, magnitude, hole_fill)));
-		}
-		catch(const std::exception& e){std::cerr << e.what() << '\n';}
-
-		// Reverse Disparity
-		if (disparity)
-			filters.push_back(NamedFilter("disparity", std::make_shared<rs2::disparity_transform>(false)));
-
-		// Alignment Filter
-		try
-		{
-			auto filter  = toml::find(filters_t, "align");
-			auto active = toml::find<bool>(filter, "active");
-			if (active)
-				return active;
-		}
-		catch(const std::exception& e){std::cerr << e.what() << '\n';}
-		
-		/* code */
-	}
-	catch(const std::exception& e)
-	{
-		std::cerr << e.what() << '\n';
-	}
-
-	return false;
-	
-}
 
 void rs_callback(rs2::frame &frame, eCAL::protobuf::CPublisher<rspub_pb::PoseMessage> *pose_pub)
 {
@@ -296,31 +190,9 @@ void process_pipeline(std::vector<rspub::StreamDetail> dsp, rs2::pipeline &pipe,
 			{
 				VLOG(2) << "Applying filter: " << filter_it->_name;
 				frames = filter_it->_filter->process(frames);
-				// if (filter_it->_name == "decimation"s)
-				// {
-				// 	LOG(INFO) << std::setprecision(0) << std::fixed << "Inside Decimation Filter";
-				// 	auto dec_filt = rs2::decimation_filter(2.0);
-				// 	auto cframe = frames.get_color_frame();
-				// 	if (cframe)
-				// 	{
-				// 		auto cframe2 = dec_filt.process(cframe).as<rs2::video_frame>();
-				// 		LOG(INFO) << std::setprecision(0) << std::fixed << "After decimating color frames" << now << "; cwidth: " << cframe2.get_width();
-				// 		cframe.swap(cframe2);
-				// 		LOG(INFO) << std::setprecision(0) << std::fixed << "After swapping frames" << now << "; cwidth: " << cframe.get_width();
-				// 		auto cframe3 = frames.get_color_frame();
-				// 		auto cframe4 = frames.get_depth_frame();
-				// 		LOG(INFO) << std::setprecision(0) << std::fixed << "Verify frameset" << now << "; cwidth: " << cframe3.get_width();
-				// 		LOG(INFO) << std::setprecision(0) << std::fixed << "Verify frameset" << now << "; dwidth: " << cframe4.get_width();
-				// 	}
-
-				// }
 			}
 
 			dframe = frames.get_depth_frame();
-			// cframe = frames.get_color_frame();
-			// now = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
-			// LOG(INFO) << std::setprecision(0) << std::fixed << "Received FrameSet; now: " << now << "; dwidth: " << dframe.get_width();
-			// LOG(INFO) << std::setprecision(0) << std::fixed << "Received FrameSet; now: " << now << "; cwidth: " << cframe.get_width();
 
 			if (dframe && cframe && align)
 			{
@@ -340,8 +212,6 @@ void process_pipeline(std::vector<rspub::StreamDetail> dsp, rs2::pipeline &pipe,
 
 			now = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
 			LOG(INFO) << std::setprecision(0) << std::fixed << "Received FrameSet; now: " << now << "; hardware_ts: " << dframe.get_timestamp();
-			// LOG(INFO) << std::setprecision(0) << std::fixed << "Received FrameSet; now: " << now << "; dwidth: " << dframe.get_width();
-			// LOG(INFO) << std::setprecision(0) << std::fixed << "Received FrameSet; now: " << now << "; cwidth: " << cframe.get_width();
 			if (dframe && pc_cfg_active && pc_cfg_counter == pc_cfg_rate)
 			{
 				rspub_pb::PointCloudMessage pc_message;
@@ -354,9 +224,6 @@ void process_pipeline(std::vector<rspub::StreamDetail> dsp, rs2::pipeline &pipe,
 				// LOG(INFO) << std::setprecision(0) << std::fixed <<  "now: " << now << "; Going to send a pc, time to send:" << now2-now1;
 			}
 			
-
-
-
 
 			if (wait)
 				std::this_thread::sleep_for(1000us);
