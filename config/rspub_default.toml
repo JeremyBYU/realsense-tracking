@@ -40,7 +40,7 @@ active = true
 
   [filters.temporal]
   active = true
-  smooth_alpha = 0.4
+  smooth_alpha = 0.1
   smooth_delta = 20.0
   persistence_control = 2.0
 
@@ -52,22 +52,22 @@ active = true
   hole_fill = 1.0
 
   [filters.align]
-  active=true
+  active=false
 
 [publish]
 
   [publish.depth]
   active = true
-  rate = 30
+  rate = 1
 
   [publish.color]
   active = true
-  rate = 30
+  rate = 1
 
   [publish.pointcloud]
   active = true
   color= true
-  rate = 30
+  rate = 15
   ds_x=2
   ds_y=2
 

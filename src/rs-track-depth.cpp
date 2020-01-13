@@ -273,6 +273,8 @@ void process_pipeline(std::vector<rspub::StreamDetail> dsp, rs2::pipeline &pipe,
 	auto pc_cfg = toml::find(tcf, "publish", "pointcloud");
 	bool pc_cfg_active = toml::find_or<bool>(pc_cfg, "active", false);
 	bool pc_cfg_color = toml::find_or<bool>(pc_cfg, "color", false);
+	int pc_cfg_rate = toml::find_or<int>(pc_cfg, "rate", 1);
+	int pc_cfg_counter = 0;
 
 	rs2::pointcloud pc;
 	rs2::points points;
@@ -281,6 +283,7 @@ void process_pipeline(std::vector<rspub::StreamDetail> dsp, rs2::pipeline &pipe,
 	{
 		while(true)
 		{
+			pc_cfg_counter++;
 			auto frames = pipe.wait_for_frames();
 
 			auto dframe = frames.get_depth_frame();
@@ -339,7 +342,7 @@ void process_pipeline(std::vector<rspub::StreamDetail> dsp, rs2::pipeline &pipe,
 			LOG(INFO) << std::setprecision(0) << std::fixed << "Received FrameSet; now: " << now << "; hardware_ts: " << dframe.get_timestamp();
 			// LOG(INFO) << std::setprecision(0) << std::fixed << "Received FrameSet; now: " << now << "; dwidth: " << dframe.get_width();
 			// LOG(INFO) << std::setprecision(0) << std::fixed << "Received FrameSet; now: " << now << "; cwidth: " << cframe.get_width();
-			if (dframe && pc_cfg_active)
+			if (dframe && pc_cfg_active && pc_cfg_counter == pc_cfg_rate)
 			{
 				rspub_pb::PointCloudMessage pc_message;
 				fill_pointcloud(dframe, cframe, pc, points, pc_cfg_color);
@@ -347,8 +350,12 @@ void process_pipeline(std::vector<rspub::StreamDetail> dsp, rs2::pipeline &pipe,
 				double now1 = std::chrono::duration<double, std::micro>(std::chrono::system_clock::now().time_since_epoch()).count();
 				pub_pc.Send(pc_message);
 				double now2 = std::chrono::duration<double, std::micro>(std::chrono::system_clock::now().time_since_epoch()).count();
+				pc_cfg_counter = 0;;
 				// LOG(INFO) << std::setprecision(0) << std::fixed <<  "now: " << now << "; Going to send a pc, time to send:" << now2-now1;
 			}
+			
+
+
 
 
 			if (wait)
