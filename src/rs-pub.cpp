@@ -191,28 +191,31 @@ void process_pipeline(std::vector<rspub::StreamDetail> dsp, rs2::pipeline &pipe,
 			double now = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
 			// LOG(INFO) << std::setprecision(0) << std::fixed << "Received FrameSet; now: " << now << "; dwidth: " << dframe.get_width();
 			// LOG(INFO) << std::setprecision(0) << std::fixed << "Received FrameSet; now: " << now << "; cwidth: " << cframe.get_width();
-			VLOG(2) << "num_filters: " <<  static_cast<int>(filters.size());
-			for (std::vector<NamedFilter>::const_iterator filter_it = filters.begin(); filter_it != filters.end(); filter_it++)
+			if (dframe)
 			{
-				VLOG(2) << "Applying filter: " << filter_it->_name;
-				frames = filter_it->_filter->process(frames);
+				VLOG(2) << "num_filters: " <<  static_cast<int>(filters.size());
+				for (std::vector<NamedFilter>::const_iterator filter_it = filters.begin(); filter_it != filters.end(); filter_it++)
+				{
+					VLOG(2) << "Applying filter: " << filter_it->_name;
+					frames = filter_it->_filter->process(frames);
+				}
+				dframe = frames.get_depth_frame();
 			}
 
-			dframe = frames.get_depth_frame();
 
 			if (dframe && cframe && align)
 			{
 				VLOG(2) << "Applying filter: align";
 				frames = align_to_color.process(frames);
+				dframe = frames.get_depth_frame();
+				cframe = frames.get_color_frame();
 			}
-
-			dframe = frames.get_depth_frame();
-			cframe = frames.get_color_frame();
 
 			// std::cout << "Before depth check: " << depth_cfg_active << " " << depth_cfg_counter << " " << depth_cfg_rate << std::endl;
 			if (dframe && depth_cfg_active && depth_cfg_counter == depth_cfg_rate)
 			{
 				// std::cout << "Inside to publish depth" << std::endl;
+				VLOG(2) << "Publishing dframe";
 				rspub_pb::ImageMessage depth_message;
 				fill_image_message(dframe, depth_message);
 				pub_depth.Send(depth_message);
@@ -221,6 +224,7 @@ void process_pipeline(std::vector<rspub::StreamDetail> dsp, rs2::pipeline &pipe,
 
 			if (cframe && color_cfg_active && color_cfg_counter == color_cfg_rate)
 			{
+				VLOG(2) << "Publishing cframe";
 				rspub_pb::ImageMessage color_message;
 				fill_image_message(cframe, color_message);
 				pub_color.Send(color_message);
@@ -231,6 +235,7 @@ void process_pipeline(std::vector<rspub::StreamDetail> dsp, rs2::pipeline &pipe,
 			LOG(INFO) << std::setprecision(0) << std::fixed << "Received FrameSet; now: " << now << "; hardware_ts: " << dframe.get_timestamp();
 			if (dframe && pc_cfg_active && pc_cfg_counter == pc_cfg_rate)
 			{
+				VLOG(2) << "Publishing pointcloud";
 				rspub_pb::PointCloudMessage pc_message;
 				fill_pointcloud(dframe, cframe, pc, points, pc_cfg_color);
 				fill_pointcloud_message(points, pc_message, dframe.get_timestamp(), pc_cfg_color);

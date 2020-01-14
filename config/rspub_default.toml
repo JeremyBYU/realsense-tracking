@@ -18,7 +18,7 @@ width = 848
 height = 480
 framerate = 30
 format = "Z16"
-active = true
+active = false
 
 [[pipeline_streams]]
 device_name = "Intel RealSense D435i"
