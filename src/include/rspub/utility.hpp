@@ -125,6 +125,18 @@ class IMUHistory
 
 bool check_imu_is_supported();
 
+class NamedFilter
+{
+	public:
+		std::string _name;
+		std::shared_ptr<rs2::filter> _filter;
+
+	public:
+		NamedFilter(std::string name, std::shared_ptr<rs2::filter> filter):
+		_name(name), _filter(filter)
+		{}
+};
+
 struct StreamDetail
 {
     std::string device_name;
@@ -175,17 +187,7 @@ const static std::unordered_map<std::string,rs2_format> FMT_ENUM{
 
 StreamDetail stream_profile_to_details(rs2::stream_profile sp);
 
-class NamedFilter
-{
-	public:
-		std::string _name;
-		std::shared_ptr<rs2::filter> _filter;
 
-	public:
-		NamedFilter(std::string name, std::shared_ptr<rs2::filter> filter):
-		_name(name), _filter(filter)
-		{}
-};
 
 }
 

@@ -12,8 +12,6 @@ import open3d as o3d
 import numpy as np
 
 sys.path.append("../Utility")
-# from ..ReconstructionSystem.initialize_config import *
-# from ..Utility.trajectory_io import *
 from initialize_config import initialize_config
 from file import get_rgbd_file_lists
 from trajectory_io import read_trajectory
@@ -55,10 +53,8 @@ def main(config, traj):
         sdf_trunc=0.04,
         color_type=o3d.integration.TSDFVolumeColorType.RGB8)
 
-    # Load images
-    # rgbd_images = []
-    # pcd_list = []
-    # print(traj)
+    axis_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.5)
+
     # pcd_big = None
     # for i in range(len(traj)):
     #     depth = o3d.io.read_image(os.path.join(depth_files[i]))
@@ -66,24 +62,27 @@ def main(config, traj):
     #     rgbd_image = o3d.geometry.RGBDImage.create_from_color_and_depth(
     #         color, depth, convert_rgb_to_intensity=False)
     #     new_pcd = o3d.geometry.PointCloud.create_from_rgbd_image(rgbd_image, intrinsic)
+    #     # Convert D400 point cloud to T265 reference frame
+    #     transform = np.linalg.inv(H_t265_d400) @ traj[i].pose @ H_t265_d400
     #     # print(traj[i].pose)
-    #     new_pcd = new_pcd.transform(traj[i].pose)
+    #     new_pcd = new_pcd.transform(transform)
     #     if pcd_big is None:
     #         pcd_big = new_pcd
     #     else:
     #         pcd_big = pcd_big + new_pcd
     #         pcd_big = pcd_big.voxel_down_sample(voxel_size=0.01)
-    #     # pcd_list.append(new_pcd)
+    #     o3d.visualization.draw_geometries([pcd_big, axis_frame])
+
     # pcd_big = pcd_big.voxel_down_sample(voxel_size=0.01)
-    # o3d.visualization.draw_geometries([pcd_big])
+    # o3d.visualization.draw_geometries([pcd_big, axis_frame])
 
     for i in range(len(traj)):
         depth = o3d.io.read_image(os.path.join(depth_files[i]))
         color = o3d.io.read_image(os.path.join(color_files[i]))
         rgbd_image = o3d.geometry.RGBDImage.create_from_color_and_depth(
             color, depth, convert_rgb_to_intensity=False)
-        extrinsic = np.dot(H_t265_d400,traj[i].pose)
-        extrinsic = np.linalg.inv(extrinsic)
+        extrinsic = np.linalg.inv(H_t265_d400) @ traj[i].pose @ H_t265_d400  # @ again
+        extrinsic = np.linalg.inv(extrinsic) # not sure whey this is needed?
         volume.integrate(
             rgbd_image,
             intrinsic,
@@ -92,7 +91,7 @@ def main(config, traj):
 
     mesh = volume.extract_triangle_mesh()
     mesh.compute_vertex_normals()
-    o3d.visualization.draw_geometries([mesh])
+    o3d.visualization.draw_geometries([mesh, axis_frame])
     # o3d.io.write_triangle_mesh(
     #     os.path.join(path, config["folder_scene"],
     #                  "color_map_after_optimization.ply"), mesh)

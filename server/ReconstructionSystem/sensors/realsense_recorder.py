@@ -1,5 +1,3 @@
-# pyrealsense2 is required.
-# Please see instructions in https://github.com/IntelRealSense/librealsense/tree/master/wrappers/python
 from os import makedirs
 import sys
 import argparse
@@ -15,16 +13,26 @@ import pyrealsense2 as rs
 import numpy as np
 import cv2
 
-sys.path.append("../Utility")
-from file import write_poses_to_log
-
 try:
     # Python 2 compatible
     input = raw_input
 except NameError:
     pass
 
-# T265 to T265
+def write_poses_to_log(filename, poses):
+    with open(filename, 'w') as f:
+        for i, pose in enumerate(poses):
+            f.write('{} {} {}\n'.format(i, i, i + 1))
+            f.write('{0:.8f} {1:.8f} {2:.8f} {3:.8f}\n'.format(
+                pose[0, 0], pose[0, 1], pose[0, 2], pose[0, 3]))
+            f.write('{0:.8f} {1:.8f} {2:.8f} {3:.8f}\n'.format(
+                pose[1, 0], pose[1, 1], pose[1, 2], pose[1, 3]))
+            f.write('{0:.8f} {1:.8f} {2:.8f} {3:.8f}\n'.format(
+                pose[2, 0], pose[2, 1], pose[2, 2], pose[2, 3]))
+            f.write('{0:.8f} {1:.8f} {2:.8f} {3:.8f}\n'.format(
+                pose[3, 0], pose[3, 1], pose[3, 2], pose[3, 3]))
+
+# T265 to D400
 H_t265_d400 = np.array([
     [1, 0, 0, 0],
     [0, -1.0, 0, 0],
@@ -88,7 +96,7 @@ def make_clean_folder(path_folder):
 def save_intrinsic_as_json(filename, frame):
     intrinsics = frame.profile.as_video_stream_profile().intrinsics
     with open(filename, 'w') as outfile:
-        _ = json.dump(
+        json.dump(
             {
                 'width':
                     intrinsics.width,
@@ -125,7 +133,6 @@ def process_depth(frames, align, filters, frame_count, path_depth, path_color, c
 
     depth_image = np.asanyarray(aligned_depth_frame.get_data())
     color_image = np.asanyarray(color_frame.get_data())
-    # color_image_rgb = cv2.cvtColor(color_image, cv2.COLOR_BGR2RGB)
 
     if args.record_imgs:
         if frame_count == 0:
@@ -163,7 +170,7 @@ def callback_pose(frame):
         r = data.rotation
         mat = quat_as_matrix(r.x, r.y, r.z, r.w, dim=4)
         mat[0, 3] = t.x; mat[1, 3] = t.y; mat[2, 3] = t.z
-        mat = np.dot(mat,H_t265_d400)
+        # mat = np.dot(mat,H_t265_d400)
         # Add poses to list
         POSES_TS.append(ts)
         POSES.append(mat)
@@ -222,7 +229,6 @@ def main():
     sensor_t265 = None
     cfg_d400 = None
 
-    
     for dev in ctx.query_devices():
         dev_name = dev.get_info(rs.camera_info.name)
         print("Found {}".format(dev_name))
@@ -233,7 +239,7 @@ def main():
 
     if dev_d400:
         cfg_d400 = rs.config()
-        pipe_d400 = rs.pipeline()
+        pipe_d400 = rs.pipeline(ctx)
         # Enable Streams
         cfg_d400.enable_stream(rs.stream.depth, 848, 480, rs.format.z16, 30)
         cfg_d400.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
@@ -268,8 +274,8 @@ def main():
     images_ts = []
     frame_poses = []
     t0 = time.time()
-    skip_time = 2
-    filters = [rs.disparity_transform(True),rs.temporal_filter(0.2, 20.0, 2), rs.spatial_filter(0.5, 20.0, 2.0, 0.0), rs.disparity_transform(False)]
+    skip_time = 0
+    filters = [rs.disparity_transform(True),rs.temporal_filter(0.5, 20.0, 2), rs.spatial_filter(0.5, 20.0, 2.0, 0.0), rs.disparity_transform(False)]
     try:
         cv2.namedWindow('Recorder Realsense', cv2.WINDOW_AUTOSIZE)
         while True:
@@ -286,8 +292,9 @@ def main():
                 # print(dir(d400_frames))
                 domain = d400_frames.frame_timestamp_domain
                 images_ts.append(ts)
-                images = process_depth(d400_frames, align, filters, frame_count, path_depth, path_color, clipping_distance, args)
                 print("TS: {} - {:.1f}; Saved color + depth image {:06d}".format(domain, ts, frame_count))
+                images = None
+                # images = process_depth(d400_frames, align, filters, frame_count, path_depth, path_color, clipping_distance, args)
                 if images is not None:
                     frame_count += 1
                     cv2.imshow('Recorder Realsense', images)
