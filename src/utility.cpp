@@ -112,7 +112,7 @@ bool create_filters(std::vector<NamedFilter> &filters, const toml::value &tcf)
 
 void fill_pointcloud(rs2::depth_frame &dframe, rs2::video_frame &cframe, rs2::pointcloud &pc, rs2::points &points, bool color=false)
 {
-    if (color)
+    if (color && cframe)
     {
         pc.map_to(cframe);
     }
