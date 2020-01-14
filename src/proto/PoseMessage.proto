@@ -14,3 +14,7 @@ message PoseMessage {
     int32 mapper_confidence = 8;
     double hardware_ts = 9;
 }
+
+message PoseMessageList {
+    repeated PoseMessage poses = 1;
+}

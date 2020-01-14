@@ -86,13 +86,15 @@ add_executable(rs-motion-2 src/rs-motion-2.cpp)
 # add_executable(rs-tracker src/rs-tracker.cpp src/utility.cpp ${PROTO_SRCS} ${PROTO_HDRS})
 add_executable(rs-test src/rs-test.cpp src/utility.cpp ${PROTO_SRCS} ${PROTO_HDRS})
 add_executable(rs-pub src/rs-pub.cpp src/utility.cpp ${PROTO_SRCS} ${PROTO_HDRS})
+add_executable(rs-save src/rs-save.cpp src/utility.cpp ${PROTO_SRCS} ${PROTO_HDRS})
 
 # Link librealsense2 to the target
 target_link_libraries(rs-motion ${realsense2_LIBRARY} ${DEPENDENCIES})
 target_link_libraries(rs-motion-2 ${realsense2_LIBRARY} ${DEPENDENCIES})
 # target_link_libraries(rs-tracker ${realsense2_LIBRARY} ${DEPENDENCIES} xest)
-target_link_libraries(rs-pub ${realsense2_LIBRARY} ${DEPENDENCIES})
 target_link_libraries(rs-test ${realsense2_LIBRARY} ${DEPENDENCIES}) 
+target_link_libraries(rs-pub ${realsense2_LIBRARY} ${DEPENDENCIES})
+target_link_libraries(rs-save ${realsense2_LIBRARY} ${DEPENDENCIES})
 
 add_custom_target(DUMMY_TARGET ALL 
                   DEPENDS ${PY_SOURCES})

@@ -69,5 +69,8 @@
         "valarray": "cpp",
         "variant": "cpp"
     },
-    "python.pythonPath": "/home/jeremy/miniconda3/envs/realsense/bin/python"
+    "python.pythonPath": "/home/jeremy/miniconda3/envs/realsense/bin/python",
+    "cSpell.words": [
+        "RSUSB"
+    ]
 }

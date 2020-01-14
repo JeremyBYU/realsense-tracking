@@ -64,12 +64,11 @@ active = true
   active = true
   rate = 1
 
+  [publish.pose]
+  active = true
+  rate = 1
+
   [publish.pointcloud]
   active = true
   color= true
-  rate = 15
-  ds_x=2
-  ds_y=2
-
-
-
+  rate = 1

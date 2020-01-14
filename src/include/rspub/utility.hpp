@@ -22,6 +22,8 @@
 #include "IMUMessage.pb.h"
 #include "PointCloudMessage.pb.h"
 
+#include "rspub/types_simple.hpp"
+
 #define MS_TO_NS 1000000
 
 namespace rspub

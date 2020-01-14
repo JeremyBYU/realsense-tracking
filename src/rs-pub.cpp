@@ -5,7 +5,7 @@
 // This technique works with RSUSB driver (LIBUVC) but should work with kernel drivers as well
 // This example is meant for D435i, to get high frequency motion data at the same time of depth,rgb images
 // Two examples are shown, one that read a bags file and another that does live streaming from the sensor. Activate bag reading with cmd line flag --bag=<file>
-// The main technique that makes this possible is to NOT USE rs::pipeline, but to directly acess each sensor and
+// The main technique that makes this possible is to NOT USE rs::pipeline, but to directly access each sensor and
 // configure the stream manually (as well as associated callbacks).
 
 #include <chrono>
@@ -149,8 +149,8 @@ void enable_pipe_streams(std::vector<rspub::StreamDetail> &desired_pipeline_stre
 }
 
 void process_pipeline(std::vector<rspub::StreamDetail> dsp, rs2::pipeline &pipe, 
-						const toml::value &tcf, eCAL::protobuf::CPublisher<rspub_pb::ImageMessage> &pub_depth,
-						eCAL::protobuf::CPublisher<rspub_pb::PointCloudMessage> &pub_pc, bool wait=false)
+						const toml::value &tcf, PubImage &pub_depth, PubImage &pub_color,
+						PubPointCloud &pub_pc, bool wait=false)
 {
 
 	// create filters for depth image
@@ -160,9 +160,13 @@ void process_pipeline(std::vector<rspub::StreamDetail> dsp, rs2::pipeline &pipe,
 
 	auto depth_cfg = toml::find(tcf, "publish", "depth");
 	auto depth_cfg_active = toml::find_or<bool>(depth_cfg, "active", false);
+	int depth_cfg_rate = toml::find_or<int>(depth_cfg, "rate", 1);
+	int depth_cfg_counter = 0;
 
 	auto color_cfg = toml::find(tcf, "publish", "color");
 	auto color_cfg_active = toml::find_or<bool>(color_cfg, "active", false);
+	int color_cfg_rate = toml::find_or<int>(color_cfg, "rate", 1);
+	int color_cfg_counter = 0;
 
 	auto pc_cfg = toml::find(tcf, "publish", "pointcloud");
 	bool pc_cfg_active = toml::find_or<bool>(pc_cfg, "active", false);
@@ -177,6 +181,8 @@ void process_pipeline(std::vector<rspub::StreamDetail> dsp, rs2::pipeline &pipe,
 	{
 		while(true)
 		{
+			depth_cfg_counter++;
+			color_cfg_counter++;
 			pc_cfg_counter++;
 			auto frames = pipe.wait_for_frames();
 
@@ -203,11 +209,22 @@ void process_pipeline(std::vector<rspub::StreamDetail> dsp, rs2::pipeline &pipe,
 			dframe = frames.get_depth_frame();
 			cframe = frames.get_color_frame();
 
-			if (dframe && depth_cfg_active)
+			// std::cout << "Before depth check: " << depth_cfg_active << " " << depth_cfg_counter << " " << depth_cfg_rate << std::endl;
+			if (dframe && depth_cfg_active && depth_cfg_counter == depth_cfg_rate)
 			{
+				// std::cout << "Inside to publish depth" << std::endl;
 				rspub_pb::ImageMessage depth_message;
 				fill_image_message(dframe, depth_message);
 				pub_depth.Send(depth_message);
+				depth_cfg_counter = 0;
+			}
+
+			if (cframe && color_cfg_active && color_cfg_counter == color_cfg_rate)
+			{
+				rspub_pb::ImageMessage color_message;
+				fill_image_message(cframe, color_message);
+				pub_color.Send(color_message);
+				color_cfg_counter = 0;
 			}
 
 			now = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
@@ -246,9 +263,11 @@ int read_bag(std::string file_name, const toml::value &tcf)
 	// create a publisher (topic name "RSPub")
 	eCAL::Initialize(0, nullptr, "RSPub");
 	// std::make_unique<eCAL::protobuf::CPublisher<rspub_pb::PoseMessage>>("PoseMessage");
-	eCAL::protobuf::CPublisher<rspub_pb::PoseMessage> pub_pose("PoseMessage");
-	eCAL::protobuf::CPublisher<rspub_pb::ImageMessage> pub_depth("DepthMessage");
-	eCAL::protobuf::CPublisher<rspub_pb::PointCloudMessage> pub_pc("PointCloud");
+	PubPose pub_pose("PoseMessage");
+	PubImage pub_depth("DepthMessage");
+	PubImage pub_color("ColorMessage");
+	PubImage pub_align("RGBDMessage");
+	PubPointCloud pub_pc("PointCloudMessage");
 
 	// Create librealsense context for managing devices
 	rs2::context ctx;
@@ -291,7 +310,7 @@ int read_bag(std::string file_name, const toml::value &tcf)
 		pipe.start(config);
 	}
 
-	process_pipeline(desired_pipeline_streams, pipe, tcf, pub_depth, pub_pc);
+	process_pipeline(desired_pipeline_streams, pipe, tcf, pub_depth, pub_color, pub_pc);
 	return EXIT_SUCCESS;
 }
 
@@ -301,11 +320,11 @@ int live_stream(const toml::value &tcf)
 	// create a publisher (topic name "RSPub")
 	LOG(INFO) << "Creating LiveStream of RealSense" << std::endl;
 	eCAL::Initialize(0, nullptr, "RSPub");
-	eCAL::protobuf::CPublisher<rspub_pb::PoseMessage> pub_pose("PoseMessage");
-	eCAL::protobuf::CPublisher<rspub_pb::ImageMessage> pub_depth("DepthMessage");
-	eCAL::protobuf::CPublisher<rspub_pb::ImageMessage> pub_color("ColorMessage");
-	eCAL::protobuf::CPublisher<rspub_pb::ImageMessage> pub_align("RGBDMessage");
-	eCAL::protobuf::CPublisher<rspub_pb::PointCloudMessage> pub_pc("PointCloudMessage");
+	PubPose pub_pose("PoseMessage");
+	PubImage pub_depth("DepthMessage");
+	PubImage pub_color("ColorMessage");
+	PubPointCloud pub_pc("PointCloudMessage");
+	PubImage pub_rgbd("RGBDMessage");
 	// Create librealsense context for managing devices
 	rs2::context ctx;
 	// Desired streams that should be manually controlled (no pipeline, i.e., sensor.open)
@@ -315,9 +334,6 @@ int live_stream(const toml::value &tcf)
 	// Read from TOML Config file
 	parse_desired_stream(desired_manual_streams, tcf, "manual_streams");
 	parse_desired_stream(desired_pipeline_streams, tcf, "pipeline_streams");
-	// std::vector<rspub::StreamDetail> desired_manual_streams = {{"Intel RealSense T265", "Pose", rspub::STRM_ENUM.at("Pose"s), 0, 0, 200, rspub::FMT_ENUM.at("6DOF"s)}};
-	// std::vector<rspub::StreamDetail> desired_pipeline_streams = {{"Intel RealSense D435I", "Depth", rspub::STRM_ENUM.at("Depth"s), 640, 480, 30, rspub::FMT_ENUM.at("Z16"s)},
-	// 																 {"Intel RealSense D435I", "Color", rspub::STRM_ENUM.at("Color"s), 640, 480, 30, rspub::FMT_ENUM.at("BGR8"s)}};
 
 	// needed this variable to keep sensors 'alive'
 	std::map<std::string, std::vector<rs2::sensor>> device_sensors;
@@ -335,7 +351,7 @@ int live_stream(const toml::value &tcf)
 		enable_pipe_streams(desired_pipeline_streams, cfg, pipe);
 	}
 	
-	process_pipeline(desired_pipeline_streams, pipe, tcf, pub_depth, pub_pc);
+	process_pipeline(desired_pipeline_streams, pipe, tcf, pub_depth, pub_color, pub_pc);
 
 	return EXIT_SUCCESS;
 }
@@ -369,16 +385,16 @@ int main(int argc, char *argv[]) try
 	// initialize eCAL API
 	eCAL::Initialize(0, nullptr, "RSPub");
 	// create subscriber
-	eCAL::protobuf::CSubscriber<rspub_pb::PoseMessage> sub_pose("PoseMessage");
-	eCAL::protobuf::CSubscriber<rspub_pb::PointCloudMessage> sub_pc("PointCloudMessage");
-	// eCAL::protobuf::CSubscriber<rspub_pb::ImageMessage> sub_depth("DepthMessage");
+	rspub::SubPose sub_pose("PoseMessage");
+	rspub::SubPointCloud  sub_pc("PointCloudMessage");
+	eCAL::protobuf::CSubscriber<rspub_pb::ImageMessage> sub_depth("DepthMessage");
 	// add receive callback function (_1 = topic_name, _2 = msg, _3 = time, , _4 = clock)
 	auto pose_rec_callback = std::bind(rspub::OnPoseMessage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
 	sub_pose.AddReceiveCallback(pose_rec_callback);
 	auto pc_rec_callback = std::bind(rspub::OnPointCloudMessage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
 	sub_pc.AddReceiveCallback(pc_rec_callback);
-	// auto depth_rec_callback = std::bind(rspub::OnDepthMessage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
-	// sub_depth.AddReceiveCallback(depth_rec_callback);
+	auto depth_rec_callback = std::bind(rspub::OnDepthMessage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
+	sub_depth.AddReceiveCallback(depth_rec_callback);
 	// enable to receive process internal publications
 	eCAL::Util::EnableLoopback(true);
 	// Parse command line flags
