@@ -188,11 +188,16 @@ void process_pipeline(std::vector<rspub::StreamDetail> dsp, rs2::pipeline &pipe,
 
 			auto dframe = frames.get_depth_frame();
 			auto cframe = frames.get_color_frame();
+
+			double dts = 0;
+			double cts = 0;
+
 			double now = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
 			// LOG(INFO) << std::setprecision(0) << std::fixed << "Received FrameSet; now: " << now << "; dwidth: " << dframe.get_width();
 			// LOG(INFO) << std::setprecision(0) << std::fixed << "Received FrameSet; now: " << now << "; cwidth: " << cframe.get_width();
 			if (dframe)
 			{
+				dts = dframe.get_timestamp();
 				VLOG(2) << "num_filters: " <<  static_cast<int>(filters.size());
 				for (std::vector<NamedFilter>::const_iterator filter_it = filters.begin(); filter_it != filters.end(); filter_it++)
 				{
@@ -229,10 +234,10 @@ void process_pipeline(std::vector<rspub::StreamDetail> dsp, rs2::pipeline &pipe,
 				fill_image_message(cframe, color_message);
 				pub_color.Send(color_message);
 				color_cfg_counter = 0;
+				cts = cframe.get_timestamp();
 			}
-
 			now = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
-			LOG(INFO) << std::setprecision(0) << std::fixed << "Received FrameSet; now: " << now << "; hardware_ts: " << dframe.get_timestamp();
+			LOG(INFO) << std::setprecision(0) << std::fixed << "Received FrameSet; now: " << now << "; dframe hardware_ts: " << dts << "; cframe hardware_ts: " << cts;
 			if (dframe && pc_cfg_active && pc_cfg_counter == pc_cfg_rate)
 			{
 				VLOG(2) << "Publishing pointcloud";
