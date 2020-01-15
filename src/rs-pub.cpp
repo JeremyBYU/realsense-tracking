@@ -136,7 +136,8 @@ void enable_manual_streams(rs2::context &ctx, std::vector<rspub::StreamDetail> &
 	}
 }
 
-void enable_pipe_streams(std::vector<rspub::StreamDetail> &desired_pipeline_streams, rs2::config &cfg, rs2::pipeline &pipe)
+void enable_pipe_streams(std::vector<rspub::StreamDetail> &desired_pipeline_streams, rs2::config &cfg, rs2::pipeline &pipe,
+							const toml::value &tcf)
 {
 	LOG(INFO) << "Requesting to start pipeline streams: " << std::endl;
 	rspub::print_profiles(desired_pipeline_streams);
@@ -145,7 +146,19 @@ void enable_pipe_streams(std::vector<rspub::StreamDetail> &desired_pipeline_stre
 		cfg.enable_stream(pipe_stream.stream_type, pipe_stream.width, pipe_stream.height, pipe_stream.format, pipe_stream.fps);
 	}
 	// Start streaming with default recommended configuration
-	pipe.start(cfg);
+	auto profile = pipe.start(cfg);
+	auto sensor = profile.get_device().first<rs2::depth_sensor>();
+	if (sensor)
+	{
+		auto auto_exposure = toml::find_or<float>(tcf, "depth_auto_exposure", 1);
+		auto exposure = toml::find_or<float>(tcf, "depth_exposure", 1);
+		if (auto_exposure == 0.0)
+		{
+			sensor.set_option(RS2_OPTION_ENABLE_AUTO_EXPOSURE,auto_exposure);
+			sensor.set_option(RS2_OPTION_EXPOSURE, exposure);
+			LOG(INFO) << "Setting exposure to: " << exposure << " microseconds";
+		}
+	}
 }
 
 void process_pipeline(std::vector<rspub::StreamDetail> dsp, rs2::pipeline &pipe, const toml::value &tcf, 
@@ -376,7 +389,7 @@ int live_stream(const toml::value &tcf)
 	rs2::pipeline pipe(ctx);
 	if (desired_pipeline_streams.size() > 0)
 	{
-		enable_pipe_streams(desired_pipeline_streams, cfg, pipe);
+		enable_pipe_streams(desired_pipeline_streams, cfg, pipe, tcf);
 	}
 	
 	process_pipeline(desired_pipeline_streams, pipe, tcf, pub_depth, pub_color, pub_rgbd, pub_pc);

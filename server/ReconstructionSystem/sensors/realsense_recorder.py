@@ -245,7 +245,8 @@ def main():
         cfg_d400.enable_stream(rs.stream.color, 424, 240, rs.format.bgr8, 30)
         # Configure Depth sensor and get parameters
         depth_sensor = dev_d400.first_depth_sensor()
-        depth_sensor.set_option(rs.option.visual_preset, Preset.HighAccuracy)
+        depth_sensor.set_option(rs.option.visual_preset, Preset.Default)
+        depth_sensor.set_option(rs.option.enable_auto_exposure, 0)
         # Getting the depth sensor's depth scale (see rs-align example for explanation)
         depth_scale = depth_sensor.get_depth_scale()
         clipping_distance_in_meters = 3  # 3 meter

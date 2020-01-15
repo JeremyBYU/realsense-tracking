@@ -1,6 +1,8 @@
 name = "Default Settings for D435 and T265."
 show_images = true
 show_polygon = true
+depth_auto_exposure = 0.0
+depth_exposure = 6000.0
 
 [[manual_streams]]
 device_name = "Intel RealSense T265"
@@ -40,8 +42,8 @@ active = true
 
   [filters.temporal]
   active = true
-  smooth_alpha = 0.5
-  smooth_delta = 20.0
+  smooth_alpha = 0.6
+  smooth_delta = 60.0
   persistence_control = 2.0
 
   [filters.spatial]

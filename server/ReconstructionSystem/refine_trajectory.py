@@ -90,9 +90,9 @@ def main(config, traj):
     mesh = volume.extract_triangle_mesh()
     mesh.compute_vertex_normals()
     o3d.visualization.draw_geometries([mesh, axis_frame])
-    # o3d.io.write_triangle_mesh(
-    #     os.path.join(path, config["folder_scene"],
-    #                  "color_map_after_optimization.ply"), mesh)
+    o3d.io.write_triangle_mesh(
+        os.path.join(path, config["folder_scene"],
+                     "mesh_with_trajectory.ply"), mesh)
 
 
 if __name__ == "__main__":

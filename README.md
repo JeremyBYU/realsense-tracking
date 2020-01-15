@@ -24,6 +24,8 @@ password: pir0b0t
 2. `docker run  --rm --privileged -it --env="DISPLAY" --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" --volume="$(pwd):/opt/workspace:rw" jeremybyu/realsense:buildx`
 3. Optional - `rm -rf build && mkdir build && cd build && cmake .. && make && cd ..`
 
+Alternative - `docker run  --rm --privileged -it --env="DISPLAY" --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" --mount type=bind,source="$(pwd)",target=/opt/workspace --name realsense --user $(id -u):$(id -g) jeremybyu/realsense:latest`
+
 # Applications
 
 ## RS-Pub
@@ -46,7 +48,16 @@ Will convert saved protofiles in a folder to text format
 
 ## Reconstruction
 
+Doesnt work in docker. Need Open3D and Scipy
+
 1. `python -m server.ReconstructionSystem.refine_trajectory --config config/reconstruction.json`
+
+## RS-Save-Pyton (Beta)
+
+Doesnt work in docker
+
+1. `cd server/ReconstrucitonSystem`
+2. `python sensors/realsense_recorder` some options
 
 # Notes
 

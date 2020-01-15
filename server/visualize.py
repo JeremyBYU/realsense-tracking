@@ -8,8 +8,8 @@ import logging
 import cv2
 import numpy as np
 import open3d as o3d
-from matplotlib.colors import Normalize
-import matplotlib.pyplot as plt
+# from matplotlib.colors import Normalize
+# import matplotlib.pyplot as plt
 import ecal.core.core as ecal_core
 from ecal.core.subscriber import ProtoSubscriber
 
