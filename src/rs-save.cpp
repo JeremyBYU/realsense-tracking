@@ -44,6 +44,7 @@ DEFINE_string(config, "./config/rssave_default.toml", "Path to config file");
 // START Global Variables
 /////////////////////////
 std::map<std::string, std::string> folder_paths;
+std::map<std::string, std::string> sensor_ext({{"color"s, ".jpg"s}, {"depth"s, ".png"s}});
 const std::string pose_fname = "trajectory";
 
 int depth_counter = 0;
@@ -51,7 +52,7 @@ int rgb_counter = 0;
 int rgbd_counter = 0;
 int pose_counter = 0;
 int point_counter = 0;
-int pose_per_file = 1000;
+int pose_per_file = 200;
 int pointcloud_per_file = 1;
 
 std::vector<rspub_pb::PoseMessage> pose_messages;
@@ -108,7 +109,7 @@ std::string pad_int(int num, int pad = 8)
 }
 
 template <class T>
-int WriteProtoData(T &proto_data, std::string fpath)
+int WriteProtoData(const T &proto_data, std::string fpath)
 {
 	std::fstream output(fpath, std::ios::out | std::ios::trunc | std::ios::binary);
 	if (!proto_data.SerializeToOstream(&output))
@@ -164,7 +165,7 @@ void write_img(const char *image_data_ptr, int w, int h, int d_type, int counter
 		cv::Mat image(cv::Size(w, h), d_type, (void *)image_data_ptr, cv::Mat::AUTO_STEP);
 		// TODO use string stream
 		std::string time_stamp = std::to_string(static_cast<std::int64_t>(std::floor(ts)));
-		auto fpath = folder_paths[sensor_type] + pad_int(counter) + "_" + time_stamp + ".png";
+		auto fpath = folder_paths[sensor_type] + pad_int(counter) + "_" + time_stamp + sensor_ext[sensor_type];
 		cv::imwrite(fpath, image);
 	}
 	catch (const std::exception &e)
@@ -243,7 +244,7 @@ void OnPointCloudMessage(const char *topic_name_, const rspub_pb::PointCloudMess
 	if ((point_counter % pointcloud_per_file) == 0)
 	{
 		auto fpath = folder_paths["pointcloud"s] + pad_int(point_counter, 8) + ".pb";
-		WriteProtoData<rspub_pb::PoseMessageList>(pose_list, fpath);
+		WriteProtoData<rspub_pb::PointCloudMessage>(pc_msg, fpath);
 	}
 }
 

@@ -1,212 +1,142 @@
 import time
 import argparse
-import pathlib
+from pathlib import Path
 import csv
+import sys
+import logging
 
+from scipy.spatial.transform import Rotation as R
 import numpy as np
-import pyrealsense2 as rs
-import cv2
-# import ipdb
 
 MS_TO_NS = 1000000
 sleep_time = 0.001
 
-DEFAULT_SENSORS = ['infrared1', 'gyro', 'accel']
-SENSOR_MAPPING = dict(infrared1=rs.stream.infrared, color=rs.stream.color,
-                      gyro=rs.stream.gyro, accel=rs.stream.accel, depth=rs.stream.depth)
+THIS_DIR = Path(__file__).parent
+BUILD_DIR = THIS_DIR.parent / 'build'
+sys.path.insert(0, str(BUILD_DIR.resolve()))
 
-SENSOR_MAPPING_DIR = dict(infrared1='cam0', color='cam0',
-                          gyro='imu0', accel='imu0', depth='stereo')
-
-DIR_CSV_HEADINGS = dict(cam0=['timestamp', 'filename'],
-                        imu0=['timestamp', 'omega_x', 'omega_y', 'omega_z', 'alpha_x', 'alpha_y', 'alpha_z'])
-
-
-# global variable for handling conversion and saving, will be of class Converter
-CONVERTER = None
-np.set_printoptions(suppress=True,
-   formatter={'float_kind':'{:0.2f}'.format, 'int_kind': '{:d}'})  #float, 2 units 
-
+from PoseMessage_pb2 import PoseMessage, PoseMessageList
+from PointCloudMessage_pb2 import PointCloudMessage
+logging.basicConfig(level=logging.INFO)
 
 class Converter(object):
-    def __init__(self, data_dir="data", bag_name='rsbag', sensors=DEFAULT_SENSORS, image_subdir='data', csv_fname='data.csv'):
-        self.allowed_rs_sensors = [SENSOR_MAPPING[sensor]
-                                   for sensor in sensors]
-        # Create data directory
-        self.image_subdir = image_subdir
-        self.data_dir = pathlib.Path(data_dir) / bag_name
-        self.data_dir.mkdir(parents=True, exist_ok=True)
-        self.csv_fname = csv_fname
+    def __init__(self, data_dir):
+        self.data_dir = data_dir
+        self.pointcloud = self.data_dir / "pointcloud"
+        self.scene = self.data_dir / "scene"
+        self.color = self.data_dir / "color"
 
-        # create sensor subdir
-        self.sensor_dirs = dict()
-        self.sensor_dirs_alt = dict()
-        self.sensor_data = dict()
-        for sensor in sensors:
-            # create and save subdirectory for saving sensor data
-            self.sensor_dirs[sensor] = self.data_dir / \
-                pathlib.Path(SENSOR_MAPPING_DIR[sensor])
-            self.sensor_dirs_alt[SENSOR_MAPPING_DIR[sensor]
-                                 ] = self.sensor_dirs[sensor]
-            self.sensor_dirs[sensor].mkdir(parents=True, exist_ok=True)
-            # create empty data stucture for recording filenames/data (later saved as csv file)
-            self.sensor_data[SENSOR_MAPPING_DIR[sensor]] = list()
-            # Unfortunately XIVO requires the actual camera images to be stored in a subdirectory call data
-            if SENSOR_MAPPING_DIR[sensor] == 'cam0':
-                (self.sensor_dirs[sensor] /
-                 'data').mkdir(parents=True, exist_ok=True)
+        self.pose_timestamps = None
+        self.all_poses = None
 
-    def handle_image(self, sensor_name, frame):
-        data_repo = self.sensor_data[SENSOR_MAPPING_DIR[sensor_name]]
-        data_dir = self.sensor_dirs[sensor_name]
+        if self.pointcloud.exists():
+            self.parse_point_clouds(self.pointcloud)
 
-        vframe = frame.as_video_frame()
-        ts = int(frame.timestamp * MS_TO_NS)
-        image_data = np.asanyarray(vframe.get_data())
+        if self.scene.exists():
+            self.pose_timestamps, self.all_poses = self.parse_trajectory(
+                self.scene)
 
-        data_dir = data_dir / self.image_subdir
-        fname = sensor_name + '_' + str(ts) + '.png'
-        fpath = data_dir / fname
+        # if we have a color folder with frame_ids and timestamps in file name
+        # use them to create a new trajectory log
+        if self.color.exists():
+            # these are the frame ids and associated timestamps
+            frame_ids, timestamps = self.parse_frame_ids_and_ts(self.color)
+            # will contain the poses at these specific timestamps
+            frame_poses = []
+            for ts_ in timestamps:
+                idx = (np.abs(self.pose_timestamps - ts_)).argmin()
+                frame_poses.append(self.all_poses[idx])
+            logging.info("Writing trajectory.log for picture frames")
+            self.write_poses(frame_poses, self.scene / "trajectory.log")
 
-        # write file
-        cv2.imwrite(str(fpath), image_data)
-        # record data in list of dicts
-        data_repo.append(dict(timestamp=ts, filename=fname))
+    def parse_point_clouds(self, folder: Path):
+        logging.info("Processing Point Clouds")
+        files = sorted(folder.glob("*.pb"))
+        for file_ in files:
+            print(file_)
+            new_file = file_.with_suffix('.npz')
+            with open(str(file_), 'rb') as f:
+                pcm = PointCloudMessage()
+                pcm.ParseFromString(f.read())
+                pc_data = pcm.pc_data
+                n_points = pcm.n_points
+                bpp = pcm.bpp
+                dim_ = 3 if pcm.format == 0 else 6
+                points = np.frombuffer(
+                    pc_data, dtype=np.float32).reshape((n_points, dim_))
+                np.savez_compressed(str(new_file), points)
 
-    def handle_imu(self, sensor_name, frame):
-        data = frame.as_motion_frame().get_motion_data()
-        ts = int(frame.timestamp * MS_TO_NS)
+    @staticmethod
+    def write_log(fh, counter, ht, ts=None):
+        if ts is None:
+            fh.write("{:d} {:d} {:d}\n".format(counter, counter, counter+1))
+        else:
+            fh.write("{:d} {:d} {:d} {:d}\n".format(
+                counter, counter, counter+1, ts))
+        fh.write("{:.8f} {:.8f} {:.8f} {:.8f}\n".format(*ht[0, :]))
+        fh.write("{:.8f} {:.8f} {:.8f} {:.8f}\n".format(*ht[1, :]))
+        fh.write("{:.8f} {:.8f} {:.8f} {:.8f}\n".format(*ht[2, :]))
+        fh.write("{:.8f} {:.8f} {:.8f} {:.8f}\n".format(*ht[3, :]))
 
-        data_repo = self.sensor_data[SENSOR_MAPPING_DIR[sensor_name]]
-        data_repo.append(dict(x=data.x, y=data.y, z=data.z,
-                              sensor=sensor_name, timestamp=ts))
+    def parse_frame_ids_and_ts(self, folder: Path):
+        logging.info(
+            "Processing Color Directory to get frame_ids and timestamps")
+        files = sorted(folder.glob("*.jpg"))
+        frame_ids = []
+        timestamps = []
 
-    def save_csv(self):
-        for sensor_dir_name, sensor_repo in self.sensor_data.items():
-            data_dir = self.sensor_dirs_alt[sensor_dir_name]
-            fpath = data_dir / self.csv_fname
-            print(sensor_dir_name, data_dir)
-            if sensor_dir_name == 'imu0':
-                new_sensor_repo = self.organize_imu()
-                self.write_csv(sensor_dir_name, str(fpath), new_sensor_repo)
-            else:
-                self.write_csv(sensor_dir_name, str(fpath), sensor_repo)
+        for file_ in files:
+            frame_id, ts = file_.stem.split('_')
+            frame_ids.append(frame_id)
+            timestamps.append(int(ts))
 
+        frame_ids = np.array(frame_ids)
+        timestamps = np.array(timestamps)
+        return frame_ids, timestamps
 
-    def convert_numpy_imu(self, data_repo):
-        accel_np = np.array([[data['timestamp'], data['x'], data['y'], data['z']] for data in data_repo if data['sensor'] == 'accel'])
-        gyro_np = np.array([[data['timestamp'], data['x'], data['y'], data['z']] for data in data_repo if data['sensor'] == 'gyro'])
-        # print(accel_np.shape)
-        # print(gyro_np.shape)
-        return accel_np, gyro_np
+    def write_poses(self, poses_list, fpath):
+        with open(str(fpath), 'w') as f_new:
+            for counter, pose in enumerate(poses_list):
+                ts = int(pose.hardware_ts)
+                ht = np.identity(4)
+                r = R.from_quat([pose.rotation.x, pose.rotation.y,
+                                 pose.rotation.z, pose.rotation.w])
+                ht[:3, :3] = r.as_matrix()
+                ht[:3, 3] = [pose.translation.x,
+                             pose.translation.y, pose.translation.z]
+                self.write_log(f_new, counter, ht, ts)
 
-    def accel_is_slower(self, accel_np, gyro_np):
-        return accel_np.shape[0] < gyro_np.shape[0]
+    def parse_trajectory(self, folder: Path):
+        logging.info("Processing Trajectory")
+        files = sorted(folder.glob("*.pb"))
+        timestamps = []
+        poses = []
 
-    def linear_interoplate(self, slow_stream, fast_stream):
-        x_input = slow_stream[:, 0]
-        x_model = fast_stream[:, 0]
-        new_fast_stream = [x_input]
-        for i in [1,2,3]: # x,y,z axis of fast_sream
-            y_model = fast_stream[:, i]
-            y_predict = np.interp(x_input, x_model, y_model)
-            new_fast_stream.append(y_predict)
-        new_fast_stream = np.column_stack(new_fast_stream)
-        return new_fast_stream
-    
-    def organize_imu(self):
-        data_repo = self.sensor_data['imu0']
-        accel_np, gyro_np = self.convert_numpy_imu(data_repo)
+        for file_ in files:
+            print(file_)
+            with open(str(file_), 'rb') as f:
+                pml: PoseMessageList = PoseMessageList()
+                pml.ParseFromString(f.read())
+                for pose in pml.poses:
+                    ts = int(pose.hardware_ts)
+                    timestamps.append(ts)
+                    poses.append(pose)
 
-        sync_with_accel = self.accel_is_slower(accel_np, gyro_np)
-        slow_stream, fast_stream = (accel_np, gyro_np) if sync_with_accel else (gyro_np, accel_np)
-        # ensure the data is sorted
-        slow_stream = slow_stream[slow_stream[:,0].argsort()]
-        fast_stream = fast_stream[fast_stream[:,0].argsort()]
+        raw_poses_fpath = folder / 'raw_trajectory.log'
+        self.write_poses(poses, raw_poses_fpath)
 
-        new_fast_stream = self.linear_interoplate(slow_stream, fast_stream)
-
-
-        combined = np.column_stack((slow_stream, new_fast_stream[:, 1:]))
-        new_data_repo = []
-        for i in range(combined.shape[0]):
-            dt = combined[i, :]
-            if sync_with_accel:
-                new_data = dict(timestamp=int(dt[0]), alpha_x=dt[1],alpha_y=dt[2],alpha_z=dt[3], omega_x=dt[4], omega_y=dt[5], omega_z=dt[6])
-            else:
-                new_data = dict(timestamp=int(dt[0]), alpha_x=dt[4],alpha_y=dt[5],alpha_z=dt[6], omega_x=dt[1], omega_y=dt[2], omega_z=dt[3])
-            new_data_repo.append(new_data)
-
-        # print(slow_stream[15:20, :])
-        # print(fast_stream[15:20,:])
-        # print(new_fast_stream[15:20, :])
-        return new_data_repo
-
-
-    def write_csv(self, sensor_dir_name, fpath, records):
-
-        csv_columns = DIR_CSV_HEADINGS[sensor_dir_name]
-        with open(fpath, 'w') as csvfile:
-            writer = csv.DictWriter(csvfile, fieldnames=csv_columns)
-            writer.writeheader()
-            for data in records:
-                writer.writerow(data)
-
-
-class DefaultListSensors(argparse.Action):
-    CHOICES = ['infrared1', 'gyro', 'accel', 'color']
-
-    def __call__(self, parser, namespace, values, option_string=None):
-        if values:
-            for value in values:
-                if value not in self.CHOICES:
-                    message = ("invalid choice: {0!r} (choose from {1})"
-                               .format(value,
-                                       ', '.join([repr(action)
-                                                  for action in self.CHOICES])))
-
-                    raise argparse.ArgumentError(self, message)
-            setattr(namespace, self.dest, values)
-
-
-def callback(frame):
-    # print(frame.profile.stream_type(), frame.timestamp)
-    if frame.profile.stream_type() == rs.stream.infrared:
-        # print('infrared1')
-        CONVERTER.handle_image('infrared1', frame)
-        pass
-    elif frame.profile.stream_type() == rs.stream.color:
-        # print('color')
-        pass
-    elif frame.profile.stream_type() == rs.stream.gyro:
-        CONVERTER.handle_imu('gyro', frame)
-    elif frame.profile.stream_type() == rs.stream.accel:
-        CONVERTER.handle_imu('accel', frame)
-        pass
-    elif frame.profile.stream_type() == rs.stream.depth:
-        # print('depth')
-        pass
-    time.sleep(0.001)
+        return np.array(timestamps), poses
 
 
 def parse_args():
     parser = argparse.ArgumentParser(
         description='Convert RS Data'
     )
-    parser.add_argument('--bag', '-b', action='store',
-                        required=True,
-                        help="Path to bag file")
+
     parser.add_argument('--data_dir', '-d', action="store",
-                        default="data",
-                        help='The directory to save data',
+                        default="data/realsense",
+                        help='The directory to read and save data',
                         )
-    parser.add_argument('--sensors', '-s', nargs='*', action=DefaultListSensors,
-                        default=DEFAULT_SENSORS,
-                        help='Sensors to read from bag file and convert  and save',
-                        metavar='SENSORS')
-    parser.add_argument('--image_subdir', '-isd', action='store',
-                        default='data',
-                        help="Subdirectory to store image files in")
 
     args = parser.parse_args()
     print(args)
@@ -214,39 +144,9 @@ def parse_args():
 
 
 def main():
-    global CONVERTER
     args = parse_args()
-    bag_file = pathlib.Path(args.bag)
-    CONVERTER = Converter(args.data_dir, bag_file.stem, sensors=args.sensors,
-                          image_subdir=args.image_subdir)
-
-    config = rs.config()
-    pipeline = rs.pipeline()
-    rs.config.enable_device_from_file(config, args.bag, False)
-
-    profile = config.resolve(pipeline)
-    dev = profile.get_device()
-    playback = dev.as_playback()
-    playback.set_real_time(False)
-
-    sensors = playback.sensors
-
-    for sensor in sensors:
-        profiles = sensor.profiles
-        if profiles:
-            sensor.open(profiles)
-            sensor.start(callback)
-
-    while True:
-        # print(dir(playback))
-        time.sleep(0.1)
-        status = playback.current_status()
-        # print(status)
-        if status == rs.playback_status.stopped:
-            break
-
-    # Now save the csv file
-    CONVERTER.save_csv()
+    data_dir = Path(args.data_dir)
+    conv = Converter(data_dir)
 
 
 if __name__ == "__main__":

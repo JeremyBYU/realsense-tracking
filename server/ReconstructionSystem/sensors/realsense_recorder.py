@@ -117,15 +117,15 @@ def process_depth(frames, align, filters, frame_count, path_depth, path_color, c
     # if cframe is None:
     #     return None
 
-    frames = align.process(frames)
-    aligned_depth_frame = frames.get_depth_frame()
     for filter_ in filters:
-        aligned_depth_frame = filter_.process(aligned_depth_frame)
+        frames = filter_.process(frames).as_frameset()
 
+    frames = align.process(frames)
 
     # Get aligned frames
     # aligned_depth_frame = aligned_frames.get_depth_frame()
     color_frame = frames.get_color_frame()
+    aligned_depth_frame = frames.get_depth_frame()
 
     # Validate that both frames are valid
     if not aligned_depth_frame or not color_frame:
@@ -242,7 +242,7 @@ def main():
         pipe_d400 = rs.pipeline(ctx)
         # Enable Streams
         cfg_d400.enable_stream(rs.stream.depth, 848, 480, rs.format.z16, 30)
-        cfg_d400.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
+        cfg_d400.enable_stream(rs.stream.color, 424, 240, rs.format.bgr8, 30)
         # Configure Depth sensor and get parameters
         depth_sensor = dev_d400.first_depth_sensor()
         depth_sensor.set_option(rs.option.visual_preset, Preset.HighAccuracy)
@@ -275,7 +275,7 @@ def main():
     frame_poses = []
     t0 = time.time()
     skip_time = 0
-    filters = [rs.disparity_transform(True),rs.temporal_filter(0.5, 20.0, 2), rs.spatial_filter(0.5, 20.0, 2.0, 0.0), rs.disparity_transform(False)]
+    filters = [rs.decimation_filter(2.0), rs.disparity_transform(True),rs.temporal_filter(0.5, 20.0, 2), rs.spatial_filter(0.5, 20.0, 2.0, 0.0), rs.disparity_transform(False)]
     try:
         cv2.namedWindow('Recorder Realsense', cv2.WINDOW_AUTOSIZE)
         while True:
@@ -293,8 +293,7 @@ def main():
                 domain = d400_frames.frame_timestamp_domain
                 images_ts.append(ts)
                 print("TS: {} - {:.1f}; Saved color + depth image {:06d}".format(domain, ts, frame_count))
-                images = None
-                # images = process_depth(d400_frames, align, filters, frame_count, path_depth, path_color, clipping_distance, args)
+                images = process_depth(d400_frames, align, filters, frame_count, path_depth, path_color, clipping_distance, args)
                 if images is not None:
                     frame_count += 1
                     cv2.imshow('Recorder Realsense', images)

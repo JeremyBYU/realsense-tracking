@@ -40,7 +40,7 @@ active = true
 
   [filters.temporal]
   active = true
-  smooth_alpha = 0.1
+  smooth_alpha = 0.5
   smooth_delta = 20.0
   persistence_control = 2.0
 
