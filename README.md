@@ -24,15 +24,28 @@ password: pir0b0t
 2. `docker run  --rm --privileged -it --env="DISPLAY" --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" --volume="$(pwd):/opt/workspace:rw" jeremybyu/realsense:buildx`
 3. Optional - `rm -rf build && mkdir build && cd build && cmake .. && make && cd ..`
 
-
 # Applications
 
-## RS-Tracker-Depth
+## RS-Pub
 
-1. `GLOG_logtostderr=1 ../bin/rs-track-depth`
+Will publish topics which are configured in a toml file
 
+1. `GLOG_logtostderr=1 ../bin/rs-pub`
+
+## RS-Save
+
+Will Subscribe to topics and Save
+
+1. `GLOG_logtostderr=1 ./bin/rs-save --config=config/rssave_default.toml`
+
+## RS-Proto-Folder
+
+Will convert saved protofiles in a folder to text format
+
+1. `python scripts/rs-proto-folder.py`
 
 ## Reconstruction
+
 1. `python -m server.ReconstructionSystem.refine_trajectory --config config/reconstruction.json`
 
 # Notes
