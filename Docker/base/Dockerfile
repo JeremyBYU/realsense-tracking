@@ -92,6 +92,9 @@ RUN apt-get install --no-install-recommends -y nano htop
 
 # Our Project Dependencies
 RUN apt-get install --no-install-recommends -y libgflags-dev libgoogle-glog-dev
+RUN pip3 install scipy open3d protobuf
+RUN ln -s /usr/bin/python3 /usr/bin/python & \
+    ln -s /usr/bin/pip3 /usr/bin/pip
 
 # setup entrypoint
 COPY ./base_entrypoint.sh /

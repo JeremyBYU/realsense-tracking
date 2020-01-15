@@ -11,11 +11,9 @@ import json
 import open3d as o3d
 import numpy as np
 
-sys.path.append("../Utility")
-from initialize_config import initialize_config
-from file import get_rgbd_file_lists
-from trajectory_io import read_trajectory
-
+from server.ReconstructionSystem.initialize_config import initialize_config
+from server.Utility.file import get_rgbd_file_lists
+from server.Utility.trajectory_io import read_trajectory
 
 H_t265_d400 = np.array([
     [1, 0, 0, 0],

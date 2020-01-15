@@ -20,8 +20,9 @@ password: pir0b0t
 
 ## Launch Docker
 
-1. `docker run  --rm --privileged -it --env="DISPLAY" --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" --volume="$(pwd):/opt/workspace:rw" jeremybyu/realsense:buildx`
-2. Optional - `rm -rf build && mkdir build && cd build && cmake .. && make && cd ..`
+1. `rs-pose`, `rs-enumerate-devices` - Need to "open" the sensors on host first?
+2. `docker run  --rm --privileged -it --env="DISPLAY" --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" --volume="$(pwd):/opt/workspace:rw" jeremybyu/realsense:buildx`
+3. Optional - `rm -rf build && mkdir build && cd build && cmake .. && make && cd ..`
 
 
 # Applications
@@ -29,6 +30,10 @@ password: pir0b0t
 ## RS-Tracker-Depth
 
 1. `GLOG_logtostderr=1 ../bin/rs-track-depth`
+
+
+## Reconstruction
+1. `python -m server.ReconstructionSystem.refine_trajectory --config config/reconstruction.json`
 
 # Notes
 

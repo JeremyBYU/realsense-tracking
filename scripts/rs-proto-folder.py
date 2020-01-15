@@ -146,7 +146,7 @@ def parse_args():
 def main():
     args = parse_args()
     data_dir = Path(args.data_dir)
-    conv = Converter(data_dir)
+    _ = Converter(data_dir)
 
 
 if __name__ == "__main__":
