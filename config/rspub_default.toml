@@ -18,7 +18,7 @@ width = 848
 height = 480
 framerate = 30
 format = "Z16"
-active = false
+active = true
 
 [[pipeline_streams]]
 device_name = "Intel RealSense D435i"
@@ -52,15 +52,19 @@ active = true
   hole_fill = 1.0
 
   [filters.align]
-  active=false
+  active=true
 
 [publish]
 
   [publish.depth]
-  active = true
+  active = false
   rate = 1
 
   [publish.color]
+  active = false
+  rate = 1
+
+  [publish.rgbd]
   active = true
   rate = 1
 

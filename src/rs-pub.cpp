@@ -148,8 +148,8 @@ void enable_pipe_streams(std::vector<rspub::StreamDetail> &desired_pipeline_stre
 	pipe.start(cfg);
 }
 
-void process_pipeline(std::vector<rspub::StreamDetail> dsp, rs2::pipeline &pipe, 
-						const toml::value &tcf, PubImage &pub_depth, PubImage &pub_color,
+void process_pipeline(std::vector<rspub::StreamDetail> dsp, rs2::pipeline &pipe, const toml::value &tcf, 
+						PubImage &pub_depth, PubImage &pub_color, PubImage &pub_rgbd,
 						PubPointCloud &pub_pc, bool wait=false)
 {
 
@@ -168,6 +168,11 @@ void process_pipeline(std::vector<rspub::StreamDetail> dsp, rs2::pipeline &pipe,
 	int color_cfg_rate = toml::find_or<int>(color_cfg, "rate", 1);
 	int color_cfg_counter = 0;
 
+	auto rgbd_cfg = toml::find<toml::value>(tcf, "publish", "rgbd");
+	auto rgbd_cfg_active = toml::find_or<bool>(rgbd_cfg, "active", false);
+	int rgbd_cfg_rate = toml::find_or<int>(rgbd_cfg, "rate", 1);
+	int rgbd_cfg_counter = 0;
+
 	auto pc_cfg = toml::find(tcf, "publish", "pointcloud");
 	bool pc_cfg_active = toml::find_or<bool>(pc_cfg, "active", false);
 	bool pc_cfg_color = toml::find_or<bool>(pc_cfg, "color", false);
@@ -184,6 +189,8 @@ void process_pipeline(std::vector<rspub::StreamDetail> dsp, rs2::pipeline &pipe,
 			depth_cfg_counter++;
 			color_cfg_counter++;
 			pc_cfg_counter++;
+			rgbd_cfg_counter++;
+
 			auto frames = pipe.wait_for_frames();
 
 			auto dframe = frames.get_depth_frame();
@@ -236,6 +243,17 @@ void process_pipeline(std::vector<rspub::StreamDetail> dsp, rs2::pipeline &pipe,
 				color_cfg_counter = 0;
 				cts = cframe.get_timestamp();
 			}
+
+			if (cframe && dframe && rgbd_cfg_active && rgbd_cfg_counter == rgbd_cfg_rate)
+			{
+				VLOG(2) << "Publishing rgbd frame";
+				rspub_pb::ImageMessage rgbd_message;
+				fill_image_message(cframe, rgbd_message);
+				fill_image_message_second(dframe, rgbd_message);
+				pub_rgbd.Send(rgbd_message);
+				rgbd_cfg_counter = 0;
+			}
+
 			now = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
 			LOG(INFO) << std::setprecision(0) << std::fixed << "Received FrameSet; now: " << now << "; dframe hardware_ts: " << dts << "; cframe hardware_ts: " << cts;
 			if (dframe && pc_cfg_active && pc_cfg_counter == pc_cfg_rate)
@@ -276,7 +294,7 @@ int read_bag(std::string file_name, const toml::value &tcf)
 	PubPose pub_pose("PoseMessage");
 	PubImage pub_depth("DepthMessage");
 	PubImage pub_color("ColorMessage");
-	PubImage pub_align("RGBDMessage");
+	PubImage pub_rbgd("RGBDMessage");
 	PubPointCloud pub_pc("PointCloudMessage");
 
 	// Create librealsense context for managing devices
@@ -320,7 +338,7 @@ int read_bag(std::string file_name, const toml::value &tcf)
 		pipe.start(config);
 	}
 
-	process_pipeline(desired_pipeline_streams, pipe, tcf, pub_depth, pub_color, pub_pc);
+	process_pipeline(desired_pipeline_streams, pipe, tcf, pub_depth, pub_color, pub_rbgd, pub_pc);
 	return EXIT_SUCCESS;
 }
 
@@ -361,7 +379,7 @@ int live_stream(const toml::value &tcf)
 		enable_pipe_streams(desired_pipeline_streams, cfg, pipe);
 	}
 	
-	process_pipeline(desired_pipeline_streams, pipe, tcf, pub_depth, pub_color, pub_pc);
+	process_pipeline(desired_pipeline_streams, pipe, tcf, pub_depth, pub_color, pub_rgbd, pub_pc);
 
 	return EXIT_SUCCESS;
 }

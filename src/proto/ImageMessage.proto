@@ -8,7 +8,12 @@ message ImageMessage {
     double hardware_ts = 4;
     int32 bpp=5;
     int32 format=6;
+    // Optional secondary image (RGBD)
+    bytes image_data_second = 7;
+    int32 bpp_second = 8;
+    int32 format_second = 9;
 }
+
 
 // typedef enum rs2_format
 // {
