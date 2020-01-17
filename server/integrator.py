@@ -45,14 +45,12 @@ class Integrator(object):
         # print(pose.rotation)
         if rotate and pose is not None:
             r = R.from_quat([pose.rotation.x, pose.rotation.y, pose.rotation.z, pose.rotation.w])
-            # axis_angle = r.as_rotvec()
-
             pc_np = H_t265_d400_r.apply(pc_np)
             t = pose.translation
             pc_np = r.apply(pc_np)
             pc_np = pc_np + [t.x, t.y, t.z]
         
-        # create o3d point cloud and downample
+        # create o3d point cloud and downsample
         t0 = time.time()
         pc = o3d.geometry.PointCloud()
         pc.points = o3d.utility.Vector3dVector(pc_np)
@@ -63,7 +61,7 @@ class Integrator(object):
         pcd = pc if voxel_size is None else pc.voxel_down_sample(voxel_size=voxel_size)
         t2 = time.time()
 
-        # logging.info("Create o3d Point Cloud: %.3fms; Downsample: %.3fms; %d -> %d", (t1-t0) * 1000, (t2-t1) * 1000, pc_np.shape[0], np.asarray(pcd.points).shape[0])
+        logging.info("Create o3d Point Cloud: %.3fms; Downsample: %.3fms; %d -> %d", (t1-t0) * 1000, (t2-t1) * 1000, pc_np.shape[0], np.asarray(pcd.points).shape[0])
 
         # get oldest point cloud
         old_pcd = self.all_points[self.current_point_idx]

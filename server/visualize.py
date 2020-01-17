@@ -31,22 +31,18 @@ class Server(object):
     def __init__(self, config):
         super().__init__()
         self.set_up_callbacks()
-        self.view_image = config['view_image']
-        self.view_3D = config['view_3D']
-        self.pointcloud = config['pointcloud']
         self.polylidar_kwargs = config['polygon']['polylidar']
         self.postprocess = config['polygon']['postprocess']
-        self.record = config['record']
-        self.n_points = config['n_points']
 
+        self.n_points = config['n_points']
+        self.voxel_size = config['voxel_size']
         vis, all_points, all_polys = init_vis(n_points=self.n_points, grid=dict(plane='xz', size=5, n=10))
-        # vis.update_geometry(pcd)
+
         self.vis = vis
         self.all_points = all_points
         self.all_polys = all_polys
         self.integrator = Integrator(all_points=self.all_points)
-        # stacked_str = "_stacked" if self.record['stacked'] and self.view_3D['active'] else ""
-        # self.record['fpath'] = str(Path(self.record['directory']) / "{}_{}{}.avi".format(self.date, self.drive, stacked_str))
+
 
     def callback_depth(self, topic_name, image, send_ts):
         now = time.time() * 1000
@@ -71,10 +67,8 @@ class Server(object):
         logging.info("Received Pose Message; now: %.0f; send_ts: %.0f; hardware_ts: %.0f", now, send_ts, pose.hardware_ts)
         try:
             self.integrator.new_pose(pose)
-            # logging.info("h %d; w: %d; bpp: %d; size_computed: %d, size: %d", h, w, bpp, h*w*bpp, depth.size)
         except Exception as e:
             print(e)
-        # img = None
 
     def callback_points(self, topic_name, pc, send_ts):
         now = time.time() * 1000
@@ -92,7 +86,7 @@ class Server(object):
             else:
                 colors = None
             # print(points[424 * 1, :])
-            self.integrator.new_pc(points, colors, rotate=True, voxel_size=None)
+            self.integrator.new_pc(points, colors, rotate=True, voxel_size=self.voxel_size)
 
 
         except Exception as e:

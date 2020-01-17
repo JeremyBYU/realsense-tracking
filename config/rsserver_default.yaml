@@ -2,6 +2,7 @@
     name: Default settings for visualization of point cloud
     
     n_points: 1
+    voxel_size: 0.02
     # Point Cloud Settings
     pointcloud: 
       color: "height" # colorize point cloud by: intensity, height, distance
@@ -34,7 +35,7 @@
           hole_vertices: # obstacles (holes in polygons) must have these characteristics
             min: 3 # A linear ring has a mininum of 3 vertices
           plane_area: # planes must have these area
-            min: 30 # m^2
+          min: 30 # m^2
           num_planes_allowed: 1 # TODO Only allow this many largest planes through
         # These parameters correspond to Shapely polygon geometry operations
         positive_buffer: 0.02 # m, Positvely expand polygon.  Fills in small holes
