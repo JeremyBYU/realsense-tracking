@@ -6,6 +6,7 @@
 #include <thread>
 #include <mutex>
 #include <map>
+#include <math.h>
 #include <string>
 #include <sstream>
 #include <list>
@@ -28,6 +29,13 @@
 
 namespace rspub
 {
+
+// quaternion inner product squared
+double norm_l2(const double &x1, const double &y1, const double &z1, const double &x2, const double &y2, const double &z2);
+double quat_product(const double &x1, const double &y1, const double &z1, const double &w1, const double &x2, const double &y2, const double &z2, const double &w2);
+double quat_angle_diff(rspub_pb::Vec4 &quat1, rspub_pb::Vec4 &quat2);
+
+std::string pad_int(int num, int pad=8);
 
 class Float3
 {

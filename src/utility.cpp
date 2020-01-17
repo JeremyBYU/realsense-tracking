@@ -4,6 +4,37 @@
 namespace rspub
 {
 
+// quaternion inner product squared
+double quat_product(const double &x1, const double &y1, const double &z1, const double &w1, const double &x2, const double &y2, const double &z2, const double &w2)
+{
+	double inner_product = x1*x2 + y1*y2 + z1*z2 + w1*w2;
+	double inner_product_2 = inner_product * inner_product;
+	return inner_product_2;
+}
+
+// Approximate radian difference between two quaternions
+// https://math.stackexchange.com/questions/90081/quaternion-distance
+// NOTE Must be unit quaternions
+double quat_angle_diff(rspub_pb::Vec4 &quat1, rspub_pb::Vec4 &quat2)
+{
+	double inner_product_2 = quat_product(quat1.x(), quat1.y(), quat1.z(), quat1.w(), quat2.x(), quat2.y(), quat2.z(), quat2.w());
+	return 1.0 - inner_product_2;
+}
+
+double norm_l2(const double &x1, const double &y1, const double &z1, const double &x2, const double &y2, const double &z2)
+{
+	double dx = x2-x1;
+	double dy = y2-y1;
+	double dz = z2-z1;
+	return std::sqrt(dx*dx + dy*dy + dz*dz);
+}
+
+std::string pad_int(int num, int pad)
+{
+	std::ostringstream out;
+	out << std::internal << std::setfill('0') << std::setw(pad) << num;
+	return out.str();
+}
     
 void parse_desired_stream(std::vector<StreamDetail> &sds, const toml::value &tcf, std::string streams_str)
 {

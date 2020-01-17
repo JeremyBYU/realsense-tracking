@@ -3,10 +3,9 @@
 
 The purpose of this repository is to provide an isolated widget that can interact with Intel RealSense Cameras.  The code of this repository is meant to be distributed as a docker image that is cross-compiled to both x86-64 and arm64 architectures (Regular computers as well as raspberry pi). Here is a quick list of thing this repository is meant to do:
 
-
-- Have a stable pre-setup ubuntu environment in a docker image with all installed depenedencies. 
+- Have a stable pre-setup ubuntu environment in a docker image with all installed dependencies. 
 - Communicate with Intel RealSense Devices using librealsense SDK 2.0.
-- Provide a marshalling and communication framework using [ECAL](https://github.com/continental/ecal) which povides effecient shared memory to publish RealSense "messages".
+- Provide a marshalling and communication framework using [ECAL](https://github.com/continental/ecal) which provides efficient shared memory to publish RealSense "messages".
 - Provide simple configurations file that can configure publishing of realsense cameras and saving data.
   - See `rspub_default.toml` for publishing and `rssave_default.toml` for saving messages.
 - Provide Python code for postprocessing the data to demonstrate mesh creation or point cloud alignment.
@@ -25,7 +24,6 @@ All dependencies and installation procedures can be found in `Docker/base/Docker
 - Open3D - Point cloud Processing Library
 - GFLAGS and GLOG for command line parsing and logging
 
-
 ## Run Docker
 
 ### X86 Linux
@@ -33,7 +31,7 @@ All dependencies and installation procedures can be found in `Docker/base/Docker
 1. [Install Docker](https://github.com/continental/ecal)
 2. `git clone https://github.com/JeremyBYU/realsense-tracking.git && cd realsense-tracking`
 
-### Rasperry PI 4
+### Raspberry PI 4
 
 A rasberry pi image has already been created and set up. Download the image and flash the sd card.
 
@@ -41,7 +39,6 @@ uname: ubuntu
 
 password: pir0b0t
 
-**SSH**
 1. `ssh -X ubuntu@192.168.1.25` - Allows XForwarding. Might need to use gui (hdmi) to find out what the ip is first. IP subject to change for your own network.
 2. `cd $HOME/Documents/realsense-tracking`
 
@@ -86,6 +83,13 @@ Doesnt work in docker
 1. `cd server/ReconstrucitonSystem`
 2. `python sensors/realsense_recorder` some options
 
+```javascript
+function a()
+{
+    a
+}
+
+```
 ## Notes
 
 Need to use development branch of realsense: 
@@ -104,9 +108,38 @@ Date:   Tue Jan 7 17:17:02 2020 +0200
 D435i SN - 844212071822
 T265 SN - 943222110884, 0000943222110884
 
-### All dependencies in one folder
+## All dependencies in one folder
 
 1. `./scripts/cpld.sh ./bin/rs-track-depth ./dependencies`
 2. `LD_LIBRARY_PATH=./dependencies:$LD_LIBRARY_PATH GLOG_logtostderr=1 ./bin/rs-track-depth`
 
 No idea if this should work, need to try out on an untainted ubuntu 18.04 5.3 kernel computer.
+
+### Trim Down Image
+
+The image is 3.1 GB.  Open3D is about 1.1 GB! 475 MB of that is the python installs from extension (338 MB is just the open3d.so file). Maybe get rid of it?
+
+```txt
+Cmp   Size  Command                                                                                  Permission     UID:GID       Size  Filetree
+     63 MB  FROM d9bd0dcaa40bc11                                                                     drwx------         0:0      41 MB  ├── root                                                        
+    988 kB  [ -z "$(apt-get indextargets)" ]                                                         drwx------         0:0      41 MB  │   └── .cache                                                  
+     745 B  set -xe   && echo '#!/bin/sh' > /usr/sbin/policy-rc.d  && echo 'exit 101' >> /usr/sbin/p drwx------         0:0      41 MB  │       └─⊕ pip                                                 
+       7 B  mkdir -p /run/systemd && echo 'docker' > /run/systemd/container                          drwxr-xr-x         0:0     1.1 GB  └── usr                                                         
+    3.2 MB  echo 'Etc/UTC' > /etc/timezone &&     ln -s /usr/share/zoneinfo/Etc/UTC /etc/localtime & drwxr-xr-x         0:0     1.1 GB      └── local                                                   
+    446 MB  apt-get update && apt-get install -q -y     bash-completion     lsb-release     python3- drwxr-xr-x         0:0     5.3 kB          ├─⊕ bin                                                 
+       0 B  #(nop) WORKDIR /opt/workspace                                                            drwxr-xr-x         0:0      140 B          ├─⊕ etc                                                 
+    322 MB  apt-get update &&     apt-get install -q -y wget git libssl-dev libusb-1.0-0-dev pkg-con drwxr-xr-x         0:0      13 MB          ├─⊕ include                                             
+    156 MB  apt-get install --no-install-recommends -y build-essential libgtk2.0-dev pkg-config liba drwxr-xr-x         0:0     1.1 GB          ├── lib                                                 
+     48 MB  apt-get install --no-install-recommends -y graphviz build-essential zlib1g-dev libhdf5-d drwxr-xr-x         0:0     3.0 kB          │   ├─⊕ cmake                                           
+     67 MB  wget -O /opt/cmake-3.15.5.tar.gz https://cmake.org/files/v3.15/cmake-3.15.5.tar.gz &&    -rw-r--r--         0:0     597 MB          │   ├── libOpen3D.a                                     
+     745 B  #(nop) COPY file:03028ab537c33176c2c9827484d3abff128258e6c117cf751ff343c7b0df99dc in /tm -rw-r--r--         0:0     4.7 MB          │   ├── libjsoncpp.a                                    
+     745 B  chmod u+x /tmp/opencv.sh                                                                 -rw-r--r--         0:0     5.6 MB          │   ├── libqhullcpp.a                                   
+    192 MB  git clone -b '3.4.7' --single-branch https://github.com/opencv/opencv.git /opt/opencv && -rw-r--r--         0:0     2.3 MB          │   ├── libqhullstatic_r.a                              
+     40 MB  cd /opt &&     git clone --recursive git://github.com/continental/ecal.git &&     cd eca -rw-r--r--         0:0     854 kB          │   ├── libtinyfiledialogs.a                            
+    395 MB  git clone https://github.com/IntelRealSense/librealsense.git /opt/librealsense && cd /op -rw-r--r--         0:0     3.1 MB          │   ├── libtinyobjloader.a                              
+       0 B  ln -s /usr/bin/python3 /usr/bin/python &     ln -s /usr/bin/pip3 /usr/bin/pip            -rw-r--r--         0:0     765 kB          │   ├── libturbojpeg.a                                  
+    1.2 GB  cd /opt && git clone --recursive https://github.com/intel-isl/Open3D &&     cd /opt/Open drwxrwxr-x        0:50     495 MB          │   └── python3.6                                       
+    3.4 MB  apt-get install --no-install-recommends -y nano htop                                     drwxrwxr-x        0:50     495 MB          │       └─⊕ dist-packages                               
+     32 MB  apt-get install --no-install-recommends -y libgflags-dev libgoogle-glog-dev gfortran     drwxr-xr-x         0:0     4.6 MB          └─⊕ share   
+
+```
