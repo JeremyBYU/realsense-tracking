@@ -47,7 +47,7 @@ RUN wget -O /opt/cmake-3.15.5.tar.gz https://cmake.org/files/v3.15/cmake-3.15.5.
     rm /opt/cmake-3.15.5.tar.gz && \
     cd /opt/cmake-3.15.5 && \
     ./configure --prefix=/opt/cmake-3.15.5 && \
-    make -j18 && \
+    make -j && \
     make install && \
     rm -rf Source && rm -rf Bootstrap.cmk && rm -rf Tests && rm -rf Utilities
 
@@ -67,7 +67,7 @@ RUN cd /opt && \
     git clone --recursive git://github.com/continental/ecal.git && \
     cd ecal && mkdir build_ &&  cd build_ && \
     cmake .. -DCMAKE_BUILD_TYPE=Release -DECAL_THIRDPARTY_BUILD_PROTOBUF=OFF -DHAS_QT5=OFF -DBUILD_DOCS=OFF -DBUILD_PY_BINDING=ON && \
-    make -j18 && \
+    make -j && \
     cd /opt/ecal/build_ && \
     cpack -G DEB && \
     dpkg -i _deploy/eCAL-* && \
@@ -78,7 +78,7 @@ RUN cd /opt && \
 RUN git clone https://github.com/IntelRealSense/librealsense.git /opt/librealsense && cd /opt/librealsense && git checkout development && \
     mkdir build && cd build && \
     cmake ../ -DFORCE_RSUSB_BACKEND=true -DCMAKE_BUILD_TYPE=release -DBUILD_EXAMPLES=true -DBUILD_GRAPHICAL_EXAMPLES=true -DBUILD_PYTHON_BINDINGS=true && \
-    make -j 18 && \
+    make -j && \
     make install && \
     rm -rf /opt/librealsense
 
@@ -98,7 +98,7 @@ RUN cd /opt && git clone --recursive https://github.com/intel-isl/Open3D && \
     cd /opt/Open3D && \
     mkdir build && cd build && \
     cmake ../ -DBUILD_CPP_EXAMPLES=OFF -DENABLE_JUPYTER=OFF -DCMAKE_CXX_STANDARD_LIBRARIES="-lX11 -ldl" && \
-    make -j18 && \
+    make -j && \
     make install && make install-pip-package && \
     rm -rf /opt/Open3D
 
@@ -108,7 +108,6 @@ RUN apt-get install --no-install-recommends -y nano htop
 # Our Project Dependencies
 RUN apt-get install --no-install-recommends -y libgflags-dev libgoogle-glog-dev python3-scipy python3-matplotlib
 RUN pip3 install protobuf
-
 
 # setup entrypoint
 COPY ./base_entrypoint.sh /

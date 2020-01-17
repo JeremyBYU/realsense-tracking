@@ -170,7 +170,9 @@ void fill_pose_message(rs2_pose &pose, rspub_pb::PoseMessage &pm, double ts);
 void fill_image_message(rs2::video_frame &dframe, rspub_pb::ImageMessage &frame_image);
 void fill_image_message_second(rs2::video_frame &dframe, rspub_pb::ImageMessage &frame_image);
 void fill_pointcloud(rs2::depth_frame &dframe, rs2::video_frame &cframe, rs2::pointcloud &pc, rs2::points &points, bool color);
-void fill_pointcloud_message(rs2::points points, rspub_pb::PointCloudMessage &pc_message, double hardware_ts, bool color);
+void fill_pointcloud_message(rs2::points points, rs2::video_frame &cframe, rspub_pb::PointCloudMessage &pc_message, double hardware_ts, bool color);
+void fill_pointcloud_message_optimized(rs2::depth_frame &dframe, rs2::video_frame &cframe,rspub_pb::PointCloudMessage &pc_message,
+										 double hardware_ts, int stride=1, bool color=false);
 
 void print_message(rspub_pb::IMUMessage &msg, IMUHistory &imu_hist);
 void print_profiles(std::vector<rs2::stream_profile> streams);

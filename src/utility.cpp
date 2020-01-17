@@ -150,7 +150,85 @@ void fill_pointcloud(rs2::depth_frame &dframe, rs2::video_frame &cframe, rs2::po
     points = pc.calculate(dframe);
 }
 
-void fill_pointcloud_message(rs2::points points, rspub_pb::PointCloudMessage &pc_message, double hardware_ts, bool color=false)
+void deproject_pixel(float *point, const float u, const float v, const float &depth, const rs2_intrinsics &intrin)
+{
+	float x = (u - intrin.ppx) / intrin.fx;
+    float y = (v - intrin.ppy) / intrin.fy;
+	point[0] = depth * x;
+    point[1] = depth * y;
+    point[2] = depth;
+}
+
+int create_pointcloud_optimized(float *buffer_pc, uint8_t *buffer_color, rs2::depth_frame &dframe,
+                        rs2::video_frame &cframe, int stride=1)
+{
+    const uint8_t* color_data = reinterpret_cast<const uint8_t*>(cframe.get_data());
+    const uint16_t * depth_data = reinterpret_cast<const uint16_t*>(dframe.get_data());
+    auto video = dframe.get_profile().as<rs2::video_stream_profile>();
+    auto intrin = video.get_intrinsics();
+
+	
+    // // template<class MAP_DEPTH> void deproject_depth(float * points, const rs2_intrinsics & intrin, const uint16_t * depth, MAP_DEPTH map_depth)
+    int n_points = 0;
+    for (int y = 0; y < intrin.height; ++y)
+    {
+        for (int x = 0; x < intrin.width; ++x)
+        {
+            float depth_value = 1000.0 * *depth_data++;
+            deproject_pixel(buffer_pc, (float)x, (float)y, depth_value, intrin);
+
+            buffer_pc += 3;
+            n_points++;
+        }
+    }
+    return n_points;
+}
+
+void fill_pointcloud_message_optimized(rs2::depth_frame &dframe, rs2::video_frame &cframe,rspub_pb::PointCloudMessage &pc_message,
+										 double hardware_ts, int stride, bool color)
+{
+    
+    auto buffer_pc = pc_message.mutable_pc_data();
+    auto buffer_color = pc_message.mutable_color_data();
+    auto profile = dframe.get_profile();
+    rs2::video_stream_profile video = profile.as<rs2::video_stream_profile>();
+    auto intrin = video.get_intrinsics();
+
+    LOG(INFO) << intrin.fx << " " << intrin.fy << " " << intrin.ppx << " " << intrin.ppy  << " " << intrin.coeffs[0] << " " << intrin.width  << " " << intrin.height;
+
+    auto bpp_pc = 4 * 3; //  4 bytes per float, xyz=3,
+    auto bpp_cl = 1 * 3; //  1 bytes per uint8_t, rgb=3
+
+    // Determine maximum buffer size needed
+    int max_points = (intrin.height * intrin.width) / (stride * stride);
+    buffer_pc->resize(max_points * bpp_pc);
+    if (color)
+        buffer_color->resize(max_points * bpp_cl);
+
+    auto pc_ptr = reinterpret_cast<float*>(buffer_pc->data());
+    auto color_ptr = reinterpret_cast<uint8_t*>(buffer_color->data());
+    auto n_points = create_pointcloud_optimized(pc_ptr, color_ptr, dframe, cframe, stride);
+
+    LOG(INFO) << "NPoints: " << n_points;
+    buffer_pc->resize(n_points * bpp_pc);
+    if (color)
+        buffer_color->resize(n_points * bpp_cl);
+
+
+    auto n_bytes_pc = n_points * bpp_pc;
+    auto n_bytes_cl = n_points * bpp_cl;
+    auto format = color ? 1:0;
+
+    double now1 = std::chrono::duration<double, std::micro>(std::chrono::system_clock::now().time_since_epoch()).count();
+    pc_message.set_n_points(n_points);
+    pc_message.set_hardware_ts(hardware_ts);
+    pc_message.set_bpp(bpp_pc);
+    pc_message.set_format(format);
+    double now2 = std::chrono::duration<double, std::micro>(std::chrono::system_clock::now().time_since_epoch()).count();
+
+}
+
+void fill_pointcloud_message(rs2::points points, rs2::video_frame &cframe, rspub_pb::PointCloudMessage &pc_message, double hardware_ts, bool color=false)
 {
     auto n_points = points.size();
     auto bpp = 4 * 3; //  4 bytes per float, xyz=3,
@@ -159,8 +237,6 @@ void fill_pointcloud_message(rs2::points points, rspub_pb::PointCloudMessage &pc
     const char *pc_data = (const char *)(vertices);
     auto format = color ? 0:1;
 
-    // LOG(INFO) << "n_points: " << n_points << "; n_bytes: " << n_bytes;
-
     double now1 = std::chrono::duration<double, std::micro>(std::chrono::system_clock::now().time_since_epoch()).count();
     pc_message.set_pc_data(pc_data, n_bytes);
     pc_message.set_n_points(n_points);
@@ -168,6 +244,14 @@ void fill_pointcloud_message(rs2::points points, rspub_pb::PointCloudMessage &pc
     pc_message.set_bpp(4);
     pc_message.set_format(format);
     double now2 = std::chrono::duration<double, std::micro>(std::chrono::system_clock::now().time_since_epoch()).count();
+
+	// if (color)
+	// {
+		
+	// }
+
+    // LOG(INFO) << "n_points: " << n_points << "; n_bytes: " << n_bytes;
+
     // LOG(INFO) << "Copy PC to Protobuff Message: " << now2 -now1;
 
 

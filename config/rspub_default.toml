@@ -11,7 +11,7 @@ width = 0
 height = 0
 framerate = 200
 format = "6DOF"
-active = true
+active = false
 
 [[pipeline_streams]]
 device_name = "Intel RealSense D435i"

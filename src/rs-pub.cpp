@@ -195,6 +195,8 @@ void process_pipeline(std::vector<rspub::StreamDetail> dsp, rs2::pipeline &pipe,
 	rs2::pointcloud pc;
 	rs2::points points;
 
+	// auto stream_profile = depth.get_profile();
+
 	if (dsp.size() > 0)
 	{
 		while(true)
@@ -273,8 +275,9 @@ void process_pipeline(std::vector<rspub::StreamDetail> dsp, rs2::pipeline &pipe,
 			{
 				VLOG(2) << "Publishing pointcloud";
 				rspub_pb::PointCloudMessage pc_message;
+				// fill_pointcloud_message_optimized(dframe, cframe, pc_message, dframe.get_timestamp());
 				fill_pointcloud(dframe, cframe, pc, points, pc_cfg_color);
-				fill_pointcloud_message(points, pc_message, dframe.get_timestamp(), pc_cfg_color);
+				fill_pointcloud_message(points, cframe, pc_message, dframe.get_timestamp(), pc_cfg_color);
 				double now1 = std::chrono::duration<double, std::micro>(std::chrono::system_clock::now().time_since_epoch()).count();
 				pub_pc.Send(pc_message);
 				double now2 = std::chrono::duration<double, std::micro>(std::chrono::system_clock::now().time_since_epoch()).count();

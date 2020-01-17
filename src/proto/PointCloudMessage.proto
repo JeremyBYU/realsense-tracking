@@ -7,4 +7,6 @@ message PointCloudMessage {
     double hardware_ts = 3;
     int32 bpp=4;
     int32 format=5;
+
+    bytes color_data=6;
 }
