@@ -189,6 +189,7 @@ void process_pipeline(std::vector<rspub::StreamDetail> dsp, rs2::pipeline &pipe,
 	auto pc_cfg = toml::find(tcf, "publish", "pointcloud");
 	bool pc_cfg_active = toml::find_or<bool>(pc_cfg, "active", false);
 	bool pc_cfg_color = toml::find_or<bool>(pc_cfg, "color", false);
+	int pc_cfg_stride = toml::find_or<int>(pc_cfg, "stride", 1);
 	int pc_cfg_rate = toml::find_or<int>(pc_cfg, "rate", 1);
 	int pc_cfg_counter = 0;
 
@@ -275,14 +276,15 @@ void process_pipeline(std::vector<rspub::StreamDetail> dsp, rs2::pipeline &pipe,
 			{
 				VLOG(2) << "Publishing pointcloud";
 				rspub_pb::PointCloudMessage pc_message;
-				// fill_pointcloud_message_optimized(dframe, cframe, pc_message, dframe.get_timestamp());
-				fill_pointcloud(dframe, cframe, pc, points, pc_cfg_color);
-				fill_pointcloud_message(points, cframe, pc_message, dframe.get_timestamp(), pc_cfg_color);
+				double now0 = std::chrono::duration<double, std::micro>(std::chrono::system_clock::now().time_since_epoch()).count();
+				fill_pointcloud_message_optimized(dframe, cframe, pc_message, dframe.get_timestamp(), pc_cfg_stride, pc_cfg_color);
+				// fill_pointcloud(dframe, cframe, pc, points, pc_cfg_color);
+				// fill_pointcloud_message(points, cframe, pc_message, dframe.get_timestamp(), pc_cfg_color);
 				double now1 = std::chrono::duration<double, std::micro>(std::chrono::system_clock::now().time_since_epoch()).count();
 				pub_pc.Send(pc_message);
 				double now2 = std::chrono::duration<double, std::micro>(std::chrono::system_clock::now().time_since_epoch()).count();
 				pc_cfg_counter = 0;;
-				// LOG(INFO) << std::setprecision(0) << std::fixed <<  "now: " << now << "; Going to send a pc, time to send:" << now2-now1;
+				VLOG(1) << std::setprecision(0) << std::fixed <<  "Create Point Cloud and Fill Message: " << now1-now0 << "; Send Point Cloud: " << now2-now1;
 			}
 			
 

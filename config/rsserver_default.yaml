@@ -1,6 +1,7 @@
 ---
     name: Default settings for visualization of point cloud
     
+    n_points: 1
     # Point Cloud Settings
     pointcloud: 
       color: "height" # colorize point cloud by: intensity, height, distance

@@ -39,11 +39,11 @@ class Integrator(object):
         if len(self.poses) > self.n_poses:
             self.poses.pop(0)
 
-    def new_pc(self, pc_np, rotate=True, hardware_ts=None, voxel_size=0.05):
+    def new_pc(self, pc_np, colors=None, rotate=True, hardware_ts=None, voxel_size=0.01):
         
         pose = self.current_pose
         # print(pose.rotation)
-        if rotate:
+        if rotate and pose is not None:
             r = R.from_quat([pose.rotation.x, pose.rotation.y, pose.rotation.z, pose.rotation.w])
             # axis_angle = r.as_rotvec()
 
@@ -56,8 +56,11 @@ class Integrator(object):
         t0 = time.time()
         pc = o3d.geometry.PointCloud()
         pc.points = o3d.utility.Vector3dVector(pc_np)
+        if colors is not None:
+            pc.colors = o3d.utility.Vector3dVector(colors)
+            # print("setting color")
         t1 = time.time()
-        pcd = pc.voxel_down_sample(voxel_size=voxel_size)
+        pcd = pc if voxel_size is None else pc.voxel_down_sample(voxel_size=voxel_size)
         t2 = time.time()
 
         # logging.info("Create o3d Point Cloud: %.3fms; Downsample: %.3fms; %d -> %d", (t1-t0) * 1000, (t2-t1) * 1000, pc_np.shape[0], np.asarray(pcd.points).shape[0])
@@ -66,6 +69,8 @@ class Integrator(object):
         old_pcd = self.all_points[self.current_point_idx]
         # reset points
         old_pcd.points = pcd.points
+        if colors is not None:
+            old_pcd.colors = pcd.colors
 
         # increment point index for oldest point cloud
         self.current_point_idx += 1

@@ -27,10 +27,6 @@ np.set_printoptions(suppress=True,
                     formatter={'float_kind': '{:.8f}'.format})
 
 
-def map_colors(inp, colormap, vmin=None, vmax=None):
-    norm = Normalize(vmin, vmax)
-    return colormap(norm(inp))
-
 class Server(object):
     def __init__(self, config):
         super().__init__()
@@ -41,8 +37,9 @@ class Server(object):
         self.polylidar_kwargs = config['polygon']['polylidar']
         self.postprocess = config['polygon']['postprocess']
         self.record = config['record']
+        self.n_points = config['n_points']
 
-        vis, all_points, all_polys = init_vis(n_points=100, grid=dict(plane='xz', size=5, n=10))
+        vis, all_points, all_polys = init_vis(n_points=self.n_points, grid=dict(plane='xz', size=5, n=10))
         # vis.update_geometry(pcd)
         self.vis = vis
         self.all_points = all_points
@@ -88,7 +85,14 @@ class Server(object):
             pc_data = pc.pc_data
             bpp = pc.bpp
             points = np.frombuffer(pc_data, dtype=np.float32).reshape((n_points,3))
-            self.integrator.new_pc(points, rotate=True)
+            # Have RGB data
+            if pc.format == 1:
+                colors = np.frombuffer(pc.color_data, dtype=np.uint8).reshape((n_points, 3))
+                colors = (colors / 255.0).astype('f8')
+            else:
+                colors = None
+            # print(points[424 * 1, :])
+            self.integrator.new_pc(points, colors, rotate=True, voxel_size=None)
 
 
         except Exception as e:

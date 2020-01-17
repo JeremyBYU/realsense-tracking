@@ -2,7 +2,7 @@ name = "Default Settings for D435 and T265."
 show_images = true
 show_polygon = true
 depth_auto_exposure = 0.0
-depth_exposure = 6000.0
+depth_exposure = 8000.0
 
 [[manual_streams]]
 device_name = "Intel RealSense T265"
@@ -76,5 +76,6 @@ active = true
 
   [publish.pointcloud]
   active = true
-  color= true
+  color = true
+  stride = 2
   rate = 1
