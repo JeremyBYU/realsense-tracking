@@ -5,7 +5,7 @@ project(realsensetracking)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -std=c++17 -Wno-narrowing -Wno-register -fPIC -g")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mtune=native -march=native")
 set(CMAKE_BUILD_TYPE "Release")
-# set(XIVO_DIR "/opt/xivo")
+
 set(PROTO_DIR "${PROJECT_SOURCE_DIR}/src/proto")
 
 add_definitions(-DNDEBUG)
@@ -20,7 +20,6 @@ find_package(eCAL REQUIRED)
 find_package(OpenGL)
 find_package(gflags REQUIRED)
 find_package(glog) # Docker ubuntu can not find when REQUIRED, but logging still works?!?!?
-# add_subdirectory(${XIVO_DIR} build)
 
 set(PROTO_FILES ${PROTO_DIR}/Common.proto  ${PROTO_DIR}/ImageMessage.proto ${PROTO_DIR}/PointCloudMessage.proto  ${PROTO_DIR}/IMUMessage.proto ${PROTO_DIR}/PoseMessage.proto)
 PROTOBUF_GENERATE_CPP(PROTO_SRCS PROTO_HDRS ${PROTO_FILES})
@@ -81,17 +80,13 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 
 # Add the application sources to the target
-add_executable(rs-motion src/rs-motion.cpp)
 add_executable(rs-motion-2 src/rs-motion-2.cpp)
-# add_executable(rs-tracker src/rs-tracker.cpp src/utility.cpp ${PROTO_SRCS} ${PROTO_HDRS})
 add_executable(rs-test src/rs-test.cpp src/utility.cpp ${PROTO_SRCS} ${PROTO_HDRS})
 add_executable(rs-pub src/rs-pub.cpp src/utility.cpp ${PROTO_SRCS} ${PROTO_HDRS})
 add_executable(rs-save src/rs-save.cpp src/utility.cpp ${PROTO_SRCS} ${PROTO_HDRS})
 
 # Link librealsense2 to the target
-target_link_libraries(rs-motion ${realsense2_LIBRARY} ${DEPENDENCIES})
 target_link_libraries(rs-motion-2 ${realsense2_LIBRARY} ${DEPENDENCIES})
-# target_link_libraries(rs-tracker ${realsense2_LIBRARY} ${DEPENDENCIES} xest)
 target_link_libraries(rs-test ${realsense2_LIBRARY} ${DEPENDENCIES}) 
 target_link_libraries(rs-pub ${realsense2_LIBRARY} ${DEPENDENCIES})
 target_link_libraries(rs-save ${realsense2_LIBRARY} ${DEPENDENCIES})
