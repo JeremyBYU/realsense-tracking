@@ -3,22 +3,28 @@
 # See license file or visit www.open3d.org for details
 
 # examples/Python/Advanced/color_map_optimization_for_reconstruction_system.py
-
 import argparse
-import os, sys
+import os
+import sys
 import json
 import copy
 import time
 import logging
 
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 unused import
+import numpy as np
+import open3d as o3d
+
+from server.open3d_util import create_lines
+from server.grounddetector import filter_planes_and_holes2
+from server.Utility.trajectory_io import read_trajectory
+from server.Utility.file import get_rgbd_file_lists
+from server.ReconstructionSystem.initialize_config import initialize_config
+from polylidar import extractPolygons
+
 logging.basicConfig(level=logging.DEBUG)
 
-import open3d as o3d
-import numpy as np
-
-from server.ReconstructionSystem.initialize_config import initialize_config
-from server.Utility.file import get_rgbd_file_lists
-from server.Utility.trajectory_io import read_trajectory
 
 H_t265_d400 = np.array([
     [1, 0, 0, 0],
@@ -28,19 +34,22 @@ H_t265_d400 = np.array([
 
 np.set_printoptions(precision=3, suppress=True)
 
+
 def draw_registration_result_original_color(source, target, transformation, other_geoms=[]):
     source_temp = copy.deepcopy(source)
     source_temp.transform(transformation)
     o3d.visualization.draw_geometries([source_temp, target, *other_geoms])
 
-def colored_point_cloud_registration(source, target, voxel_radius = [0.04, 0.02, 0.01], max_iter = [50, 30, 14],
+
+def colored_point_cloud_registration(source, target, voxel_radius=[0.04, 0.02, 0.01], max_iter=[50, 30, 14],
                                      visualize=False):
-    
+
     axis_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.5)
     current_transformation = np.identity(4)
     if visualize:
         logging.debug("Before Colored Point Cloud Alignment")
-        draw_registration_result_original_color(source, target, current_transformation, [axis_frame])
+        draw_registration_result_original_color(
+            source, target, current_transformation, [axis_frame])
     logging.debug("1. Colored point cloud registration")
     t0 = time.perf_counter()
     for scale in range(len(voxel_radius)):
@@ -73,11 +82,13 @@ def colored_point_cloud_registration(source, target, voxel_radius = [0.04, 0.02,
         current_transformation = result_icp.transformation
         logging.debug("%r", current_transformation)
     t1 = time.perf_counter()
-    logging.info("After Colored Point Cloud Alignment; elapsed time: %.1f, fitness: %.2f, inlier rmse: %.4f", (t1-t0) * 1000, result_icp.fitness, result_icp.inlier_rmse)
+    logging.info("After Colored Point Cloud Alignment; elapsed time: %.1f, fitness: %.2f, inlier rmse: %.4f",
+                 (t1-t0) * 1000, result_icp.fitness, result_icp.inlier_rmse)
     if visualize:
-        draw_registration_result_original_color(source, target, current_transformation, [axis_frame])
+        draw_registration_result_original_color(
+            source, target, current_transformation, [axis_frame])
     return result_icp
-    
+
 
 def convert_trajectory(traj, inv=True):
     new_traj = []
@@ -88,19 +99,20 @@ def convert_trajectory(traj, inv=True):
         new_traj.append(extrinsic_1)
     return new_traj
 
+
 def get_colored_point_cloud(idx, color_files, depth_files, intrinsic, extrinsic, depth_trunc=2.0):
     depth_1 = o3d.io.read_image(os.path.join(depth_files[idx]))
     color_1 = o3d.io.read_image(os.path.join(color_files[idx]))
     rgbd_image_1 = o3d.geometry.RGBDImage.create_from_color_and_depth(
         color_1, depth_1, convert_rgb_to_intensity=False, depth_trunc=depth_trunc)
 
-
-    pcd_1 = o3d.geometry.PointCloud.create_from_rgbd_image(rgbd_image_1, intrinsic=intrinsic, extrinsic=extrinsic)
+    pcd_1 = o3d.geometry.PointCloud.create_from_rgbd_image(
+        rgbd_image_1, intrinsic=intrinsic, extrinsic=extrinsic)
     return pcd_1
 
 
 def refine_trajectory(color_files, depth_files, intrinsic, traj,
-                     min_fitness=0.50, max_rmse=0.06, n_frames=None):
+                      min_fitness=0.50, max_rmse=0.06, n_frames=None):
     # 28
     if n_frames is None:
         n_frames = len(traj)
@@ -110,10 +122,13 @@ def refine_trajectory(color_files, depth_files, intrinsic, traj,
     visualize = False
     for i in range(n_frames - 1):
         # visualize = False if i < 28 else True
-        pcd_1 = get_colored_point_cloud(i, color_files, depth_files, intrinsic, traj[i])
-        pcd_2 = get_colored_point_cloud(i+1, color_files, depth_files, intrinsic, traj[i+1])
+        pcd_1 = get_colored_point_cloud(
+            i, color_files, depth_files, intrinsic, traj[i])
+        pcd_2 = get_colored_point_cloud(
+            i+1, color_files, depth_files, intrinsic, traj[i+1])
         # visualize = True if i == 26 else False
-        result_icp = colored_point_cloud_registration(pcd_2, pcd_1, voxel_radius = [0.01], max_iter = [50], visualize=visualize)
+        result_icp = colored_point_cloud_registration(
+            pcd_2, pcd_1, voxel_radius=[0.01], max_iter=[50], visualize=visualize)
         if result_icp.fitness > min_fitness and result_icp.inlier_rmse < max_rmse:
             delta_transforms.append(result_icp.transformation)
         else:
@@ -142,14 +157,15 @@ def refine_trajectory(color_files, depth_files, intrinsic, traj,
     geoms = [axis_frame]
     for i in range(n_frames):
         extrinsics = new_traj_list[i]
-        pcd_1 = get_colored_point_cloud(i, color_files, depth_files, intrinsic, extrinsics)
+        pcd_1 = get_colored_point_cloud(
+            i, color_files, depth_files, intrinsic, extrinsics)
         geoms.append(pcd_1)
 
     o3d.visualization.draw_geometries(geoms)
     return new_traj_list
 
 
-def integrate_volume(depth_files, color_files, intrinsic, traj, cube_length=16.0,sdf_trunc=0.08, d_stride=4, n_frames=None):
+def integrate_volume_tsdf(depth_files, color_files, intrinsic, traj, cube_length=16.0, sdf_trunc=0.08, d_stride=4, n_frames=None):
     voxel_length = cube_length / 512.0
     volume = o3d.integration.ScalableTSDFVolume(
         voxel_length=voxel_length,
@@ -178,10 +194,12 @@ def integrate_volume(depth_files, color_files, intrinsic, traj, cube_length=16.0
 
     integrate_time = np.sum(np.array(integrate_time))
     t1 = time.perf_counter()
-    logging.info("Volume integration no file/io took: %.1f, total (file/io): %.1f", integrate_time, (t1 - t0) * 1000)
+    logging.info("Volume integration no file/io took: %.1f, total (file/io): %.1f",
+                 integrate_time, (t1 - t0) * 1000)
     pcd = volume.extract_point_cloud()
     t2 = time.perf_counter()
-    logging.info("Point Cloud Extraction took: %.1f, # Points: %d ", (t2 - t1) * 1000, np.array(pcd.points).shape[0])
+    logging.info("Point Cloud Extraction took: %.1f, # Points: %d ",
+                 (t2 - t1) * 1000, np.array(pcd.points).shape[0])
     mesh = volume.extract_triangle_mesh()
     t3 = time.perf_counter()
     logging.info("Mesh Extraction took: %.1f", (t3 - t2) * 1000)
@@ -190,7 +208,8 @@ def integrate_volume(depth_files, color_files, intrinsic, traj, cube_length=16.0
     logging.info("Mesh Normal Extraction took: %.1f", (t4 - t3) * 1000)
     return mesh, pcd
 
-def integrate_pc_voxel(depth_files, color_files, intrinsic, traj, cube_length=16.0, d_stride=4, n_frames=None):
+
+def naive_integration(depth_files, color_files, intrinsic, traj, cube_length=16.0, d_stride=4, n_frames=None):
     voxel_length = cube_length / 512.0
 
     if n_frames is None:
@@ -207,7 +226,8 @@ def integrate_pc_voxel(depth_files, color_files, intrinsic, traj, cube_length=16
         #     color, depth, convert_rgb_to_intensity=False, depth_trunc=3.0)
         # pc = o3d.geometry.PointCloud.create_from_rgbd_image(rgbd_image, intrinsic, extrinsic)
         t0_0 = time.perf_counter()
-        pc = o3d.geometry.PointCloud.create_from_depth_image(depth, intrinsic, extrinsic, depth_trunc=3.0, stride=d_stride)
+        pc = o3d.geometry.PointCloud.create_from_depth_image(
+            depth, intrinsic, extrinsic, depth_trunc=3.0, stride=d_stride)
         all_pc.append(pc.voxel_down_sample(voxel_length))
         t0_1 = time.perf_counter()
         integrate_time.append((t0_1 - t0_0) * 1000)
@@ -222,10 +242,34 @@ def integrate_pc_voxel(depth_files, color_files, intrinsic, traj, cube_length=16
     pc = pc.voxel_down_sample(voxel_length)
     integrate_time = integrate_time + (t3-t1) * 1000
     # logging.info("Point Cloud Integration took: %.1f", (t1 - t0) * 1000)
-    logging.info("Brute Force Point Cloud Integration (no file/io) took: %.1f, # Points: %d ", integrate_time, np.array(pc.points).shape[0])
+    logging.info("Brute Force Point Cloud Integration (no file/io) took: %.1f, # Points: %d ",
+                 integrate_time, np.array(pc.points).shape[0])
     # logging.info("Point Cloud integration took: %.1f, # Points: %d ", (t1 - t0) * 1000, max_points)
     return pc
-    
+
+
+def extract_polygons(pcd, polylidar_kwargs=dict(alpha=0.0, lmax=0.05, zThresh=0.01, normThresh=0.99, normThreshMin=0.95)):
+    filter_ = dict(hole_area=dict(min=0.01, max=10),
+                   hole_vertices=dict(min=3), plane_area=dict(min=0.1))
+    postprocess = dict(filter=filter_, positive_buffer=0.0,
+                       buffer=0.02, simplify=0.02)
+
+    points = np.array(pcd.points)
+    polygons = extractPolygons(points, **polylidar_kwargs)
+    # print(points.shape)
+    # print(polygons)
+
+    planes, obstacles = filter_planes_and_holes2(polygons, points, postprocess)
+    # print(planes)
+    # print(obstacles)
+    line_mesh_geoms = create_lines(planes, obstacles, line_radius=0.01)
+    geoms = [line_mesh.cylinder_segments for line_mesh in line_mesh_geoms]
+    geoms = [segment for segment_list in geoms for segment in segment_list]
+
+    axis_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.5)
+    o3d.visualization.draw_geometries([pcd, axis_frame, *geoms])
+
+
 def main(config, traj):
     path = config["path_dataset"]
 
@@ -250,7 +294,7 @@ def main(config, traj):
             o3d.camera.PinholeCameraIntrinsicParameters.PrimeSenseDefault)
 
     n_frames = len(traj)
-    # n_frames = 30
+    # n_frames = 20
     axis_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.5)
 
     # Refine trajectory with sequence wise colored point cloud registration
@@ -261,13 +305,16 @@ def main(config, traj):
     logging.info("Integration %d frames", n_frames)
 
     # Integrate only depth pixels into a downsamped point cloud
-    pcd_only = integrate_pc_voxel(depth_files, color_files, intrinsic, new_traj, n_frames=n_frames)
-    logging.info("Visualize Brute Force Integrated and DownSampled Point Cloud")
+    pcd_only = naive_integration(
+        depth_files, color_files, intrinsic, new_traj, n_frames=n_frames)
+    logging.info("Visualize Naive Integration and DownSampled Point Cloud")
     o3d.visualization.draw_geometries([axis_frame, pcd_only])
 
     # Intregrate RGBD frames into a volume and mesh using TRSDF Volume
     # Extremely efficient, very smooth surfaces
-    mesh, pcd = integrate_volume(depth_files, color_files, intrinsic, new_traj, n_frames=n_frames)
+    mesh, pcd = integrate_volume_tsdf(
+        depth_files, color_files, intrinsic, new_traj, n_frames=n_frames)
+
     logging.info("Visualize TSDF Volume Integration Voxel Cloud")
     o3d.visualization.draw_geometries([axis_frame, pcd])
     logging.info("Visualize TSDF Volume Integration Mesh")
@@ -276,6 +323,68 @@ def main(config, traj):
     o3d.io.write_triangle_mesh(
         os.path.join(path, config["folder_scene"],
                      "mesh_with_trajectory.ply"), mesh)
+
+    logging.info("Visualize Polygon Extraction with TSDF Point Cloud")
+    pcd = flip_axes(pcd)
+    # extract_polygons(pcd)
+
+    logging.info("Extract Half Mesh")
+    t0 = time.perf_counter()
+    half_edge_mesh = o3d.geometry.HalfEdgeTriangleMesh.create_from_triangle_mesh_simple(mesh)
+    t1 = time.perf_counter()
+    # print(t1-t0)
+
+    vertices = np.array(half_edge_mesh.vertices)
+    triangles = [np.array(triangle) for triangle in half_edge_mesh.triangles]
+    triangles = np.concatenate(triangles, axis=0)
+    triangle_normals = np.array(half_edge_mesh.triangle_normals)
+    halfedges = np.array([half_edge.twin for half_edge in half_edge_mesh.half_edges])
+    # convert halfedges to uint64
+    mask = halfedges == -1
+    halfedges = halfedges.astype(np.uint64)
+    # print(vertices.shape, triangles.shape, halfedges.shape, triangle_normals.shape)
+
+
+    # triangle_normals = 
+
+    
+    # edges_opposite = halfedges[10:20]
+    # print(edges_opposite)
+    # vertices_idx_opposite = triangles_flat[edges_opposite]
+    # vertices_idx_same = triangles_flat[10:20]
+    # print(vertices_idx_same)
+    # print(vertices_idx_opposite)
+    # vertices_same = vertices[vertices_idx_same, :]
+    # vertices_opposite = vertices[vertices_idx_opposite, :]
+    # print(vertices_same)
+    # print(vertices_opposite)
+
+    # # fig = plt.figure(figsize=(10, 5))
+    # # ax = fig.add_subplot(1, 2, 1, projection='3d')
+    # for i in range(vertices_opposite.shape[0]):
+    #     pt1 = vertices_same[i, :]
+    #     pt2 = vertices_opposite[i, :]
+    #     pt_joined = np.vstack([pt1, pt2])
+    #     # ax.scatter(pt_joined[:, 0], pt_joined[:, 1], pt_joined[:, 2])
+    
+    # plt.show()
+
+
+
+    # ax.plot_trisurf(vertices[:, 0], vertices[:, 1], vertices[:, 2], triangles=triangles, cmap=plt.cm.Spectral)
+
+    # Naive intregration does NOT Work
+    # pcd = flip_axes(pcd_only)
+    # polylidar_kwargs = dict(alpha=0.0, lmax=0.05, zThresh=0.3, normThresh=0.98, normThreshMin=0.1)
+    # extract_polygons(pcd, polylidar_kwargs=polylidar_kwargs)
+
+
+def flip_axes(pcd):
+    points = np.array(pcd.points)[:, [0, 2, 1]]
+    points[:, -1] = -1 * points[:, -1]
+    pcd.points = o3d.utility.Vector3dVector(points)
+    pcd.estimate_normals()
+    return pcd
 
 
 if __name__ == "__main__":
@@ -292,7 +401,7 @@ if __name__ == "__main__":
         help='txt file that contains the trajectories')
     args = parser.parse_args()
 
-    o3d.utility.set_verbosity_level(o3d.utility.VerbosityLevel.Info)
+    o3d.utility.set_verbosity_level(o3d.utility.VerbosityLevel.Debug)
     if args.config is not None:
         with open(args.config) as json_file:
             config = json.load(json_file)
@@ -303,7 +412,8 @@ if __name__ == "__main__":
     if args.traj is not None:
         traj = read_trajectory(args.traj)
     if traj is None:
-        traj_path = os.path.join(config["path_dataset"], config["template_global_traj"])
+        traj_path = os.path.join(
+            config["path_dataset"], config["template_global_traj"])
         traj = read_trajectory(traj_path)
     traj = convert_trajectory(traj, inv=True)
 

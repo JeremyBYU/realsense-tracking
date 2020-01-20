@@ -143,3 +143,9 @@ Cmp   Size  Command                                                             
      32 MB  apt-get install --no-install-recommends -y libgflags-dev libgoogle-glog-dev gfortran     drwxr-xr-x         0:0     4.6 MB          └─⊕ share   
 
 ```
+
+## Integration
+
+What I have learned. If you are going to integrate point clouds over time you **need** to use a proper integration method like TSDF Volume Integration. It will smooth out gaussian noise and provide a much better estimate of the environment. This process creates an integrated (read memory efficient) voxel map of the environment and can be "quickly" transformed into a pont cloud or mesh.
+
+If you just try to use slam and cast your point clouds from your noisy sensor it will work, but the noise is compounded! Floor have "layers" to them. Polylidar will just choke on noisy dense point clouds! Polylidar can handle sparse noisy point clouds and dense noisy point cloud at one *instant* in time (just downsample to make less dense).

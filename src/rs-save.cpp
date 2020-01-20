@@ -241,8 +241,9 @@ int main(int argc, char *argv[]) try
 	gflags::ParseCommandLineFlags(&argc, &argv, true);
 	const auto tcf = toml::parse(FLAGS_config);
 	std::string base_path = toml::find_or(tcf, "base_path", "");
-	min_translate_change = toml::find_or<double>(tcf, "min_translate_change", min_translate_change);
+	min_translate_change = toml::find_or<double>(tcf, "min_translate_change", min_translate_change); // meters
 	min_rotation_change = toml::find_or<double>(tcf, "min_rotation_change", min_rotation_change); // degrees
+	check_pose_changes = min_translate_change > 0 && min_rotation_change > 0;
 	// LOG(INFO) << pose_rotation_change;
 	min_rotation_change = (1.0 - cos(degreesToRadians(min_rotation_change))) / 2.0; // number between 0-1
 	// LOG(INFO) << min_translate_change;

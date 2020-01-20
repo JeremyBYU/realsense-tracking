@@ -83,8 +83,8 @@ class LineMesh(object):
                 translation, relative=False)
             if axis is not None:
                 axis_a = axis * angle
-                cylinder_segment = cylinder_segment.rotate(
-                    axis_a, center=True, type=o3d.geometry.RotationType.AxisAngle)
+                rotation_3x3 = cylinder_segment.get_rotation_matrix_from_axis_angle(axis_a)
+                cylinder_segment = cylinder_segment.rotate(rotation_3x3, center=True,)
             # color cylinder
             color = self.colors if self.colors.ndim == 1 else self.colors[i, :]
             cylinder_segment.paint_uniform_color(color)

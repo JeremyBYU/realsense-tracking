@@ -61,10 +61,13 @@ class Converter(object):
                 pc_data = pcm.pc_data
                 n_points = pcm.n_points
                 bpp = pcm.bpp
-                dim_ = 3 if pcm.format == 0 else 6
-                points = np.frombuffer(
-                    pc_data, dtype=np.float32).reshape((n_points, dim_))
-                np.savez_compressed(str(new_file), points)
+                points = np.frombuffer(pc_data, dtype=np.float32).reshape((n_points, 3))
+                if pcm.format == 1:
+                    color_data = pcm.color_data
+                    colors = np.frombuffer(color_data, dtype=np.uint8).reshape((n_points, 3))
+                    np.savez_compressed(str(new_file), points, colors)
+                else:
+                    np.savez_compressed(str(new_file), points)
 
     @staticmethod
     def write_log(fh, counter, ht, ts=None):
