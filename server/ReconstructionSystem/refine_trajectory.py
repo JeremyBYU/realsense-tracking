@@ -13,6 +13,7 @@ import logging
 
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 unused import
+import matplotlib.colors as colors 
 import numpy as np
 import open3d as o3d
 
@@ -21,9 +22,10 @@ from server.grounddetector import filter_planes_and_holes2
 from server.Utility.trajectory_io import read_trajectory
 from server.Utility.file import get_rgbd_file_lists
 from server.ReconstructionSystem.initialize_config import initialize_config
-from polylidar import extractPolygons
+from polylidar import extractPolygons, extract_planes_and_polygons_from_mesh
 
 logging.basicConfig(level=logging.DEBUG)
+COLOR_PALETTE = list(map(colors.to_rgb, plt.rcParams['axes.prop_cycle'].by_key()['color']))
 
 
 H_t265_d400 = np.array([
@@ -254,20 +256,60 @@ def extract_polygons(pcd, polylidar_kwargs=dict(alpha=0.0, lmax=0.05, zThresh=0.
     postprocess = dict(filter=filter_, positive_buffer=0.0,
                        buffer=0.02, simplify=0.02)
 
-    points = np.array(pcd.points)
+    points = flip_axes(np.asarray(pcd.points))
+    t0 = time.perf_counter()
     polygons = extractPolygons(points, **polylidar_kwargs)
+    t1 = time.perf_counter()
+    log_timing(t0, t1, "Polygon extraction using Polylidar took:")
     # print(points.shape)
     # print(polygons)
 
     planes, obstacles = filter_planes_and_holes2(polygons, points, postprocess)
     # print(planes)
     # print(obstacles)
-    line_mesh_geoms = create_lines(planes, obstacles, line_radius=0.01)
+    line_mesh_geoms = create_lines(planes, obstacles, line_radius=0.01, rotate_func=flip_axes_invert)
     geoms = [line_mesh.cylinder_segments for line_mesh in line_mesh_geoms]
     geoms = [segment for segment_list in geoms for segment in segment_list]
 
     axis_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.5)
     o3d.visualization.draw_geometries([pcd, axis_frame, *geoms])
+
+
+def extract_polygons_new(mesh, vertices, triangles, halfedges, polylidar_kwargs=dict(alpha=0.0, lmax=0.05, zThresh=0.01, normThresh=0.99, normThreshMin=0.95, minTriangles=100)):
+    filter_ = dict(hole_area=dict(min=0.01, max=10),
+                   hole_vertices=dict(min=3), plane_area=dict(min=0.1))
+    postprocess = dict(filter=filter_, positive_buffer=0.0,
+                       buffer=0.01, simplify=0.01)
+    vertices_flipped = flip_axes(vertices)
+
+    t0 = time.perf_counter()
+    planes, polygons = extract_planes_and_polygons_from_mesh(vertices_flipped, triangles, halfedges,**polylidar_kwargs)
+    t1 = time.perf_counter()
+    log_timing(t0, t1, "Polygon extraction using Polylidar (using precomputed smooth mesh) took:")
+    # print(points.shape)
+    # print(polygons)
+    # print(triangulation)
+    # print(planes)
+    # print(polygons)
+
+    # Paint the Planes
+    triangles_3 = triangles.reshape(int(triangles.shape[0] / 3), 3)
+    colors = np.asarray(mesh.vertex_colors)
+    for i, plane in enumerate(planes):
+        idx = i % len(COLOR_PALETTE)
+        vertices_colored = triangles_3[plane, :].flatten()
+        colors[vertices_colored] = np.array(COLOR_PALETTE[idx])
+
+    # Get filtered planes and obstacles
+    shapeley_planes, shapely_obstacles = filter_planes_and_holes2(polygons, vertices_flipped, postprocess)
+
+    # Plot the lines
+    line_mesh_geoms = create_lines(shapeley_planes, shapely_obstacles, line_radius=0.01, rotate_func=flip_axes_invert)
+    geoms = [line_mesh.cylinder_segments for line_mesh in line_mesh_geoms]
+    geoms = [segment for segment_list in geoms for segment in segment_list]
+
+    axis_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.5)
+    o3d.visualization.draw_geometries([mesh, axis_frame, *geoms])
 
 
 def main(config, traj):
@@ -302,7 +344,7 @@ def main(config, traj):
     # just causes issues.
     # new_traj = refine_trajectory(color_files, depth_files, intrinsic, traj, n_frames=n_frames)
     new_traj = traj
-    logging.info("Integration %d frames", n_frames)
+    logging.info("Integration of %d frames", n_frames)
 
     # Integrate only depth pixels into a downsamped point cloud
     pcd_only = naive_integration(
@@ -325,66 +367,39 @@ def main(config, traj):
                      "mesh_with_trajectory.ply"), mesh)
 
     logging.info("Visualize Polygon Extraction with TSDF Point Cloud")
-    pcd = flip_axes(pcd)
-    # extract_polygons(pcd)
+    extract_polygons(pcd)
 
-    logging.info("Extract Half Mesh")
+    logging.info("Extract Half Mesh from TSDF Mesh")
     t0 = time.perf_counter()
-    half_edge_mesh = o3d.geometry.HalfEdgeTriangleMesh.create_from_triangle_mesh_simple(mesh)
+    halfedges = np.asarray(o3d.geometry.HalfEdgeTriangleMesh.extract_halfedges(mesh))
     t1 = time.perf_counter()
-    # print(t1-t0)
+    log_timing(t0, t1, "Efficient Half Mesh Extraction Took")
+    vertices = np.asarray(mesh.vertices)
+    t2 = time.perf_counter()
+    log_timing(t1, t2, "Getting Vertices")
+    triangles = np.asarray(mesh.triangles)
+    t3 = time.perf_counter()
+    log_timing(t2, t3, "Getting Triangles")
+    triangles = triangles.reshape(triangles.shape[0] * 3)
+    t4 = time.perf_counter()
+    log_timing(t3, t4, "Reshaping Triangles")
+    t5 = time.perf_counter()
+    logging.info("Total Half Mesh Extraction took: %.1f, Formatting: %.1f", (t5-t0) * 1000, (t2-t1) * 1000)
+    logging.info("Visualize Polygon Extraction using extracted Half Mesh from TSDF Volume Integration. NEW!!!")
+    extract_polygons_new(mesh, vertices, triangles, halfedges)
 
-    vertices = np.array(half_edge_mesh.vertices)
-    triangles = [np.array(triangle) for triangle in half_edge_mesh.triangles]
-    triangles = np.concatenate(triangles, axis=0)
-    triangle_normals = np.array(half_edge_mesh.triangle_normals)
-    halfedges = np.array([half_edge.twin for half_edge in half_edge_mesh.half_edges])
-    # convert halfedges to uint64
-    mask = halfedges == -1
-    halfedges = halfedges.astype(np.uint64)
-    # print(vertices.shape, triangles.shape, halfedges.shape, triangle_normals.shape)
+def log_timing(t0, t1, message):
+    logging.info("%s took %.1f ms", message, (t1-t0) * 1000)
 
-
-    # triangle_normals = 
-
-    
-    # edges_opposite = halfedges[10:20]
-    # print(edges_opposite)
-    # vertices_idx_opposite = triangles_flat[edges_opposite]
-    # vertices_idx_same = triangles_flat[10:20]
-    # print(vertices_idx_same)
-    # print(vertices_idx_opposite)
-    # vertices_same = vertices[vertices_idx_same, :]
-    # vertices_opposite = vertices[vertices_idx_opposite, :]
-    # print(vertices_same)
-    # print(vertices_opposite)
-
-    # # fig = plt.figure(figsize=(10, 5))
-    # # ax = fig.add_subplot(1, 2, 1, projection='3d')
-    # for i in range(vertices_opposite.shape[0]):
-    #     pt1 = vertices_same[i, :]
-    #     pt2 = vertices_opposite[i, :]
-    #     pt_joined = np.vstack([pt1, pt2])
-    #     # ax.scatter(pt_joined[:, 0], pt_joined[:, 1], pt_joined[:, 2])
-    
-    # plt.show()
-
-
-
-    # ax.plot_trisurf(vertices[:, 0], vertices[:, 1], vertices[:, 2], triangles=triangles, cmap=plt.cm.Spectral)
-
-    # Naive intregration does NOT Work
-    # pcd = flip_axes(pcd_only)
-    # polylidar_kwargs = dict(alpha=0.0, lmax=0.05, zThresh=0.3, normThresh=0.98, normThreshMin=0.1)
-    # extract_polygons(pcd, polylidar_kwargs=polylidar_kwargs)
-
-
-def flip_axes(pcd):
-    points = np.array(pcd.points)[:, [0, 2, 1]]
+def flip_axes_invert(points):
     points[:, -1] = -1 * points[:, -1]
-    pcd.points = o3d.utility.Vector3dVector(points)
-    pcd.estimate_normals()
-    return pcd
+    points = points[:, [0, 2, 1]]
+    return np.ascontiguousarray(points)
+
+def flip_axes(points):
+    points = points[:, [0, 2, 1]]
+    points[:, -1] = -1 * points[:, -1]
+    return np.ascontiguousarray(points)
 
 
 if __name__ == "__main__":
@@ -401,7 +416,7 @@ if __name__ == "__main__":
         help='txt file that contains the trajectories')
     args = parser.parse_args()
 
-    o3d.utility.set_verbosity_level(o3d.utility.VerbosityLevel.Debug)
+    o3d.utility.set_verbosity_level(o3d.utility.VerbosityLevel.Info)
     if args.config is not None:
         with open(args.config) as json_file:
             config = json.load(json_file)

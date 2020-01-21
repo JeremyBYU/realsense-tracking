@@ -68,15 +68,19 @@ def handle_shapes(vis, planes, obstacles, all_polys, line_radius=0.15):
 
     return all_polys
 
-def create_lines(planes, obstacles, line_radius=0.15):
+def create_lines(planes, obstacles, line_radius=0.15, rotate_func=None):
     all_polys = []
     for plane, _ in planes:
         points = np.array(plane.exterior)
+        if rotate_func:
+            points = rotate_func(points)
         line_mesh = LineMesh(points, colors=GREEN, radius=line_radius)
         all_polys.append(line_mesh)
 
     for plane, _ in obstacles:
         points = np.array(plane.exterior)
+        if rotate_func:
+            points = rotate_func(points)
         line_mesh = LineMesh(points, colors=ORANGE, radius=line_radius)
         all_polys.append(line_mesh)
 

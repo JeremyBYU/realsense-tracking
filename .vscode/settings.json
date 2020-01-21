@@ -68,7 +68,8 @@
         "typeindex": "cpp",
         "valarray": "cpp",
         "variant": "cpp",
-        "*.ipp": "cpp"
+        "*.ipp": "cpp",
+        "shared_mutex": "cpp"
     },
     "python.pythonPath": "/home/jeremy/miniconda3/envs/realsense/bin/python",
     "cSpell.words": [
