@@ -5,6 +5,30 @@
 namespace rspub
 {
 
+std::ostream &operator<<(std::ostream &os, TransformTS const &m) { 
+    return os << std::setprecision(0) << std::fixed << m.ts;
+}
+
+// ts should be older then the nearest value
+TransformTS getNearestTransformTS(double ts, RingBuffer<TransformTS> &rb)
+{
+	TransformTS nearest;
+	double max_dist_ts = 10000000.0;
+	for (size_t i=1; i< rb.sz; i++)
+	{
+		auto &transform_ts = rb.back(i);
+		double dist = (ts - transform_ts.ts);
+		double dist_abs = std::abs(dist);
+		if (dist_abs < max_dist_ts)
+		{
+			nearest = transform_ts;
+		}
+		if (dist > 0.0)
+			break;
+	}
+	return nearest;
+}
+
 // quaternion inner product squared
 double quat_product(const double &x1, const double &y1, const double &z1, const double &w1, const double &x2, const double &y2, const double &z2, const double &w2)
 {
@@ -308,6 +332,20 @@ void fill_image_message_second(rs2::video_frame &dframe, rspub_pb::ImageMessage 
 	frame_image.set_image_data_second(image_data, nbytes);
 	frame_image.set_bpp_second(dframe.get_bytes_per_pixel());
 	frame_image.set_format_second(format);
+}
+
+void fill_image_message_transform(rspub::TransformTS &transform, rspub_pb::ImageMessage &frame_image)
+{
+	auto tr = frame_image.mutable_translation();
+	tr->set_x(transform.pos[0]);
+	tr->set_y(transform.pos[1]);
+	tr->set_z(transform.pos[2]);
+
+	auto rot = frame_image.mutable_rotation();
+	rot->set_x(transform.quat[0]);
+	rot->set_y(transform.quat[1]);
+	rot->set_z(transform.quat[2]);
+	rot->set_w(transform.quat[3]);
 }
 
 void fill_pose_message(rs2_pose &pose, rspub_pb::PoseMessage &pm, double ts)

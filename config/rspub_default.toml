@@ -75,7 +75,7 @@ active = true
   rate = 1
 
   [publish.pointcloud]
-  active = true
+  active = false
   color = true
   stride = 2
   rate = 1

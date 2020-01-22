@@ -1,5 +1,6 @@
 syntax = 'proto3';
 package rspub_pb;
+import "Common.proto";
 
 message ImageMessage {
     bytes image_data = 1;
@@ -8,10 +9,13 @@ message ImageMessage {
     double hardware_ts = 4;
     int32 bpp=5;
     int32 format=6;
+    // Optional extriniscs
+    Vec3 translation=7;
+    Vec4 rotation=8;
     // Optional secondary image (RGBD)
-    bytes image_data_second = 7;
-    int32 bpp_second = 8;
-    int32 format_second = 9;
+    bytes image_data_second = 9;
+    int32 bpp_second = 10;
+    int32 format_second = 11;
 }
 
 

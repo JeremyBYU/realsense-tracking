@@ -20,6 +20,7 @@ find_package(eCAL REQUIRED)
 find_package(OpenGL)
 find_package(gflags REQUIRED)
 find_package(glog) # Docker ubuntu can not find when REQUIRED, but logging still works?!?!?
+# find_package( Eigen3 REQUIRED )
 
 set(PROTO_FILES ${PROTO_DIR}/Common.proto  ${PROTO_DIR}/ImageMessage.proto ${PROTO_DIR}/PointCloudMessage.proto  ${PROTO_DIR}/IMUMessage.proto ${PROTO_DIR}/PoseMessage.proto)
 PROTOBUF_GENERATE_CPP(PROTO_SRCS PROTO_HDRS ${PROTO_FILES})
@@ -60,6 +61,7 @@ include_directories(
     /usr/local/include/opencv2
     ${PROJECT_SOURCE_DIR}/../librealsense/common/res
     ${PROJECT_SOURCE_DIR}/../librealsense/src
+    ${EIGEN3_INCLUDE_DIR}
     # ${XIVO_DIR}/thirdparty/gflags/include
     # ${XIVO_DIR}/common
     # ${XIVO_DIR}/src

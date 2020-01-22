@@ -1,6 +1,7 @@
 ---
     name: Default settings for visualization of point cloud
     
+    path_intrinsic: "config/camera_intrinsic.json"
     n_points: 1
     voxel_size: 0.02
     # Point Cloud Settings

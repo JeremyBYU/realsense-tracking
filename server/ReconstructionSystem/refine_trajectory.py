@@ -16,6 +16,7 @@ from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 unused import
 import matplotlib.colors as colors 
 import numpy as np
 import open3d as o3d
+from scipy.spatial.transform import Rotation as R
 
 from server.open3d_util import create_lines
 from server.grounddetector import filter_planes_and_holes2
@@ -33,6 +34,8 @@ H_t265_d400 = np.array([
     [0, -1.0, 0, 0],
     [0, 0, -1.0, 0],
     [0, 0, 0, 1]])
+
+R_world_frame = R.from_euler('x', 90, degrees=True)
 
 np.set_printoptions(precision=3, suppress=True)
 
@@ -182,7 +185,14 @@ def integrate_volume_tsdf(depth_files, color_files, intrinsic, traj, cube_length
     integrate_time = []
     for i in range(n_frames):
         depth = o3d.io.read_image(os.path.join(depth_files[i]))
+        print(depth)
+        test = np.asarray(depth)
+        print(test.shape, test.dtype)
+        # print(np.asarray(depth))
         color = o3d.io.read_image(os.path.join(color_files[i]))
+        print(color)
+        test = np.asarray(color)
+        print(test.shape, test.dtype)
         rgbd_image = o3d.geometry.RGBDImage.create_from_color_and_depth(
             color, depth, convert_rgb_to_intensity=False, depth_trunc=3.0)
         extrinsic = traj[i]
@@ -256,7 +266,7 @@ def extract_polygons(pcd, polylidar_kwargs=dict(alpha=0.0, lmax=0.05, zThresh=0.
     postprocess = dict(filter=filter_, positive_buffer=0.0,
                        buffer=0.02, simplify=0.02)
 
-    points = flip_axes(np.asarray(pcd.points))
+    points = rotate_frame(np.asarray(pcd.points))
     t0 = time.perf_counter()
     polygons = extractPolygons(points, **polylidar_kwargs)
     t1 = time.perf_counter()
@@ -267,7 +277,7 @@ def extract_polygons(pcd, polylidar_kwargs=dict(alpha=0.0, lmax=0.05, zThresh=0.
     planes, obstacles = filter_planes_and_holes2(polygons, points, postprocess)
     # print(planes)
     # print(obstacles)
-    line_mesh_geoms = create_lines(planes, obstacles, line_radius=0.01, rotate_func=flip_axes_invert)
+    line_mesh_geoms = create_lines(planes, obstacles, line_radius=0.01, rotate_func=lambda x: rotate_frame(x, inverse=True))
     geoms = [line_mesh.cylinder_segments for line_mesh in line_mesh_geoms]
     geoms = [segment for segment_list in geoms for segment in segment_list]
 
@@ -280,7 +290,7 @@ def extract_polygons_new(mesh, vertices, triangles, halfedges, polylidar_kwargs=
                    hole_vertices=dict(min=3), plane_area=dict(min=0.1))
     postprocess = dict(filter=filter_, positive_buffer=0.0,
                        buffer=0.01, simplify=0.01)
-    vertices_flipped = flip_axes(vertices)
+    vertices_flipped = rotate_frame(vertices)
 
     t0 = time.perf_counter()
     planes, polygons = extract_planes_and_polygons_from_mesh(vertices_flipped, triangles, halfedges,**polylidar_kwargs)
@@ -304,7 +314,7 @@ def extract_polygons_new(mesh, vertices, triangles, halfedges, polylidar_kwargs=
     shapeley_planes, shapely_obstacles = filter_planes_and_holes2(polygons, vertices_flipped, postprocess)
 
     # Plot the lines
-    line_mesh_geoms = create_lines(shapeley_planes, shapely_obstacles, line_radius=0.01, rotate_func=flip_axes_invert)
+    line_mesh_geoms = create_lines(shapeley_planes, shapely_obstacles, line_radius=0.01, rotate_func=lambda x: rotate_frame(x, inverse=True))
     geoms = [line_mesh.cylinder_segments for line_mesh in line_mesh_geoms]
     geoms = [segment for segment_list in geoms for segment in segment_list]
 
@@ -396,9 +406,8 @@ def flip_axes_invert(points):
     points = points[:, [0, 2, 1]]
     return np.ascontiguousarray(points)
 
-def flip_axes(points):
-    points = points[:, [0, 2, 1]]
-    points[:, -1] = -1 * points[:, -1]
+def rotate_frame(points, r=R_world_frame, inverse=False):
+    points = r.apply(points, inverse=inverse)
     return np.ascontiguousarray(points)
 
 

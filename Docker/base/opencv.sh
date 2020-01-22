@@ -21,7 +21,7 @@ cmake -D CMAKE_BUILD_TYPE=RELEASE \
     -D BUILD_EXAMPLES=OFF ../
 # -D ENABLE_NEON=ON \
 # -D ENABLE_VFPV3=ON \
-make -j 
+make -j${N_CPUS}
 make install
 rm -rf /opt/opencv_contrib
 rm -rf /opt/opencv

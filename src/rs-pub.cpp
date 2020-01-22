@@ -36,6 +36,9 @@ using namespace std::string_literals;
 DEFINE_string(bag, "", "Path to bag file");
 DEFINE_string(config, "../config/rspub_default.toml", "Path to config file");
 
+rspub::RingBuffer<rspub::TransformTS> POSES(100);
+std::mutex POSES_MUTEX;
+
 namespace rspub
 {
 
@@ -53,10 +56,14 @@ void rs_callback(rs2::frame &frame, eCAL::protobuf::CPublisher<rspub_pb::PoseMes
 		auto pframe = frame.as<rs2::pose_frame>();
 		rs2_pose pose = pframe.get_pose_data();
 		// std::cout << std::setprecision(0) << std::fixed << std::left << std::setw(11) << "POSE: " << frame.get_timestamp() << std::endl;
-
 		rspub_pb::PoseMessage pose_message;
 		fill_pose_message(pose, pose_message, frame.get_timestamp());
 		pose_pub->Send(pose_message);
+
+		// Push only TRANSFORM information into a 100 size ringbuffer
+		std::lock_guard<std::mutex> lockGuard(POSES_MUTEX);
+		TransformTS transform_ts = {{pose.rotation.x, pose.rotation.y, pose.rotation.z, pose.rotation.w}, {pose.translation.x, pose.translation.y, pose.translation.z}, frame.get_timestamp()};
+		POSES.push(transform_ts);
 	}
 }
 
@@ -266,8 +273,17 @@ void process_pipeline(std::vector<rspub::StreamDetail> dsp, rs2::pipeline &pipe,
 				rspub_pb::ImageMessage rgbd_message;
 				fill_image_message(cframe, rgbd_message);
 				fill_image_message_second(dframe, rgbd_message);
+				if (POSES.sz > 0 && POSES.full())
+				{
+					std::lock_guard<std::mutex> lockGuard(POSES_MUTEX);
+					double ts_merged = dframe.get_timestamp();
+					auto transform = getNearestTransformTS(ts_merged, POSES);
+					fill_image_message_transform(transform, rgbd_message);
+					// LOG(INFO) << std::setprecision(3) << std::fixed <<  "Current Timestamp: " << ts_merged << "; transform Timestamp: " << transform.ts << "; translation x: " << transform.pos[0];
+				}
 				pub_rgbd.Send(rgbd_message);
 				rgbd_cfg_counter = 0;
+
 			}
 
 			now = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();

@@ -24,11 +24,24 @@
 #include "PointCloudMessage.pb.h"
 
 #include "rspub/types_simple.hpp"
+#include "rspub/ringbuffer.hpp"
 
 #define MS_TO_NS 1000000
 
 namespace rspub
 {
+
+
+struct TransformTS
+{
+    std::array<float, 4> quat;
+    std::array<float, 3> pos;
+    double ts;
+};
+
+std::ostream &operator<<(std::ostream &os, TransformTS const &m);
+
+TransformTS getNearestTransformTS(double ts, RingBuffer<TransformTS> &rb);
 
 // quaternion inner product squared
 double norm_l2(const double &x1, const double &y1, const double &z1, const double &x2, const double &y2, const double &z2);
@@ -74,7 +87,6 @@ class Float3
             return data;
         }
 };
-
 
 // class IMUMessage
 // {
@@ -169,6 +181,7 @@ bool create_filters(std::vector<NamedFilter> &filters, const toml::value &tcf);
 void fill_pose_message(rs2_pose &pose, rspub_pb::PoseMessage &pm, double ts);
 void fill_image_message(rs2::video_frame &dframe, rspub_pb::ImageMessage &frame_image);
 void fill_image_message_second(rs2::video_frame &dframe, rspub_pb::ImageMessage &frame_image);
+void fill_image_message_transform(rspub::TransformTS &transform, rspub_pb::ImageMessage &frame_image);
 void fill_pointcloud(rs2::depth_frame &dframe, rs2::video_frame &cframe, rs2::pointcloud &pc, rs2::points &points, bool color);
 void fill_pointcloud_message(rs2::points points, rs2::video_frame &cframe, rspub_pb::PointCloudMessage &pc_message, double hardware_ts, bool color);
 void fill_pointcloud_message_optimized(rs2::depth_frame &dframe, rs2::video_frame &cframe,rspub_pb::PointCloudMessage &pc_message,
