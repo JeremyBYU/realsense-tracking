@@ -43,9 +43,10 @@ H_t265_d400 = np.array([
     [0, 0, 0, 1]])
 
 R_World_d400 = np.identity(4)
-R_World_d400[:3,:3] = R.from_euler('x', 90, degrees=True).as_matrix()
+R_World_d400[:3, :3] = R.from_euler('x', 90, degrees=True).as_matrix()
 
 logging.basicConfig(level=logging.INFO)
+
 
 def diff_pose(last_pose, last_quat, current_pose, current_quat):
     pose_changed = np.linalg.norm(last_pose - current_pose)
@@ -64,14 +65,18 @@ class IntegrateServer(object):
         self.postprocess = config['polygon']['postprocess']
         self.depth_trunc = config.get('depth_trunc', 3.0)
 
-        self.min_translate_change = config.get("min_translate_change",0.1)
+        self.min_translate_change = config.get("min_translate_change", 0.1)
         self.min_rotation_change = config.get("min_rotation_change", 20.0)
-        self.min_rotation_change = (1.0 - np.cos(np.deg2rad(self.min_rotation_change))) / 2.0
+        self.min_rotation_change = (
+            1.0 - np.cos(np.deg2rad(self.min_rotation_change))) / 2.0
 
-        self.n_points = config['n_points']
-        self.voxel_size = config['voxel_size']
         vis, all_points, all_polys = init_vis(
-            n_points=self.n_points, grid=dict(plane='xz', size=5, n=10))
+            n_points=1, grid=dict(plane='xz', size=5, n=10))
+
+        self.scalable_tsdf_kwargs = config.get(
+            'scalable_tsdf', DEFAULT_SCENE_KWARGS)
+        self.scalable_tsdf_kwargs['color_type'] = o3d.integration.TSDFVolumeColorType(
+            self.scalable_tsdf_kwargs['color_type'])
 
         self.vis = vis
         self.all_points = all_points
@@ -92,13 +97,14 @@ class IntegrateServer(object):
 
         self.scenes: Scene = dict()
 
-    def add_scene(self, scene_name: str, scene_kwargs=DEFAULT_SCENE_KWARGS):
+    def add_scene(self, scene_name: str, scene_kwargs=None):
         """Creates a new scene volume which will be integrated
 
         Arguments:
             scene_name {str} -- [description]
             volume {[type]} -- [description]
         """
+        scene_kwargs = scene_kwargs if scene_kwargs is not None else self.scalable_tsdf_kwargs
         volume = o3d.integration.ScalableTSDFVolume(**scene_kwargs)
         if self.scenes.get(scene_name):
             raise ValueError("Scene already exists! Remove first")
@@ -106,12 +112,12 @@ class IntegrateServer(object):
 
     def integrate_rgbd(self, scene_name: str, rgbd_image: o3d.geometry.RGBDImage, extrinsic: np.ndarray):
         """Integrate RGBD Image into a scene
-        
+
         Arguments:
             scene_name {str} -- Scene Name
             rgbd_image {o3d.geometry.RGBDImage} -- RGBD Image
             extrinsic {np.ndarray} -- 4x4 numpy array
-        
+
         Raises:
             ValueError: Invalid scene name
         """
@@ -123,7 +129,7 @@ class IntegrateServer(object):
         t1 = time.perf_counter()
         logging.info("RGBD Integration took: %.1f ms", (t1 - t0) * 1000)
 
-    def extract_mesh(self, scene_name:str="Default"):
+    def extract_mesh(self, scene_name: str = "Default"):
         volume = self.scenes.get(scene_name)
         if volume is None:
             raise ValueError("Scene does not exist!")
@@ -137,7 +143,7 @@ class IntegrateServer(object):
         now = time.time() * 1000
         send_ts = send_ts / 1000
         logging.debug("Received RGBD Message; now: %.0f; send_ts: %.0f; hardware_ts: %.0f",
-                     now, send_ts, image.hardware_ts)
+                      now, send_ts, image.hardware_ts)
         try:
             color_data = image.image_data
             depth_data = image.image_data_second
@@ -151,11 +157,12 @@ class IntegrateServer(object):
             rot = R.from_quat(quat).as_matrix()
             trans = np.array([trans.x, trans.y, trans.z])
             H_t265_W = np.identity(4)
-            H_t265_W[:3,:3] = rot
+            H_t265_W[:3, :3] = rot
             H_t265_W[:3, 3] = trans
 
             # Check if position changed sufficiently to integrate data
-            translate_changed, rot_changed = diff_pose(self.last_position, self.last_quat, trans, quat)
+            translate_changed, rot_changed = diff_pose(
+                self.last_position, self.last_quat, trans, quat)
             pose_changed = translate_changed > self.min_translate_change or rot_changed > self.min_rotation_change
             if not pose_changed:
                 return
@@ -173,28 +180,23 @@ class IntegrateServer(object):
                 color_data, dtype=np.uint8).reshape((h, w, 3))
             depth = np.frombuffer(depth_data, dtype=np.uint16).reshape((h, w))
 
+            color = np.ascontiguousarray(color[...,::-1])
+
             color = o3d.geometry.Image(color)
             depth = o3d.geometry.Image(depth)
             # print(color)
             # print(depth)
-            rgbd = o3d.geometry.RGBDImage.create_from_color_and_depth(color, depth, depth_trunc=self.depth_trunc, convert_rgb_to_intensity=False)
-            
+            rgbd = o3d.geometry.RGBDImage.create_from_color_and_depth(
+                color, depth, depth_trunc=self.depth_trunc, convert_rgb_to_intensity=False)
+
             self.integrate_rgbd("Default", rgbd, extrinsic)
-            self.new_mesh = self.extract_mesh("Default")      
-            # pcd = o3d.geometry.PointCloud.create_from_rgbd_image(rgbd, self.intrinsic, extrinsic=extrinsic)
-            # self.update_pc(np.asarray(pcd.points))
-            # self.vis.add_geometry(pcd)
-            
+            self.new_mesh = self.extract_mesh("Default")
 
             # depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depth, alpha=0.1), cv2.COLORMAP_JET)
             # cv2.imshow('Image', color)
             # cv2.waitKey(1)
         except Exception as e:
             logging.exception("Error")
-
-    def update_pc(self, points:np.ndarray):
-        pcd = self.all_points[-1]
-        pcd.points = o3d.utility.Vector3dVector(points)
 
     def set_up_callbacks(self):
         logging.info("eCAL {} ({})\n".format(
@@ -220,11 +222,12 @@ class IntegrateServer(object):
             self.vis.update_renderer()
             if self.new_mesh is not None:
                 if self.old_mesh is not None:
-                    self.vis.remove_geometry(self.old_mesh, reset_bounding_box=False)
-                self.vis.add_geometry(self.new_mesh,reset_bounding_box=False)
+                    self.vis.remove_geometry(
+                        self.old_mesh, reset_bounding_box=False)
+                self.vis.add_geometry(self.new_mesh, reset_bounding_box=False)
                 self.old_mesh = self.new_mesh
                 self.new_mesh = None
-                
+
             time.sleep(0.1)
 
         ecal_core.finalize()
@@ -234,7 +237,7 @@ def main():
     try:
         with open("./config/rsserver_default.yaml", 'r') as f:
             config = yaml.safe_load(f)
-    except yaml.YAMLError as exc:
+    except yaml.YAMLError:
         logging.exception("Error parsing yaml")
 
     server = IntegrateServer(config)

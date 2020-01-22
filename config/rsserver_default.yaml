@@ -1,20 +1,21 @@
 ---
     name: Default settings for visualization of point cloud
     
-    path_intrinsic: "config/camera_intrinsic.json"
-    n_points: 1
-    voxel_size: 0.02
+    path_intrinsic: "config/camera_intrinsic_rgb_424.json"
+
+    scalable_tsdf:
+      voxel_length: 0.03125
+      sdf_trunc: 0.08
+      depth_sampling_stride: 4
+      color_type: 1 # None, Color, Gray
+
     # Point Cloud Settings
     pointcloud: 
       color: "height" # colorize point cloud by: intensity, height, distance
       color_map: 'plasma'
     
-    # 2D/3D View Settings
-    view_image: # Settings for 2D image viewer
-      active: true
-      show_polygons: true
     view_3D: # Settings for 3D point cloud viewer
-      active: true
+      active: false
       show_polygons: true
       line_radius: 0.10
     
@@ -29,7 +30,7 @@
         minHoleVertices : 6 # mininum number of vertices in a hole to return
         alpha: 0.0 # must be set to 0.0 if using lmax
       postprocess: # post processing of polygons returned from polylidar for ground/obstacle identification
-        filter: # Fitler polygons
+        filter: # filter polygons
           hole_area: # obstacle (holes in polygons) must have these characteristics
             min: 0.5   # m^2
             max: 40 # m^2
