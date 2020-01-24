@@ -1,7 +1,7 @@
 {
     "name": "Captured frames using Realsense",
     "path_dataset": "data/realsense/",
-    "path_intrinsic": "config/camera_intrinsic.json",
+    "path_intrinsic": "config/camera_intrinsic_rgb_424.json",
     "max_depth": 3.0,
     "voxel_size": 0.05,
     "max_depth_diff": 0.07,

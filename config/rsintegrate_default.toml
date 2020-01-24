@@ -1,0 +1,5 @@
+name = "Integration Server Settings"
+min_translate_change = 0.10 # meters
+min_rotation_change= 10.0 # degrees
+
+
