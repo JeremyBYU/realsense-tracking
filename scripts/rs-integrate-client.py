@@ -5,38 +5,36 @@ import time
 import ecal.core.core as ecal_core
 from ecal.core.service import Client
 
-THIS_DIR = Path(__file__).parent
-BUILD_DIR = (THIS_DIR / ".." / "build").resolve()
-sys.path.insert(1, str(BUILD_DIR))
+# THIS_DIR = Path(__file__).parent
+# BUILD_DIR = (THIS_DIR / ".." / "build").resolve()
+# sys.path.insert(1, str(BUILD_DIR))
 
 
-from Integrate_pb2 import SceneRequestType, DataRequestType, IntegrateRequest, IntegrateResponse, ADD
+# from Integrate_pb2 import SceneRequestType, DataRequestType, IntegrateRequest, IntegrateResponse, ADD
 
-def callback(service_info, response):
+def client_resp_callback(service_info, response):
+    print(service_info)
     print(response)
 
 def main():
       # initialize eCAL API
-    ecal_core.initialize([], "Testing")
+    ecal_core.initialize([], "Test_Integrate_Service")
     
     # set process state
-    ecal_core.set_process_state(1, 1, "Great")
+    ecal_core.set_process_state(1, 1, "Healthy")
 
     client = Client("IntegrateService")
+
+      # and add it to the client
+    client.add_response_callback(client_resp_callback)
     time.sleep(2)
 
-    ir = IntegrateRequest()
-    ir.scene = "Default"
-    ir.type = ADD
-    request_string = ir.SerializeToString()
-    client.add_response_callback(callback)
-
-    request_string = bytes("STUFF", 'ascii')
-    print(request_string)
-    res = client.call_method("IntegrateScene", request_string)
-    print(res)
-    # client.call_method("IntegrateScene",ir)
-
+    while True:
+        request_string = bytes("Call Integrate", "ascii")
+        print(request_string)
+        res = client.call_method("IntegrateScene", request_string)
+        print(res)
+        time.sleep(1.0)
 
 if __name__ == "__main__":
     main()

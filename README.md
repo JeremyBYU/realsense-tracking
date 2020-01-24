@@ -92,6 +92,10 @@ function a()
 ```
 ## Notes
 
+### Python Protobuf
+
+`python -m grpc_tools.protoc -I./src/proto --python_out=server/rspub_pb --grpc_python_out=server/rspub_pb ./src/proto/Common.proto ./src/proto/ImageMessage.proto ./src/proto/IMUMessage.proto ./src/proto/Integrate.proto ./src/proto/PointCloudMessage.proto ./src/proto/PoseMessage.proto`
+
 Need to use development branch of realsense: 
 
 ```

@@ -6,7 +6,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -std=c++17 -Wno-narrowing -Wno-regis
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mtune=native -march=native")
 set(CMAKE_BUILD_TYPE "Release")
 
-set(PROTO_DIR "${PROJECT_SOURCE_DIR}/src/proto")
+set(PROTO_DIR "${PROJECT_SOURCE_DIR}/proto/rspub_pb")
 
 add_definitions(-DNDEBUG)
 
