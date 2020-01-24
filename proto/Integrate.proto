@@ -31,7 +31,8 @@ message ExtractRequest
 
 message IntegrateResponse
 {
-  string answer = 1;
+  bool success = 1;
+  string message = 2;
 }
 
 service IntegrateService

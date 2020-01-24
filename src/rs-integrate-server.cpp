@@ -58,10 +58,12 @@ using STSDFVolume = open3d::integration::ScalableTSDFVolume;
 namespace rspub
 {
 
+enum State {STOP, START};
 struct Scene
 {
+	std::string scene_name;
 	std::shared_ptr<STSDFVolume> volume;
-	enum State {STOP, START};
+	State state;
 };
 // PingService implementation
 class IntegrateServiceImpl : public rspub_pb::IntegrateService
@@ -78,29 +80,103 @@ public:
 			OnRGBDMessage(topic_name_, im_msg, time_, clock_); 
 			});
 	}
+
+	/**
+	 * @brief Creates a TSDFVolume to be intergrated
+	 * 
+	 * @param scene_name 
+	 */
+	bool add_scene(std::string scene_name)
+	{
+		auto tsdf = toml::find(tcf, "scalable_tsdf");
+		double voxel_length = toml::find_or<double>(tsdf, "voxel_length", 0.03125);
+		double sdf_trunc = toml::find_or<double>(tsdf, "sdf_trunc", 0.08);
+        TSDFVolumeColorType color_type = TSDFVolumeColorType(toml::find_or<int>(tsdf, "color_type", 1));
+    	int depth_sampling_stride = toml::find_or<int>(tsdf, "depth_sampling_stride", 4);
+        int volume_unit_resolution = 16;
+
+		scene_names.insert(scene_name);
+		auto ptr = std::make_shared<STSDFVolume>(voxel_length, sdf_trunc, color_type, volume_unit_resolution, depth_sampling_stride);
+		
+		Scene scene_;
+		scene_.scene_name = scene_name;
+		scene_.volume = ptr;
+		scene_.state = State::STOP;
+
+		scene_map[scene_name] = scene_;
+
+		return true;
+
+	}
+	bool remove_scene(std::string scene_name)
+	{
+		auto it = scene_map.find (scene_name);
+		if (it == scene_map.end()){
+			return false;
+		}
+  		scene_map.erase( it, scene_map.end());
+		return true;
+	}
+	bool start_scene(std::string scene_name)
+	{
+		auto it = scene_map.find (scene_name);
+		if (it == scene_map.end()){
+			add_scene(scene_name);
+		}
+		auto scene = scene_map[scene_name];
+		scene.state = State::START;
+		return true;
+
+	}
+	bool stop_scene(std::string scene_name)
+	{
+		auto it = scene_map.find (scene_name);
+		if (it == scene_map.end()){
+			return false;
+		}
+		auto scene = scene_map[scene_name];
+		scene.state = State::STOP;
+		return true;
+
+	}
 	void IntegrateScene(::google::protobuf::RpcController* /* controller_ */, const rspub_pb::IntegrateRequest* request_, rspub_pb::IntegrateResponse* response_, ::google::protobuf::Closure* /* done_ */)
 	{
 		// print request
 		LOG(INFO) << "Received Intregate Scene Request " << descriptor_scene->FindValueByNumber(request_->type())->name() 
 					<< ": " << request_->scene();
 
-		response_->set_answer("PONG");
-		auto tsdf = toml::find(tcf, "scalable_tsdf");
-
-		double voxel_length = toml::find_or<double>(tsdf, "voxel_length", 0.03125);
-		double sdf_trunc = toml::find_or<double>(tsdf, "sdf_trunc", 0.08);
-        TSDFVolumeColorType color_type = TSDFVolumeColorType::RGB8;
-        int volume_unit_resolution = 16;
-    	int depth_sampling_stride = 4;
 		switch (request_->type())
 		{
 			case rspub_pb::SceneRequestType::ADD:
 			{
-				LOG(INFO) << "Got add";
-				scene_names.insert(request_->scene());
-				auto ptr = std::make_shared<STSDFVolume>(voxel_length, sdf_trunc, color_type, volume_unit_resolution, depth_sampling_stride);
-				// Scene a = {std::make_shared<TSDFVolume>(), Scene::STOP};
-				// scenes[request_->scene()] = a;
+				LOG(INFO) << "Got Add";
+				auto success = add_scene(request_->scene());
+				response_->set_success(success);
+				break;
+			}
+			case rspub_pb::SceneRequestType::REMOVE:
+			{
+				LOG(INFO) << "Got Remove";
+				auto success = remove_scene(request_->scene());
+				if (!success)
+				{
+					response_->set_message("DOES NOT EXIST");
+				}
+				response_->set_success(success);
+				break;
+			}
+			case rspub_pb::SceneRequestType::START:
+			{
+				LOG(INFO) << "Got Start";
+				auto success = start_scene(request_->scene());
+				response_->set_success(success);
+				break;
+			}
+			case rspub_pb::SceneRequestType::STOP:
+			{
+				LOG(INFO) << "Got Stop";
+				auto success = stop_scene(request_->scene());
+				response_->set_success(success);
 				break;
 			}
 
@@ -129,12 +205,12 @@ public:
 		// print request
 		std::cout << "Received Extract Request" << std::endl;
 		// and send response
-		response_->set_answer("PONG");
+		response_->set_message("PONG");
 	}
 
 protected:
 	std::shared_ptr<open3d::visualization::Visualizer> vis;
-	std::map<std::string, Scene> scenes;
+	std::map<std::string, Scene> scene_map;
 	std::set<std::string> scene_names;
 	rspub::SubImage sub_rgbd;
 	toml::value tcf;

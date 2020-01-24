@@ -14,6 +14,7 @@ set(toml11_BUILD_TEST OFF CACHE BOOL "Build toml tests" FORCE)
 add_subdirectory("thirdparty/toml11")
 
 find_package(OpenCV REQUIRED)
+find_package(OpenMP)
 find_package(realsense2 REQUIRED)
 find_package(Protobuf REQUIRED)
 find_package(eCAL REQUIRED)
@@ -37,7 +38,8 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib)
 
-set(DEPENDENCIES glfw realsense2-gl ${OPENGL_LIBRARIES} ${DEPENDENCIES} ${PROTOBUF_LIBRARIES} ${Open3D_LIBRARIES} ${OpenCV_LIBRARIES} gflags glog eCAL::core) 
+set(DEPENDENCIES glfw realsense2-gl ${OPENGL_LIBRARIES} ${DEPENDENCIES} ${PROTOBUF_LIBRARIES} 
+                 ${Open3D_LIBRARIES} ${OpenCV_LIBRARIES} OpenMP::OpenMP_CXX gflags glog eCAL::core) 
 
 
 get_cmake_property(_variableNames VARIABLES)
