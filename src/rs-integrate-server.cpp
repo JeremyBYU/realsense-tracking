@@ -53,16 +53,16 @@ rspub_pb::Vec4 previous_pose_rotation;
 const google::protobuf::EnumDescriptor *descriptor_scene = rspub_pb::SceneRequestType_descriptor();
 const google::protobuf::EnumDescriptor *descriptor_data = rspub_pb::DataRequestType_descriptor();
 
+using TSDFVolumeColorType =  open3d::integration::TSDFVolumeColorType;
+using STSDFVolume = open3d::integration::ScalableTSDFVolume;
 namespace rspub
 {
 
-using TSDFVolume = open3d::integration::ScalableTSDFVolume;
 struct Scene
 {
-	std::shared_ptr<TSDFVolume> volume;
+	std::shared_ptr<STSDFVolume> volume;
 	enum State {STOP, START};
 };
-
 // PingService implementation
 class IntegrateServiceImpl : public rspub_pb::IntegrateService
 {
@@ -85,13 +85,24 @@ public:
 					<< ": " << request_->scene();
 
 		response_->set_answer("PONG");
+		auto tsdf = toml::find(tcf, "scalable_tsdf");
+
+		double voxel_length = toml::find_or<double>(tsdf, "voxel_length", 0.03125);
+		double sdf_trunc = toml::find_or<double>(tsdf, "sdf_trunc", 0.08);
+        TSDFVolumeColorType color_type = TSDFVolumeColorType::RGB8;
+        int volume_unit_resolution = 16;
+    	int depth_sampling_stride = 4;
 		switch (request_->type())
 		{
 			case rspub_pb::SceneRequestType::ADD:
+			{
 				LOG(INFO) << "Got add";
 				scene_names.insert(request_->scene());
-				// scenes[request_->scene()] = {std::make_shared<TSDFVolume>(), Scene::STOP};
+				auto ptr = std::make_shared<STSDFVolume>(voxel_length, sdf_trunc, color_type, volume_unit_resolution, depth_sampling_stride);
+				// Scene a = {std::make_shared<TSDFVolume>(), Scene::STOP};
+				// scenes[request_->scene()] = a;
 				break;
+			}
 
 			default:
 				break;

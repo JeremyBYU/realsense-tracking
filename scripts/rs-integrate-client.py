@@ -26,7 +26,7 @@ def main():
     # set process state
     ecal_core.set_process_state(1, 1, "Healthy")
 
-    client = Client("rspub_pb.IntegrateService")
+    client = Client("IntegrateService")
 
       # and add it to the client
     client.add_response_callback(client_resp_callback)
