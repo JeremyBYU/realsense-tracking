@@ -1,0 +1,41 @@
+syntax = 'proto3';
+package rspub_pb;
+
+option cc_generic_services = true;
+
+enum SceneRequestType {
+    ADD = 0;
+    REMOVE = 1;
+    START = 2;
+    STOP = 3;
+  }
+
+enum DataRequestType {
+    MESH = 0;
+    POINTCLOUD = 1;
+    POLYGONS = 2;
+  }
+
+message IntegrateRequest
+{
+  string scene = 1;
+  SceneRequestType type = 2;
+  
+}
+
+message ExtractRequest
+{
+  string scene = 1;
+  DataRequestType type = 2;
+}
+
+message IntegrateResponse
+{
+  string answer = 1;
+}
+
+service IntegrateService
+{
+  rpc IntegrateScene (IntegrateRequest) returns (IntegrateResponse);
+  rpc ExtractScene (IntegrateRequest) returns (IntegrateResponse);
+}

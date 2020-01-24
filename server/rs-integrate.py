@@ -12,6 +12,7 @@ import open3d as o3d
 import yaml
 import ecal.core.core as ecal_core
 from ecal.core.subscriber import ProtoSubscriber
+from ecal.core.service import Server
 from scipy.spatial.transform import Rotation as R
 
 THIS_DIR = Path(__file__).parent
@@ -21,6 +22,7 @@ sys.path.insert(1, str(BUILD_DIR))
 import PointCloudMessage_pb2
 import PoseMessage_pb2
 import ImageMessage_pb2
+from Integrate_pb2 import SceneRequestType, DataRequestType, IntegrateRequest, IntegrateResponse
 
 from server.open3d_util import init_vis, handle_shapes, set_initial_view, get_extrinsics
 
@@ -61,6 +63,8 @@ class IntegrateServer(object):
     def __init__(self, config):
         super().__init__()
         self.set_up_callbacks()
+        # self.set_up_service()
+        # return
         self.polylidar_kwargs = config['polygon']['polylidar']
         self.postprocess = config['polygon']['postprocess']
         self.depth_trunc = config.get('depth_trunc', 3.0)
@@ -211,6 +215,30 @@ class IntegrateServer(object):
         self.sub_rgbd = ProtoSubscriber(
             "RGBDMessage", ImageMessage_pb2.ImageMessage)
         self.sub_rgbd.set_callback(self.callback_rgbd)
+
+
+    # def rpc_integrate_scene(self, method_name, req_type, resp_type, request):
+    #     print(method_name)
+    #     print(req_type)
+    #     print(resp_type)
+    #     print(request)
+
+    # def set_up_service(self):
+    #             # initialize eCAL API
+    #     ecal_core.initialize([], "RSIntegrate")
+
+    #     # set process state
+    #     ecal_core.set_process_state(1, 1, "Healthy")
+    #     rpc_server = Server("IntegrateService")
+    #     rpc_server.add_method_callback("IntegrateScene", "string", "string", self.rpc_integrate_scene)
+
+    #     self.rpc_server = rpc_server
+
+    # def run_server(self):
+
+    #     while ecal_core.ok():
+    #         # print("Here")
+    #         time.sleep(0.1)
 
     def run(self):
         self.add_scene("Default")

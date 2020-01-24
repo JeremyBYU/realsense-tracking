@@ -22,7 +22,10 @@ find_package(gflags REQUIRED)
 find_package(glog) # Docker ubuntu can not find when REQUIRED, but logging still works?!?!?
 # find_package( Eigen3 REQUIRED )
 
-set(PROTO_FILES ${PROTO_DIR}/Common.proto  ${PROTO_DIR}/ImageMessage.proto ${PROTO_DIR}/PointCloudMessage.proto  ${PROTO_DIR}/IMUMessage.proto ${PROTO_DIR}/PoseMessage.proto)
+set(PROTO_FILES ${PROTO_DIR}/Common.proto  ${PROTO_DIR}/ImageMessage.proto 
+                ${PROTO_DIR}/PointCloudMessage.proto  ${PROTO_DIR}/IMUMessage.proto 
+                ${PROTO_DIR}/PoseMessage.proto ${PROTO_DIR}/Integrate.proto)
+
 PROTOBUF_GENERATE_CPP(PROTO_SRCS PROTO_HDRS ${PROTO_FILES})
 protobuf_generate_python(PY_SOURCES ${PROTO_FILES})
 # Print path to generated files
@@ -61,14 +64,8 @@ include_directories(
     /usr/local/include/opencv2
     ${PROJECT_SOURCE_DIR}/../librealsense/common/res
     ${PROJECT_SOURCE_DIR}/../librealsense/src
-    ${EIGEN3_INCLUDE_DIR}
-    # ${XIVO_DIR}/thirdparty/gflags/include
-    # ${XIVO_DIR}/common
-    # ${XIVO_DIR}/src
-    # ${XIVO_DIR}/thirdparty/eigen-3.3.7/include/eigen3
-    # ${XIVO_DIR}/thirdparty/glog/include
-    # ${XIVO_DIR}/thirdparty/Pangolin/include
-    # ${XIVO_DIR}/thirdparty/jsoncpp/include
+    # ${EIGEN3_INCLUDE_DIR}
+
     ${PROTOBUF_INCLUDE_DIRS}
     ${PROJECT_SOURCE_DIR}/build
     ${GFLAG_INCLUDE_DIRS}

@@ -35,6 +35,7 @@ using namespace std::string_literals;
 // Command line flags
 DEFINE_string(bag, "", "Path to bag file");
 DEFINE_string(config, "../config/rspub_default.toml", "Path to config file");
+DEFINE_bool(force_udp, false, "Force UDP Multicast for publishers");
 
 rspub::RingBuffer<rspub::TransformTS> POSES(100);
 std::mutex POSES_MUTEX;
@@ -443,9 +444,22 @@ void OnPointCloudMessage(const char *topic_name_, const rspub_pb::PointCloudMess
 int main(int argc, char *argv[]) try
 {
 	google::InitGoogleLogging(argv[0]);
+	gflags::ParseCommandLineFlags(&argc, &argv, true);
+
+	std::vector<std::string> ecal_args;
+	if (FLAGS_force_udp)
+	{	
+		LOG(INFO) << "Forcing UDP Multicast for ECAL";
+		ecal_args.push_back("--set_config_key");
+		ecal_args.push_back("publisher/use_udp_mc:1");
+
+		ecal_args.push_back("--set_config_key");
+		ecal_args.push_back("publisher/use_shm:0");
+		
+	}
 	LOG(INFO) << "Starting RealSense Publisher";
 	// initialize eCAL API
-	eCAL::Initialize(0, nullptr, "RSPub");
+	eCAL::Initialize(ecal_args, "RSPub");
 	// create subscriber
 	rspub::SubPose sub_pose("PoseMessage");
 	rspub::SubPointCloud  sub_pc("PointCloudMessage");
@@ -460,7 +474,6 @@ int main(int argc, char *argv[]) try
 	// enable to receive process internal publications
 	eCAL::Util::EnableLoopback(true);
 	// Parse command line flags
-	gflags::ParseCommandLineFlags(&argc, &argv, true);
 	if(FLAGS_config == "")
 		LOG(ERROR) << "Must specify path to TOML config file";
 	
