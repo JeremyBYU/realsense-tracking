@@ -163,6 +163,7 @@ public:
 			return false;
 		}
   		scene_map.erase( it, scene_map.end());
+		scene_names.erase(scene_name);
 		return true;
 	}
 	bool start_scene(std::string scene_name)
@@ -197,7 +198,7 @@ public:
 		{
 			case rspub_pb::SceneRequestType::ADD:
 			{
-				LOG(INFO) << "Got Add";
+				// LOG(INFO) << "Got Add";
 				auto success = add_scene(request_->scene());
 				response_->set_success(success);
 				if (!success)
@@ -208,7 +209,7 @@ public:
 			}
 			case rspub_pb::SceneRequestType::REMOVE:
 			{
-				LOG(INFO) << "Got Remove";
+				// LOG(INFO) << "Got Remove";
 				auto success = remove_scene(request_->scene());
 				if (!success)
 				{
@@ -219,14 +220,14 @@ public:
 			}
 			case rspub_pb::SceneRequestType::START:
 			{
-				LOG(INFO) << "Got Start";
+				// LOG(INFO) << "Got Start";
 				auto success = start_scene(request_->scene());
 				response_->set_success(success);
 				break;
 			}
 			case rspub_pb::SceneRequestType::STOP:
 			{
-				LOG(INFO) << "Got Stop";
+				// LOG(INFO) << "Got Stop";
 				auto success = stop_scene(request_->scene());
 				response_->set_success(success);
 				break;
@@ -244,8 +245,11 @@ public:
 			return false;
 		}
 		auto &volume = it->second.volume;
+		double now0 = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
 		auto mesh = volume->ExtractTriangleMesh();
+		double now1 = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
 		auto halfedges = o3d::geometry::HalfEdgeTriangleMesh::ExtractHalfEdges(*mesh.get());
+		double now2 = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
 
 		int n_triangles = mesh->triangles_.size();
 		int n_vertices = mesh->vertices_.size();
@@ -257,12 +261,13 @@ public:
 		mesh_pb.set_halfedges(halfedges.data(), nbytes_halfedges);
 		mesh_pb.set_n_triangles(n_triangles);
 		mesh_pb.set_n_vertices(n_vertices);
-		LOG(INFO) << "Vertices: " << n_vertices << "; Triangles: " << n_triangles;
+		double now3 = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
+		VLOG(1) << std::setprecision(3) << std::fixed <<  "Mesh Extraction took: " << now1-now0 << "; Half Edge Extraction: " << now2-now1 << "; Serialization: " << now3-now2;
+		VLOG(2) << "Vertices: " << n_vertices << "; Triangles: " << n_triangles;
 	}
 
 	void ExtractScene(::google::protobuf::RpcController* /* controller_ */, const rspub_pb::ExtractRequest* request_, rspub_pb::ExtractResponse* response_, ::google::protobuf::Closure* /* done_ */)
 	{
-		std::cout << "Yo" << std::endl;
 		// print request
 		LOG(INFO) << "Received Extract Request " << descriptor_data->FindValueByNumber(request_->type())->name() 
 					<< ": " << request_->scene();
@@ -271,7 +276,7 @@ public:
 		{
 			case rspub_pb::DataType::MESH:
 			{
-				LOG(INFO) << "Got Mesh Request";
+				// LOG(INFO) << "Got Mesh Request";
 				response_->set_type(rspub_pb::DataType::MESH);
 				auto mesh = response_->mutable_mesh();
 				auto success = ExtractMesh(request_->scene(), *mesh);
@@ -280,12 +285,12 @@ public:
 			}
 			case rspub_pb::DataType::POLYGONS:
 			{
-				LOG(INFO) << "Got Polygon";
+				// LOG(INFO) << "Got Polygon";
 				break;
 			}
 			case rspub_pb::DataType::POINTCLOUD:
 			{
-				LOG(INFO) << "Got Pointcloud";
+				// LOG(INFO) << "Got Pointcloud";
 				break;
 			}
 			default:
@@ -321,7 +326,7 @@ public:
 	void OnRGBDMessage(const char *topic_name_, const rspub_pb::ImageMessage &im_msg, const long long time_, const long long clock_)
 	{
 		double now = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
-		VLOG(1) << std::setprecision(0) << std::fixed << "Received RGBDMessage; now: " << now << "; send_ts: " << time_ / 1000 << "; hardware_ts: " << im_msg.hardware_ts() << std::endl;
+		VLOG(2) << std::setprecision(0) << std::fixed << "Received RGBDMessage; now: " << now << "; send_ts: " << time_ / 1000 << "; hardware_ts: " << im_msg.hardware_ts() << std::endl;
 
 		auto w = im_msg.width();
 		auto h = im_msg.height();
@@ -344,25 +349,27 @@ public:
 		LOG(INFO) << "Pose Changed";
 		auto H_t265_W = make_transform(rotation, translation);
     	Eigen::Matrix4d extrinsic = (H_t265_d400.inverse() * H_t265_W * H_t265_d400).inverse();
-		// LOG(INFO) << "Extrinsic: " ;
-		// std::cout << extrinsic << std::endl;
 
 		// Unfortunately these are making copies
 		// I dont think theres anyway to avoid this with O3D API
 		auto color_image = createImage(image_data_ptr, w, h, 3, 1);
 		auto depth_image = createImage(image_data_second_ptr, w, h, 1, 2);
+		// I think this may even be a copy!
 		auto rgbd_image = o3dGeom::RGBDImage::CreateFromColorAndDepth(*color_image, *depth_image, 
 																	  depth_scale=depth_scale, depth_trunc=depth_trunc, false);
 
-		LOG(INFO) << "Before Scene Integration" << std::endl;
 		for (auto &scene_name: scene_names)
 		{
-			LOG(INFO) << "Looking at " << scene_name;
+			VLOG(3) << "Looking at " << scene_name;
 			auto &scene = scene_map[scene_name];
 			if (scene.state == State::STOP)
 				continue;
-			LOG(INFO) << "Integrating " << scene_name;
+			VLOG(2) << "Integrating " << scene_name;
+			double now0 = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
 			scene.volume->Integrate(*rgbd_image.get(), camera_intrinsic, extrinsic);
+			double now1 = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
+			VLOG(1) << std::setprecision(3) << std::fixed <<  "Volume Integration took: " << now1-now0 << " milliseconds";
+
 		}
 
 	}
@@ -403,24 +410,13 @@ int main(int argc, char *argv[]) try
 	gflags::ParseCommandLineFlags(&argc, &argv, true);
 	const auto tcf = toml::parse(FLAGS_config);
 
-	// min_translate_change = toml::find_or<double>(tcf, "min_translate_change", min_translate_change); // meters
-	// min_rotation_change = toml::find_or<double>(tcf, "min_rotation_change", min_rotation_change); // degrees
-	// min_rotation_change = (1.0 - cos(degreesToRadians(min_rotation_change))) / 2.0; // number between 0-1
-	
 	// initialize eCAL API
 	eCAL::Initialize(0, nullptr, "RSIntegrate");
-
 
 	  // create IntegrationServer server
 	std::shared_ptr<rspub::IntegrateServiceImpl> integrate_service_impl = std::make_shared<rspub::IntegrateServiceImpl>(tcf);
 	eCAL::protobuf::CServiceServer<rspub_pb::IntegrateService> integrate_service(integrate_service_impl);
 
-
-	// enable to receive process internal publications
-
-
-
-	eCAL::Process::SleepMS(1000);
 	while (eCAL::Ok())
 	{
 		eCAL::Process::SleepMS(10);
