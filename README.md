@@ -12,16 +12,16 @@ The purpose of this repository is to provide an isolated widget that can interac
 
 ## Installed libraries and Dependencies
 
-All dependencies and installation procedures can be found in `Docker/base/Dockerfile`. You can use docker and have everything taken care or you can follow the installation procedures. To provide a basic summary of the environment:
+All dependencies and installation procedures can be found in `Docker/base/Dockerfile`. You can use docker and have everything taken care or you can follow the installation procedures. Here is a basic summary of the environment:
 
 - Ubuntu Base Image 18.04
 - Python 3 w/ Scipy, numpy
 - CMake 3.15.5 - Needed because realsense asks for 3.11 or higher.
 - Open CV 3.4.7 with user contributed modules
 - ECAL for marshalling and communication
-- Protobuf - Thinking of changing to Flatbuffers eventually
+- Protobuf - Serialization format (Thinking of changing to Flatbuffers eventually)
 - RealSense SDK
-- Open3D - Point cloud Processing Library
+- Open3D - New Point cloud Processing Library from Intel
 - GFLAGS and GLOG for command line parsing and logging
 
 ## Run Docker
@@ -29,22 +29,22 @@ All dependencies and installation procedures can be found in `Docker/base/Docker
 ### X86 Linux
 
 1. [Install Docker](https://github.com/continental/ecal)
-2. `git clone https://github.com/JeremyBYU/realsense-tracking.git && cd realsense-tracking`
+2. `git clone --recursive https://github.com/JeremyBYU/realsense-tracking.git && cd realsense-tracking`
 
 ### Raspberry PI 4
 
-A rasberry pi image has already been created and set up. Download the image and flash the sd card.
+A raspberry pi image has already been created and set up. Download the image and flash the sd card.
 
 uname: ubuntu
 
 password: pir0b0t
 
-1. `ssh -X ubuntu@192.168.1.25` - Allows XForwarding. Might need to use gui (hdmi) to find out what the ip is first. IP subject to change for your own network.
+1. `ssh -X ubuntu@192.168.1.25` - Allows XForwarding if needed. Might need to use gui (hdmi) to find out what the ip is first. IP subject to change for your own network.
 2. `cd $HOME/Documents/realsense-tracking`
 
 ### Launch Docker
 
-1. `rs-pose`, `rs-enumerate-devices` - Need to "open" the sensors on host first?
+1. `rs-pose`, `rs-enumerate-devices` - Need to "open" the sensors on host first sometimes?
 2. `docker run  --rm --privileged -it --env="DISPLAY" --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" --volume="$(pwd):/opt/workspace:rw" jeremybyu/realsense:buildx` - Instruction for Raspberry pi
 3. Optional - `rm -rf build && mkdir build && cd build && cmake .. && make && cd ..`
 
@@ -54,47 +54,51 @@ Alternative X86 Launch - `docker run  --rm --privileged -it --env="DISPLAY" --vo
 
 ### RS-Pub
 
-Will publish topics which are configured in a toml file
+Will publish topics which are configured in a toml file. Configured by `config/rspub_default.toml`.
 
 1. `GLOG_logtostderr=1 ../bin/rs-pub`
 
 ### RS-Save
 
-Will Subscribe to topics and Save
+Will Subscribe to topics and Save data to disk. Configured by `config/rssave_default.toml`.
 
 1. `GLOG_logtostderr=1 ./bin/rs-save --config=config/rssave_default.toml`
 
 ### RS-Proto-Folder
 
-Will convert saved protofiles in a folder to text format
+Will convert saved protofiles in a folder to text format. This is for any point clouds or pose information.
 
 1. `python scripts/rs-proto-folder.py`
 
+### RS-Integrate-Server
+
+Creates an RPC Server that allows users to generate meshes on demand with simple requests.
+It will automatically subscribe to RGBD Images and integrate them to a voxel volume. Users can (on demand) request
+to extract meshes, polygons, or even pont clouds from the voxel volume. Configured by `config/rsintegrate_default.toml`.
+
+1. `GLOG_logtostderr=1 ./bin/rs-integrate-server --v=1`
+
 ### Reconstruction
 
-Doesnt work in docker. Need Open3D and Scipy
+This is just an example of doing offline reconstruction in python.
 
 1. `python -m server.ReconstructionSystem.refine_trajectory --config config/reconstruction.json`
 
-### RS-Save-Pyton (Beta)
+### RS-Save-Python (Beta)
 
-Doesnt work in docker
+Doesn't work in docker. Dont recommend to use this, use RS-Save.
 
 1. `cd server/ReconstrucitonSystem`
 2. `python sensors/realsense_recorder` some options
 
-```javascript
-function a()
-{
-    a
-}
 
-```
 ## Notes
 
-### Python Protobuf
+<!-- ### Python Protobuf
 
-`python -m grpc_tools.protoc -I./src/proto --python_out=server/rspub_pb --grpc_python_out=server/rspub_pb ./src/proto/Common.proto ./src/proto/ImageMessage.proto ./src/proto/IMUMessage.proto ./src/proto/Integrate.proto ./src/proto/PointCloudMessage.proto ./src/proto/PoseMessage.proto`
+`python -m grpc_tools.protoc -I./src/proto --python_out=server/rspub_pb --grpc_python_out=server/rspub_pb ./src/proto/Common.proto ./src/proto/ImageMessage.proto ./src/proto/IMUMessage.proto ./src/proto/Integrate.proto ./src/proto/PointCloudMessage.proto ./src/proto/PoseMessage.proto` -->
+
+### RealSense
 
 Need to use development branch of realsense: 
 
@@ -112,7 +116,7 @@ Date:   Tue Jan 7 17:17:02 2020 +0200
 D435i SN - 844212071822
 T265 SN - 943222110884, 0000943222110884
 
-## All dependencies in one folder
+### All dependencies in one folder
 
 1. `./scripts/cpld.sh ./bin/rs-track-depth ./dependencies`
 2. `LD_LIBRARY_PATH=./dependencies:$LD_LIBRARY_PATH GLOG_logtostderr=1 ./bin/rs-track-depth`
@@ -148,7 +152,7 @@ Cmp   Size  Command                                                             
 
 ```
 
-## Integration
+### Integration
 
 What I have learned. If you are going to integrate point clouds over time you **need** to use a proper integration method like TSDF Volume Integration. It will smooth out gaussian noise and provide a much better estimate of the environment. This process creates an integrated (read memory efficient) voxel map of the environment and can be "quickly" transformed into a pont cloud or mesh.
 

@@ -7,7 +7,7 @@ depth_trunc = 3.0 # Truncate depth image after 3 meters
 path_intrinsic = "config/camera_intrinsic_rgb_424.json"
 
 [scalable_tsdf]
-voxel_length= 0.03125
+voxel_length= 0.05
 sdf_trunc= 0.08
 depth_sampling_stride= 4
 color_type= 1 # None, Color, Gray
