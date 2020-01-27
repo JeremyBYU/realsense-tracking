@@ -6,7 +6,8 @@
                 "${workspaceFolder}/**",
                 "${workspaceFolder}/src/include/**/**",
                 "${workspaceFolder}/src/include/",
-                "${workspaceFolder}/build/**"
+                "${workspaceFolder}/build/**",
+                "${workspaceFolder}/thirdparty/polylidar/polylidar/include/**/**"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",

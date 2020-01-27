@@ -12,6 +12,7 @@ add_definitions(-DNDEBUG)
 
 set(toml11_BUILD_TEST OFF CACHE BOOL "Build toml tests" FORCE)
 add_subdirectory("thirdparty/toml11")
+add_subdirectory("thirdparty/polylidar")
 
 find_package(OpenCV REQUIRED)
 find_package(OpenMP)
@@ -21,7 +22,7 @@ find_package(eCAL REQUIRED)
 find_package(OpenGL)
 find_package(gflags REQUIRED)
 find_package(glog) # Docker ubuntu can not find when REQUIRED, but logging still works?!?!?
-# find_package( Eigen3 REQUIRED )
+find_package( Eigen3 REQUIRED )
 find_package(Open3D HINTS ${CMAKE_INSTALL_PREFIX}/lib/CMake)
 
 set(PROTO_FILES ${PROTO_DIR}/Common.proto  ${PROTO_DIR}/ImageMessage.proto 
@@ -68,7 +69,7 @@ include_directories(
     /usr/local/include/opencv2
     ${PROJECT_SOURCE_DIR}/../librealsense/common/res
     ${PROJECT_SOURCE_DIR}/../librealsense/src
-    # ${EIGEN3_INCLUDE_DIR}
+    ${EIGEN3_INCLUDE_DIR}
 
     ${PROTOBUF_INCLUDE_DIRS}
     ${PROJECT_SOURCE_DIR}/build
@@ -95,7 +96,7 @@ target_link_libraries(rs-motion-2 ${realsense2_LIBRARY} ${DEPENDENCIES})
 target_link_libraries(rs-test ${realsense2_LIBRARY} ${DEPENDENCIES}) 
 target_link_libraries(rs-pub ${realsense2_LIBRARY} ${DEPENDENCIES})
 target_link_libraries(rs-save ${realsense2_LIBRARY} ${DEPENDENCIES})
-target_link_libraries(rs-integrate-server ${realsense2_LIBRARY} ${DEPENDENCIES} )
+target_link_libraries(rs-integrate-server ${realsense2_LIBRARY} ${DEPENDENCIES} polylidar)
 
 add_custom_target(DUMMY_TARGET ALL 
                   DEPENDS ${PY_SOURCES})

@@ -4,17 +4,25 @@ package rspub_pb;
 option cc_generic_services = true;
 
 enum SceneRequestType {
-    ADD = 0;
-    REMOVE = 1;
-    START = 2;
-    STOP = 3;
-  }
+  ADD = 0;
+  REMOVE = 1;
+  START = 2;
+  STOP = 3;
+}
 
-enum DataRequestType {
-    MESH = 0;
-    POINTCLOUD = 1;
-    POLYGONS = 2;
-  }
+enum DataType {
+  MESH = 0;
+  POINTCLOUD = 1;
+  POLYGONS = 2;
+}
+
+message Mesh {
+  int32 n_vertices = 1;
+  int32 n_triangles = 2;
+  bytes vertices = 3;
+  bytes triangles = 4;
+  bytes halfedges = 5;
+}
 
 message IntegrateRequest
 {
@@ -26,7 +34,7 @@ message IntegrateRequest
 message ExtractRequest
 {
   string scene = 1;
-  DataRequestType type = 2;
+  DataType type = 2;
 }
 
 message IntegrateResponse
@@ -35,8 +43,16 @@ message IntegrateResponse
   string message = 2;
 }
 
+message ExtractResponse
+{
+  bool success = 1;
+  DataType type = 2; 
+  string message = 3;
+  Mesh mesh = 4;
+}
+
 service IntegrateService
 {
   rpc IntegrateScene (IntegrateRequest) returns (IntegrateResponse);
-  rpc ExtractScene (IntegrateRequest) returns (IntegrateResponse);
+  rpc ExtractScene (ExtractRequest) returns (ExtractResponse);
 }
