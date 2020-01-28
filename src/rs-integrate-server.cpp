@@ -36,7 +36,6 @@
 #include "polylidar/polylidar.hpp"
 #include "polylidar/util.hpp"
 
-
 #define degreesToRadians(angleDegrees) (angleDegrees * M_PI / 180.0)
 #define radiansToDegrees(angleRadians) (angleRadians * 180.0 / M_PI)
 
@@ -45,20 +44,20 @@ using namespace std::string_literals;
 namespace o3d = open3d;
 namespace o3dGeom = o3d::geometry;
 
-
 // Command line flags
 DEFINE_string(config, "./config/rsintegrate_default.toml", "Path to config file");
+DEFINE_bool(force_udp, false, "Force UDP Multicast for publishers");
 
 // START Global Variables
 /////////////////////////
 
 static Eigen::Matrix4d H_t265_d400 = (Eigen::Matrix4d() << 1.0, 0, 0, 0,
-														   0, -1.0, 0, 0,
-														   0, 0, -1.0, 0, 
-														   0, 0, 0, 1).finished();
+									  0, -1.0, 0, 0,
+									  0, 0, -1.0, 0,
+									  0, 0, 0, 1)
+										 .finished();
 
 // Keep track of previous pose changes.
-
 
 ///////////////////////
 // END GLOBAL Variables
@@ -66,12 +65,16 @@ static Eigen::Matrix4d H_t265_d400 = (Eigen::Matrix4d() << 1.0, 0, 0, 0,
 const google::protobuf::EnumDescriptor *descriptor_scene = rspub_pb::SceneRequestType_descriptor();
 const google::protobuf::EnumDescriptor *descriptor_data = rspub_pb::DataType_descriptor();
 
-using TSDFVolumeColorType =  open3d::integration::TSDFVolumeColorType;
+using TSDFVolumeColorType = open3d::integration::TSDFVolumeColorType;
 using STSDFVolume = open3d::integration::ScalableTSDFVolume;
 namespace rspub
 {
 
-enum State {STOP, START};
+enum State
+{
+	STOP,
+	START
+};
 struct Scene
 {
 	std::string scene_name;
@@ -83,14 +86,14 @@ Eigen::Matrix4d make_transform(rspub_pb::Vec4 &rotation, rspub_pb::Vec3 &trans)
 {
 	Eigen::Matrix3d mat3 = Eigen::Quaterniond(rotation.w(), rotation.x(), rotation.y(), rotation.z()).toRotationMatrix();
 	Eigen::Matrix4d mat4 = Eigen::Matrix4d::Identity();
-	mat4.block(0,0,3,3) = mat3;
-	mat4(0,3) = trans.x();
-	mat4(1,3) = trans.y();
-	mat4(2,3) = trans.z();
+	mat4.block(0, 0, 3, 3) = mat3;
+	mat4(0, 3) = trans.x();
+	mat4(1, 3) = trans.y();
+	mat4(2, 3) = trans.z();
 	return mat4;
 }
 
-o3dGeom::Image* createImage(const char* data, int width, int height, int num_of_channels, int bytes_per_channel)
+o3dGeom::Image *createImage(const char *data, int width, int height, int num_of_channels, int bytes_per_channel)
 {
 	auto img = new o3dGeom::Image();
 	img->Prepare(width, height, num_of_channels, bytes_per_channel);
@@ -102,13 +105,13 @@ o3dGeom::Image* createImage(const char* data, int width, int height, int num_of_
 class IntegrateServiceImpl : public rspub_pb::IntegrateService
 {
 public:
-	IntegrateServiceImpl(toml::value tcf):tcf(tcf)
+	IntegrateServiceImpl(toml::value tcf) : tcf(tcf)
 	{
 
 		// Set calculated member variables
 
 		min_translate_change = toml::find_or<double>(tcf, "min_translate_change", 0.0); // meters
-		min_rotation_change = toml::find_or<double>(tcf, "min_rotation_change", 0.0); // degrees
+		min_rotation_change = toml::find_or<double>(tcf, "min_rotation_change", 0.0);   // degrees
 		min_rotation_change = (1.0 - cos(degreesToRadians(min_rotation_change))) / 2.0; // number between 0-1
 		depth_trunc = toml::find_or<double>(tcf, "depth_trunc", 3.0);
 		depth_scale = toml::find_or<double>(tcf, "depth_scale", 1000.0);
@@ -119,9 +122,9 @@ public:
 		sub_rgbd = rspub::SubImage("RGBDMessage");
 		// auto rgbd_rec_callback = std::bind(this->OnRGBDMessage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
 		// sub_rgbd.AddReceiveCallback(rgbd_rec_callback);
-		sub_rgbd.AddReceiveCallback([this](const char *topic_name_, const rspub_pb::ImageMessage &im_msg, const long long time_, const long long clock_, const long long stuff_){ 
-			OnRGBDMessage(topic_name_, im_msg, time_, clock_); 
-			});
+		sub_rgbd.AddReceiveCallback([this](const char *topic_name_, const rspub_pb::ImageMessage &im_msg, const long long time_, const long long clock_, const long long stuff_) {
+			OnRGBDMessage(topic_name_, im_msg, time_, clock_);
+		});
 
 		if (auto_start)
 		{
@@ -137,20 +140,21 @@ public:
 	 */
 	bool add_scene(std::string scene_name)
 	{
-		auto it = scene_map.find (scene_name);
-		if (it != scene_map.end()){
+		auto it = scene_map.find(scene_name);
+		if (it != scene_map.end())
+		{
 			return false;
 		}
 		auto tsdf = toml::find(tcf, "scalable_tsdf");
 		double voxel_length = toml::find_or<double>(tsdf, "voxel_length", 0.03125);
 		double sdf_trunc = toml::find_or<double>(tsdf, "sdf_trunc", 0.08);
-        TSDFVolumeColorType color_type = TSDFVolumeColorType(toml::find_or<int>(tsdf, "color_type", 1));
-    	int depth_sampling_stride = toml::find_or<int>(tsdf, "depth_sampling_stride", 4);
-        int volume_unit_resolution = 16;
+		TSDFVolumeColorType color_type = TSDFVolumeColorType(toml::find_or<int>(tsdf, "color_type", 1));
+		int depth_sampling_stride = toml::find_or<int>(tsdf, "depth_sampling_stride", 4);
+		int volume_unit_resolution = 16;
 
 		scene_names.insert(scene_name);
 		auto ptr = std::make_shared<STSDFVolume>(voxel_length, sdf_trunc, color_type, volume_unit_resolution, depth_sampling_stride);
-		
+
 		Scene scene_;
 		scene_.scene_name = scene_name;
 		scene_.volume = ptr;
@@ -159,94 +163,95 @@ public:
 		scene_map[scene_name] = scene_;
 
 		return true;
-
 	}
 	bool remove_scene(std::string scene_name)
 	{
-		auto it = scene_map.find (scene_name);
-		if (it == scene_map.end()){
+		auto it = scene_map.find(scene_name);
+		if (it == scene_map.end())
+		{
 			return false;
 		}
-  		scene_map.erase( it, scene_map.end());
+		scene_map.erase(it, scene_map.end());
 		scene_names.erase(scene_name);
 		return true;
 	}
 	bool start_scene(std::string scene_name)
 	{
-		auto it = scene_map.find (scene_name);
-		if (it == scene_map.end()){
+		auto it = scene_map.find(scene_name);
+		if (it == scene_map.end())
+		{
 			add_scene(scene_name);
 		}
 		auto &scene = scene_map[scene_name];
 		scene.state = State::START;
 		return true;
-
 	}
 	bool stop_scene(std::string scene_name)
 	{
-		auto it = scene_map.find (scene_name);
-		if (it == scene_map.end()){
+		auto it = scene_map.find(scene_name);
+		if (it == scene_map.end())
+		{
 			return false;
 		}
 		auto &scene = scene_map[scene_name];
 		scene.state = State::STOP;
 		return true;
-
 	}
-	void IntegrateScene(::google::protobuf::RpcController* /* controller_ */, const rspub_pb::IntegrateRequest* request_, rspub_pb::IntegrateResponse* response_, ::google::protobuf::Closure* /* done_ */)
+	void IntegrateScene(::google::protobuf::RpcController * /* controller_ */, const rspub_pb::IntegrateRequest *request_, rspub_pb::IntegrateResponse *response_, ::google::protobuf::Closure * /* done_ */)
 	{
 		// print request
-		LOG(INFO) << "Received Integrate Scene Request " << descriptor_scene->FindValueByNumber(request_->type())->name() 
-					<< ": " << request_->scene();
+		LOG(INFO) << "Received Integrate Scene Request " << descriptor_scene->FindValueByNumber(request_->type())->name()
+				  << ": " << request_->scene();
 
 		switch (request_->type())
 		{
-			case rspub_pb::SceneRequestType::ADD:
+		case rspub_pb::SceneRequestType::ADD:
+		{
+			// LOG(INFO) << "Got Add";
+			auto success = add_scene(request_->scene());
+			response_->set_success(success);
+			if (!success)
 			{
-				// LOG(INFO) << "Got Add";
-				auto success = add_scene(request_->scene());
-				response_->set_success(success);
-				if (!success)
-				{
-					response_->set_message("Scene Already Exists");
-				}
-				break;
+				response_->set_message("Scene Already Exists");
 			}
-			case rspub_pb::SceneRequestType::REMOVE:
+			break;
+		}
+		case rspub_pb::SceneRequestType::REMOVE:
+		{
+			// LOG(INFO) << "Got Remove";
+			auto success = remove_scene(request_->scene());
+			if (!success)
 			{
-				// LOG(INFO) << "Got Remove";
-				auto success = remove_scene(request_->scene());
-				if (!success)
-				{
-					response_->set_message("DOES NOT EXIST");
-				}
-				response_->set_success(success);
-				break;
+				response_->set_message("DOES NOT EXIST");
 			}
-			case rspub_pb::SceneRequestType::START:
-			{
-				// LOG(INFO) << "Got Start";
-				auto success = start_scene(request_->scene());
-				response_->set_success(success);
-				break;
-			}
-			case rspub_pb::SceneRequestType::STOP:
-			{
-				// LOG(INFO) << "Got Stop";
-				auto success = stop_scene(request_->scene());
-				response_->set_success(success);
-				break;
-			}
+			response_->set_success(success);
+			break;
+		}
+		case rspub_pb::SceneRequestType::START:
+		{
+			// LOG(INFO) << "Got Start";
+			auto success = start_scene(request_->scene());
+			response_->set_success(success);
+			break;
+		}
+		case rspub_pb::SceneRequestType::STOP:
+		{
+			// LOG(INFO) << "Got Stop";
+			auto success = stop_scene(request_->scene());
+			response_->set_success(success);
+			break;
+		}
 
-			default:
-				break;
+		default:
+			break;
 		}
 	}
 
 	bool ExtractMesh(std::string scene_name, rspub_pb::Mesh &mesh_pb)
 	{
-		auto it = scene_map.find (scene_name);
-		if (it == scene_map.end()){
+		auto it = scene_map.find(scene_name);
+		if (it == scene_map.end())
+		{
 			return false;
 		}
 		auto &volume = it->second.volume;
@@ -260,46 +265,46 @@ public:
 		int n_vertices = mesh->vertices_.size();
 		int nbytes_triangles = n_triangles * 4 * 3; // 4 bytes per vertex index, 3 vertex indices per triangle
 		int nbytes_halfedges = n_triangles * 8 * 3; // 8 bytes per half edge id (uint64), 3 edges per triangle
-		int nbytes_vertices = n_vertices * 8 * 3; // 8 bytes per point (double), 3 points per vertex. 
+		int nbytes_vertices = n_vertices * 8 * 3;   // 8 bytes per point (double), 3 points per vertex.
 		mesh_pb.set_vertices(mesh->vertices_.data(), nbytes_vertices);
 		mesh_pb.set_triangles(mesh->triangles_.data(), nbytes_triangles);
 		mesh_pb.set_halfedges(halfedges.data(), nbytes_halfedges);
 		mesh_pb.set_n_triangles(n_triangles);
 		mesh_pb.set_n_vertices(n_vertices);
 		double now3 = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
-		VLOG(1) << std::setprecision(3) << std::fixed <<  "Mesh Extraction took: " << now1-now0 << "; Half Edge Extraction: " << now2-now1 << "; Serialization: " << now3-now2;
+		VLOG(1) << std::setprecision(3) << std::fixed << "Mesh Extraction took: " << now1 - now0 << "; Half Edge Extraction: " << now2 - now1 << "; Serialization: " << now3 - now2;
 		VLOG(2) << "Vertices: " << n_vertices << "; Triangles: " << n_triangles;
 	}
 
-	void ExtractScene(::google::protobuf::RpcController* /* controller_ */, const rspub_pb::ExtractRequest* request_, rspub_pb::ExtractResponse* response_, ::google::protobuf::Closure* /* done_ */)
+	void ExtractScene(::google::protobuf::RpcController * /* controller_ */, const rspub_pb::ExtractRequest *request_, rspub_pb::ExtractResponse *response_, ::google::protobuf::Closure * /* done_ */)
 	{
 		// print request
-		LOG(INFO) << "Received Extract Request " << descriptor_data->FindValueByNumber(request_->type())->name() 
-					<< ": " << request_->scene();
+		LOG(INFO) << "Received Extract Request " << descriptor_data->FindValueByNumber(request_->type())->name()
+				  << ": " << request_->scene();
 
 		switch (request_->type())
 		{
-			case rspub_pb::DataType::MESH:
-			{
-				// LOG(INFO) << "Got Mesh Request";
-				response_->set_type(rspub_pb::DataType::MESH);
-				auto mesh = response_->mutable_mesh();
-				auto success = ExtractMesh(request_->scene(), *mesh);
-				response_->set_success(success);
-				break;
-			}
-			case rspub_pb::DataType::POLYGONS:
-			{
-				// LOG(INFO) << "Got Polygon";
-				break;
-			}
-			case rspub_pb::DataType::POINTCLOUD:
-			{
-				// LOG(INFO) << "Got Pointcloud";
-				break;
-			}
-			default:
-				break;
+		case rspub_pb::DataType::MESH:
+		{
+			// LOG(INFO) << "Got Mesh Request";
+			response_->set_type(rspub_pb::DataType::MESH);
+			auto mesh = response_->mutable_mesh();
+			auto success = ExtractMesh(request_->scene(), *mesh);
+			response_->set_success(success);
+			break;
+		}
+		case rspub_pb::DataType::POLYGONS:
+		{
+			// LOG(INFO) << "Got Polygon";
+			break;
+		}
+		case rspub_pb::DataType::POINTCLOUD:
+		{
+			// LOG(INFO) << "Got Pointcloud";
+			break;
+		}
+		default:
+			break;
 		}
 	}
 
@@ -317,7 +322,6 @@ public:
 		quat_changed = quat_changed * quat_changed;
 		quat_changed = 1.0 - quat_changed;
 
-
 		bool poseChanged = (pose_diff > min_translate_change || quat_changed > min_rotation_change);
 		if (poseChanged)
 		{
@@ -325,7 +329,6 @@ public:
 			previous_trans = current_trans;
 		}
 		return poseChanged;
-
 	}
 
 	void OnRGBDMessage(const char *topic_name_, const rspub_pb::ImageMessage &im_msg, const long long time_, const long long clock_)
@@ -337,14 +340,12 @@ public:
 		auto h = im_msg.height();
 		auto image_data_str = im_msg.image_data();
 		const char *image_data_ptr = image_data_str.c_str();
-		
 
 		auto image_data_second_str = im_msg.image_data_second();
 		const char *image_data_second_ptr = image_data_second_str.c_str();
 
 		auto rotation = im_msg.rotation();
 		auto translation = im_msg.translation();
-
 
 		bool poseChanged = checkPoseChange(rotation, translation);
 
@@ -353,17 +354,17 @@ public:
 
 		LOG(INFO) << "Pose Changed";
 		auto H_t265_W = make_transform(rotation, translation);
-    	Eigen::Matrix4d extrinsic = (H_t265_d400.inverse() * H_t265_W * H_t265_d400).inverse();
+		Eigen::Matrix4d extrinsic = (H_t265_d400.inverse() * H_t265_W * H_t265_d400).inverse();
 
 		// Unfortunately these are making copies
 		// I dont think theres anyway to avoid this with O3D API
 		auto color_image = createImage(image_data_ptr, w, h, 3, 1);
 		auto depth_image = createImage(image_data_second_ptr, w, h, 1, 2);
 		// I think this may even be a copy!
-		auto rgbd_image = o3dGeom::RGBDImage::CreateFromColorAndDepth(*color_image, *depth_image, 
-																	  depth_scale=depth_scale, depth_trunc=depth_trunc, false);
+		auto rgbd_image = o3dGeom::RGBDImage::CreateFromColorAndDepth(*color_image, *depth_image,
+																	  depth_scale = depth_scale, depth_trunc = depth_trunc, false);
 
-		for (auto &scene_name: scene_names)
+		for (auto &scene_name : scene_names)
 		{
 			VLOG(3) << "Looking at " << scene_name;
 			auto &scene = scene_map[scene_name];
@@ -373,12 +374,10 @@ public:
 			double now0 = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
 			scene.volume->Integrate(*rgbd_image.get(), camera_intrinsic, extrinsic);
 			double now1 = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
-			VLOG(1) << std::setprecision(3) << std::fixed <<  "Volume Integration took: " << now1-now0 << " milliseconds";
-
+			VLOG(1) << std::setprecision(3) << std::fixed << "Volume Integration took: " << now1 - now0 << " milliseconds";
 		}
-
 	}
-	void ExtractScene(::google::protobuf::RpcController* /* controller_ */, const rspub_pb::ExtractRequest* request_, rspub_pb::IntegrateResponse* response_, ::google::protobuf::Closure* /* done_ */)
+	void ExtractScene(::google::protobuf::RpcController * /* controller_ */, const rspub_pb::ExtractRequest *request_, rspub_pb::IntegrateResponse *response_, ::google::protobuf::Closure * /* done_ */)
 	{
 		// print request
 		std::cout << "Received Extract Request" << std::endl;
@@ -402,11 +401,7 @@ protected:
 	o3d::camera::PinholeCameraIntrinsic camera_intrinsic;
 };
 
-
-
-
 } // namespace rspub
-
 
 int main(int argc, char *argv[]) try
 {
@@ -414,12 +409,24 @@ int main(int argc, char *argv[]) try
 	LOG(INFO) << "Starting rs-integrate-server";
 	// Parse command line flags
 	gflags::ParseCommandLineFlags(&argc, &argv, true);
-	const auto tcf = toml::parse(FLAGS_config);
+	// ECAL Configuration
+	std::vector<std::string> ecal_args;
+	ecal_args.push_back("--default-ini-file");
+	ecal_args.push_back("./config/ecal.ini");
+	if (FLAGS_force_udp)
+	{
+		LOG(INFO) << "Forcing UDP Multicast for ECAL";
+		ecal_args.push_back("--set_config_key");
+		ecal_args.push_back("publisher/use_udp_mc:1");
 
+		ecal_args.push_back("--set_config_key");
+		ecal_args.push_back("publisher/use_shm:0");
+	}
 	// initialize eCAL API
-	eCAL::Initialize(0, nullptr, "RSIntegrate");
-
-	  // create IntegrationServer server
+	eCAL::Initialize(ecal_args, "RSIntegrate");
+	// Read our application configuration file
+	const auto tcf = toml::parse(FLAGS_config);
+	// create IntegrationServer server
 	std::shared_ptr<rspub::IntegrateServiceImpl> integrate_service_impl = std::make_shared<rspub::IntegrateServiceImpl>(tcf);
 	eCAL::protobuf::CServiceServer<rspub_pb::IntegrateService> integrate_service(integrate_service_impl);
 

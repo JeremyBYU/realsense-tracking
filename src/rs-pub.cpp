@@ -34,7 +34,7 @@ using namespace std::string_literals;
 
 // Command line flags
 DEFINE_string(bag, "", "Path to bag file");
-DEFINE_string(config, "../config/rspub_default.toml", "Path to config file");
+DEFINE_string(config, "./config/rspub_default.toml", "Path to config file");
 DEFINE_bool(force_udp, false, "Force UDP Multicast for publishers");
 
 rspub::RingBuffer<rspub::TransformTS> POSES(100);
@@ -446,7 +446,10 @@ int main(int argc, char *argv[]) try
 	google::InitGoogleLogging(argv[0]);
 	gflags::ParseCommandLineFlags(&argc, &argv, true);
 
+	// ECAL Configuration
 	std::vector<std::string> ecal_args;
+	ecal_args.push_back("--default-ini-file");
+	ecal_args.push_back("./config/ecal.ini");
 	if (FLAGS_force_udp)
 	{	
 		LOG(INFO) << "Forcing UDP Multicast for ECAL";
