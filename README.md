@@ -56,7 +56,9 @@ Alternative X86 Launch - `docker run  --rm --privileged -it --env="DISPLAY" --vo
 
 Will publish topics which are configured in a toml file. Configured by `config/rspub_default.toml`.
 
-1. `GLOG_logtostderr=1 ../bin/rs-pub`
+1. `GLOG_logtostderr=1 ./bin/rs-pub`
+
+`--force_udp` is an option
 
 ### RS-Save
 
