@@ -112,6 +112,7 @@ public:
 		min_rotation_change = (1.0 - cos(degreesToRadians(min_rotation_change))) / 2.0; // number between 0-1
 		depth_trunc = toml::find_or<double>(tcf, "depth_trunc", 3.0);
 		depth_scale = toml::find_or<double>(tcf, "depth_scale", 1000.0);
+		auto_start = toml::find_or<bool>(tcf, "auto_start", true);
 		auto intrinsic_fpath = toml::find_or<std::string>(tcf, "path_intrinsic", "");
 		open3d::io::ReadIJsonConvertible(intrinsic_fpath, camera_intrinsic);
 		// create subscriber
@@ -122,7 +123,11 @@ public:
 			OnRGBDMessage(topic_name_, im_msg, time_, clock_); 
 			});
 
-		
+		if (auto_start)
+		{
+			add_scene("Default");
+			start_scene("Default");
+		}
 	}
 
 	/**
@@ -393,6 +398,7 @@ protected:
 	double depth_scale;
 	double min_translate_change;
 	double min_rotation_change;
+	bool auto_start;
 	o3d::camera::PinholeCameraIntrinsic camera_intrinsic;
 };
 

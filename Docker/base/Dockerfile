@@ -102,14 +102,14 @@ RUN cd /opt && git clone --single-branch --branch jeremy --recursive https://git
     mkdir build && cd build && \
     cmake ../ -DBUILD_CPP_EXAMPLES=OFF -DENABLE_JUPYTER=OFF -DCMAKE_CXX_STANDARD_LIBRARIES="-lX11 -ldl" && \
     make -j${N_CPUS} && \
-    make install && make install-pip-package && \
+    make install && make python-package && cd /opt/Open3D/build/lib/python_package && pip install . && \
     rm -rf /opt/Open3D
 
 # Stuff I like/need
 RUN apt-get install --no-install-recommends -y nano htop
 
 # Our Project Dependencies
-RUN apt-get install --no-install-recommends -y libgflags-dev libgoogle-glog-dev python3-scipy python3-matplotlib
+RUN apt-get install --no-install-recommends -y libgflags-dev libgoogle-glog-dev python3-scipy python3-matplotlib libeigen3-dev
 RUN pip3 install protobuf
 
 # Visualization
