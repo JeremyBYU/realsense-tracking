@@ -1,0 +1,20 @@
+syntax = 'proto3';
+package rspub_pb;
+
+import "Common.proto";
+
+message PoseMessage {
+    Vec3 translation = 1;
+    Vec3 velocity = 2;
+    Vec3 acceleration = 3;
+    Vec4 rotation = 4;
+    Vec3 angular_velocity = 5;
+    Vec3 angular_acceleration = 6;
+    int32 tracker_confidence = 7;
+    int32 mapper_confidence = 8;
+    double hardware_ts = 9;
+}
+
+message PoseMessageList {
+    repeated PoseMessage poses = 1;
+}

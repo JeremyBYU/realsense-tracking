@@ -59,7 +59,7 @@ bool check_imu_is_supported()
 int bag_counter(std::string file_name)
 {
 
-	size_t gryro_iter = 1;
+	size_t gyro_iter = 1;
 	size_t accel_iter = 0;
 	size_t depth_iter = 0;
 	size_t color_iter = 0;
@@ -106,7 +106,7 @@ int bag_counter(std::string file_name)
 			}
 			else if(frame.get_profile().stream_type() == RS2_STREAM_GYRO)
 			{
-				gryro_iter +=1;
+				gyro_iter +=1;
 				ts_gyro = frame.get_timestamp();
 				gyro_domain = frame.get_frame_timestamp_domain();
 			}
@@ -132,21 +132,21 @@ int bag_counter(std::string file_name)
 		
 		double my_clock = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
 		std::cout << std::setprecision(0) << std::fixed << "FPS --- "
-			<< "Gryo: " << gryro_iter << "; Accel: " << accel_iter
+			<< "Gyro: " << gyro_iter << "; Accel: " << accel_iter
 
 			<< "; Depth: " << depth_iter << "; RGB: " << color_iter << std::endl;
 
-		std::cout << std::setprecision(0) << std::fixed << "Timing --- Now: " << my_clock << "; Gryo: " << ts_gyro << "; Accel: " << ts_accel
+		std::cout << std::setprecision(0) << std::fixed << "Timing --- Now: " << my_clock << "; Gyro: " << ts_gyro << "; Accel: " << ts_accel
 			<< "; Depth: " << ts_depth << "; RGB: " << ts_color << std::endl;
 
-		std::cout << std::setprecision(0) << std::fixed << "Time Domain --- Now: " << my_clock << "; Gryo: " << gyro_domain << "; Accel: " << accel_domain
+		std::cout << std::setprecision(0) << std::fixed << "Time Domain --- Now: " << my_clock << "; Gyro: " << gyro_domain << "; Accel: " << accel_domain
 				<< "; Depth: " << depth_domain << "; RGB: " << color_domain << std::endl;
 
 		std::cout << std::setprecision(0) << std::fixed << "Latency --- GyroToColor: " << ts_gyro - ts_color << std::endl;
 		std::cout <<std::endl;
-		if (gryro_iter == 0)
+		if (gyro_iter == 0)
 			break;
-		gryro_iter = 0;
+		gyro_iter = 0;
 		accel_iter = 0;
 		depth_iter = 0;
 		color_iter = 0;
@@ -162,7 +162,7 @@ void print_profiles(std::vector<rs2::stream_profile> streams)
 {
 	for (auto &stream: streams)
 	{
-		std::cout << "Stream Name: " << stream.stream_name() << "; Format: " << stream.format() << "; Index: " << stream.stream_index() << "FPS: " << stream.fps() <<std::endl;
+		std::cout << "Stream Name: " << stream.stream_name() << "; Format: " << stream.format() << "; Index: " << stream.stream_index() << "; FPS: " << stream.fps() <<std::endl;
 	}
 }
 
@@ -176,7 +176,7 @@ int live_counter()
 		return EXIT_FAILURE;
 	}
 
-	size_t gryro_iter = 0;
+	size_t gyro_iter = 0;
 	size_t accel_iter = 0;
 	size_t depth_iter = 0;
 	size_t color_iter = 0;
@@ -203,7 +203,7 @@ int live_counter()
 	auto profile = config.resolve(pipe); // allows us to get device
     auto device = profile.get_device();
 
-	auto streams =  profile.get_streams(); // 0=Depth, 1=RGB, 2=Gryo, 3=Accel
+	auto streams =  profile.get_streams(); // 0=Depth, 1=RGB, 2=Gyro, 3=Accel
 	std::cout << "Profiles that will be activated: "<< std::endl; 
 	print_profiles(streams);
 
@@ -246,13 +246,13 @@ int live_counter()
 				}
 				else if(frame.get_profile().stream_type() == RS2_STREAM_GYRO)
 				{
-					gryro_iter +=1;
+					gyro_iter +=1;
 					ts_gyro = frame.get_timestamp();
 					gyro_domain = frame.get_frame_timestamp_domain();
 					if ((my_clock - old_clock) > 1000)
 					{
 						std::cout << std::setprecision(0) << std::fixed << "now:" << my_clock
-						<< "; Gryo ts: " << ts_gyro << std::endl;
+						<< "; Gyro ts: " << ts_gyro << std::endl;
 						old_clock = my_clock;
 
 					}
@@ -278,20 +278,20 @@ int live_counter()
 	{
 		double my_clock = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
 		std::cout << std::setprecision(0) << std::fixed << "FPS --- "
-			<< "Gryo: " << gryro_iter << "; Accel: " << accel_iter
+			<< "Gyro: " << gyro_iter << "; Accel: " << accel_iter
 
 			<< "; Depth: " << depth_iter << "; RGB: " << color_iter << std::endl;
 
-		std::cout << std::setprecision(0) << std::fixed << "Timing --- Now: " << my_clock << "; Gryo: " << ts_gyro << "; Accel: " << ts_accel
+		std::cout << std::setprecision(0) << std::fixed << "Timing --- Now: " << my_clock << "; Gyro: " << ts_gyro << "; Accel: " << ts_accel
 			<< "; Depth: " << ts_depth << "; RGB: " << ts_color << std::endl;
 
-		std::cout << std::setprecision(0) << std::fixed << "Time Domain --- Now: " << my_clock << "; Gryo: " << gyro_domain << "; Accel: " << accel_domain
+		std::cout << std::setprecision(0) << std::fixed << "Time Domain --- Now: " << my_clock << "; Gyro: " << gyro_domain << "; Accel: " << accel_domain
 				<< "; Depth: " << depth_domain << "; RGB: " << color_domain << std::endl;
 
 		std::cout << std::setprecision(0) << std::fixed << "Latency --- GyroToColor: " << ts_gyro - ts_color << std::endl;
 		std::cout <<std::endl;
 
-		gryro_iter = 0;
+		gyro_iter = 0;
 		accel_iter = 0;
 		depth_iter = 0;
 		color_iter = 0;
