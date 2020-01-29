@@ -27,6 +27,7 @@
 #include <Open3D/Visualization/Visualizer/Visualizer.h>
 #include <Open3D/Integration/ScalableTSDFVolume.h>
 #include <Open3D/IO/ClassIO/IJsonConvertibleIO.h>
+#include <Open3D/IO/ClassIO/TriangleMeshIO.h>
 #include <Open3D/Geometry/HalfEdgeTriangleMesh.h>
 #include <eigen3/Eigen/Geometry>
 
@@ -115,6 +116,7 @@ public:
 		depth_trunc = toml::find_or<double>(tcf, "depth_trunc", 3.0);
 		depth_scale = toml::find_or<double>(tcf, "depth_scale", 1000.0);
 		auto_start = toml::find_or<bool>(tcf, "auto_start", true);
+		save_dir = toml::find_or<std::string>(tcf, "save_dir", "data");
 		auto intrinsic_fpath = toml::find_or<std::string>(tcf, "path_intrinsic", "");
 		open3d::io::ReadIJsonConvertible(intrinsic_fpath, camera_intrinsic);
 		// create subscriber
@@ -129,6 +131,7 @@ public:
 		{
 			add_scene("Default");
 			start_scene("Default");
+			LOG(INFO) << "Auto Start Enabled: Creating \"Default\" scene and starting integration";
 		}
 	}
 
@@ -246,17 +249,37 @@ public:
 		}
 	}
 
-	bool ExtractMesh(std::string scene_name, rspub_pb::Mesh &mesh_pb)
+	bool SaveMesh(std::string scene_name)
+	{
+		std::string fpath = save_dir + "/" + scene_name + ".ply";
+		auto mesh = GetMesh(scene_name);
+		if (mesh)
+		{
+			o3d::io::WriteTriangleMesh(fpath, *mesh.get());
+			return true;
+		}
+		return false;
+	}
+
+	std::shared_ptr<open3d::geometry::TriangleMesh> GetMesh(std::string scene_name)
 	{
 		auto it = scene_map.find(scene_name);
 		if (it == scene_map.end())
 		{
-			return false;
+			return nullptr;
 		}
 		auto &volume = it->second.volume;
-		double now0 = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
 		auto mesh = volume->ExtractTriangleMesh();
+		return mesh;
+	}
+
+	bool ExtractMesh(std::string scene_name, rspub_pb::Mesh &mesh_pb)
+	{
+		double now0 = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
+		auto mesh = GetMesh(scene_name);
 		double now1 = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
+		if (!mesh)
+			return false;
 		auto halfedges = o3d::geometry::HalfEdgeTriangleMesh::ExtractHalfEdges(*mesh.get());
 		double now2 = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
 
@@ -351,7 +374,7 @@ public:
 		if (!poseChanged)
 			return;
 
-		LOG(INFO) << "Pose Changed";
+		VLOG(1) << "Pose Changed";
 		auto H_t265_W = make_transform(rotation, translation);
 		Eigen::Matrix4d extrinsic = (H_t265_d400.inverse() * H_t265_W * H_t265_d400).inverse();
 
@@ -397,6 +420,7 @@ protected:
 	double min_translate_change;
 	double min_rotation_change;
 	bool auto_start;
+	std::string save_dir;
 	o3d::camera::PinholeCameraIntrinsic camera_intrinsic;
 };
 
@@ -429,8 +453,15 @@ int main(int argc, char *argv[]) try
 	std::shared_ptr<rspub::IntegrateServiceImpl> integrate_service_impl = std::make_shared<rspub::IntegrateServiceImpl>(tcf);
 	eCAL::protobuf::CServiceServer<rspub_pb::IntegrateService> integrate_service(integrate_service_impl);
 
+	std::string save_scene;
+	LOG(INFO) << "Enter scene name to save data: ";
 	while (eCAL::Ok())
 	{
+		std::cin >> save_scene;
+		if (save_scene == ""s)
+			save_scene = "Default";
+		LOG(INFO) << "Saving mesh of " << save_scene;
+		integrate_service_impl->SaveMesh(save_scene);
 		eCAL::Process::SleepMS(10);
 	}
 	eCAL::Finalize();

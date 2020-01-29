@@ -1,15 +1,19 @@
 name = "Integration Server Settings"
+# Integratrion only occurs if the camera moves this much
 min_translate_change = 0.10 # meters
 min_rotation_change= 10.0 # degrees
 
 depth_scale = 1000.0 # Z16 conversion to meters. 1 int is 1 millimeter.
 depth_trunc = 3.0 # Truncate depth image after 3 meters
-path_intrinsic = "config/camera_intrinsic_rgb_424.json"
-auto_start = true # when a scene is added, auto start integration
+path_intrinsic = "config/camera_intrinsic_rgb_424.json" # Intriniscs of the RGBD Frames
 
+auto_start = true # Create a "Default" scene and begin integrating right away
+save_dir="data"  # Directory to save data
+
+# Paramerters for the TSDF Volume Integration
 [scalable_tsdf]
 voxel_length= 0.05
-sdf_trunc= 0.08
+sdf_trunc= 0.15
 depth_sampling_stride= 4
 color_type= 1 # None, Color, Gray
 
