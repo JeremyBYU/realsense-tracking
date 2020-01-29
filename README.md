@@ -45,10 +45,10 @@ password: pir0b0t
 ### Launch Docker
 
 1. `rs-pose`, `rs-enumerate-devices` - Need to "open" the sensors on host first sometimes?
-2. `docker run  --rm --privileged -it --env="DISPLAY" --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" --volume="$(pwd):/opt/workspace:rw" jeremybyu/realsense:buildx` - Instruction for Raspberry pi
+2. `docker run  --rm --privileged -it --env="DISPLAY" --net=host --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" --mount type=bind,source="$(pwd)",target=/opt/workspace --name realsense jeremybyu/realsense:buildx` - Raspberry PI
 3. Optional - `rm -rf build && mkdir build && cd build && cmake .. && make && cd ..`
 
-Alternative X86 Launch - `docker run  --rm --privileged -it --env="DISPLAY" --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" --mount type=bind,source="$(pwd)",target=/opt/workspace --name realsense --user $(id -u):$(id -g) jeremybyu/realsense:latest`
+Alternative X86 Launch - `docker run  --rm --privileged -it --env="DISPLAY" --net=host --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" --mount type=bind,source="$(pwd)",target=/opt/workspace --name realsense --user $(id -u):$(id -g) jeremybyu/realsense:latest`
 
 ## Applications
 

@@ -28,7 +28,6 @@
 #include <Open3D/Integration/ScalableTSDFVolume.h>
 #include <Open3D/IO/ClassIO/IJsonConvertibleIO.h>
 #include <Open3D/Geometry/HalfEdgeTriangleMesh.h>
-// #include <
 #include <eigen3/Eigen/Geometry>
 
 #include "rspub/utility.hpp"
