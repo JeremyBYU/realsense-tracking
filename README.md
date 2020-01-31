@@ -93,16 +93,17 @@ Doesn't work in docker. Dont recommend to use this, use RS-Save.
 1. `cd server/ReconstrucitonSystem`
 2. `python sensors/realsense_recorder` some options
 
-
 ## Notes
 
-<!-- ### Python Protobuf
+### RPI SSH
 
-`python -m grpc_tools.protoc -I./src/proto --python_out=server/rspub_pb --grpc_python_out=server/rspub_pb ./src/proto/Common.proto ./src/proto/ImageMessage.proto ./src/proto/IMUMessage.proto ./src/proto/Integrate.proto ./src/proto/PointCloudMessage.proto ./src/proto/PoseMessage.proto` -->
+#### Copy Saved Mesh File
+
+1. `scp pi@192.168.1.3:/home/pi/Documents/realsense-tracking/data/Default.ply data/Default.ply`
 
 ### RealSense
 
-Need to use development branch of realsense: 
+Need to use development branch of realsense:
 
 ```
 commit 306e68aca67bd0ecaf5bb40ad6266f4ce8e98690 (HEAD -> development, origin/development)
@@ -120,10 +121,14 @@ T265 SN - 943222110884, 0000943222110884
 
 ### All dependencies in one folder
 
-1. `./scripts/cpld.sh ./bin/rs-track-depth ./dependencies`
-2. `LD_LIBRARY_PATH=./dependencies:$LD_LIBRARY_PATH GLOG_logtostderr=1 ./bin/rs-track-depth`
+This shows a way to run this code here without even needing docker! Just copy the binaries and shared libraries from the docker container and run.
 
-No idea if this should work, need to try out on an untainted ubuntu 18.04 5.3 kernel computer.
+A couple of caveats: If you are using raspbian and have the 64bit kernel mode enabled then you must use the loader in the dependencies folder to launch the program.  Basically
+
+1. `export LD_LIBRARY_PATH=./dependencies`
+1. `GLOG_logtostderr=1 ./dependencies/ld-linux-aarch64.so.1 ./bin/rs-pub`.
+
+Just tested this on ARM and it actually worked! The only thing that was missing was `libecaltime-localtime.so`.
 
 ### Trim Down Image
 

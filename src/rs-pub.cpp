@@ -288,7 +288,7 @@ void process_pipeline(std::vector<rspub::StreamDetail> dsp, rs2::pipeline &pipe,
 			}
 
 			now = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
-			LOG(INFO) << std::setprecision(0) << std::fixed << "Received FrameSet; now: " << now << "; dframe hardware_ts: " << dts << "; cframe hardware_ts: " << cts;
+			VLOG(1) << std::setprecision(0) << std::fixed << "Received FrameSet; now: " << now << "; dframe hardware_ts: " << dts << "; cframe hardware_ts: " << cts;
 			if (dframe && pc_cfg_active && pc_cfg_counter == pc_cfg_rate)
 			{
 				VLOG(2) << "Publishing pointcloud";
@@ -423,19 +423,19 @@ int live_stream(const toml::value &tcf)
 void OnPoseMessage(const char *topic_name_, const rspub_pb::PoseMessage &pose, const long long time_, const long long clock_)
 {
 	double now = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
-	LOG(INFO) << std::setprecision(0) << std::fixed << "Received PoseMessage; now: " << now << "; send_ts: " << time_ / 1000 << "; hardware_ts: " << pose.hardware_ts() << std::endl;
+	VLOG(1) << std::setprecision(0) << std::fixed << "Received PoseMessage; now: " << now << "; send_ts: " << time_ / 1000 << "; hardware_ts: " << pose.hardware_ts() << std::endl;
 }
 
 void OnDepthMessage(const char *topic_name_, const rspub_pb::ImageMessage &im_msg, const long long time_, const long long clock_)
 {
 	double now = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
-	LOG(INFO) << std::setprecision(0) << std::fixed << "Received DepthMessage; now: " << now << "; send_ts: " << time_ / 1000 << "; hardware_ts: " << im_msg.hardware_ts() << std::endl;
+	VLOG(1) << std::setprecision(0) << std::fixed << "Received DepthMessage; now: " << now << "; send_ts: " << time_ / 1000 << "; hardware_ts: " << im_msg.hardware_ts() << std::endl;
 }
 
 void OnPointCloudMessage(const char *topic_name_, const rspub_pb::PointCloudMessage &im_msg, const long long time_, const long long clock_)
 {
 	double now = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
-	LOG(INFO) << std::setprecision(0) << std::fixed << "Received PointCloudMessage; now: " << now << "; send_ts: " << time_ / 1000 << "; hardware_ts: " << im_msg.hardware_ts() << std::endl;
+	VLOG(1) << std::setprecision(0) << std::fixed << "Received PointCloudMessage; now: " << now << "; send_ts: " << time_ / 1000 << "; hardware_ts: " << im_msg.hardware_ts() << std::endl;
 }
 
 
