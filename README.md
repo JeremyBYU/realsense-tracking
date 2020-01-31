@@ -78,7 +78,8 @@ Creates an RPC Server that allows users to generate meshes on demand with simple
 It will automatically subscribe to RGBD Images and integrate them to a voxel volume. Users can (on demand) request
 to extract meshes, polygons, or even pont clouds from the voxel volume. Configured by `config/rsintegrate_default.toml`.
 
-1. `GLOG_logtostderr=1 ./bin/rs-integrate-server --v=1`
+1. `export OMP_NUM_THREADS=1` - Multithreading actually screws this worse!
+2. `GLOG_logtostderr=1 ./bin/rs-integrate-server --v=1`
 
 ### Reconstruction
 
