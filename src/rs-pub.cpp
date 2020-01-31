@@ -224,8 +224,8 @@ void process_pipeline(std::vector<rspub::StreamDetail> dsp, rs2::pipeline &pipe,
 			double cts = 0;
 
 			double now = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
-			// LOG(INFO) << std::setprecision(0) << std::fixed << "Received FrameSet; now: " << now << "; dwidth: " << dframe.get_width();
-			// LOG(INFO) << std::setprecision(0) << std::fixed << "Received FrameSet; now: " << now << "; cwidth: " << cframe.get_width();
+			VLOG(1) << std::setprecision(0) << std::fixed << "Received FrameSet; now: " << now << "; dwidth: " << dframe.get_width();
+			// continue; // LOG(INFO) << std::setprecision(0) << std::fixed << "Received FrameSet; now: " << now << "; cwidth: " << cframe.get_width();
 			if (dframe)
 			{
 				dts = dframe.get_timestamp();
@@ -288,7 +288,7 @@ void process_pipeline(std::vector<rspub::StreamDetail> dsp, rs2::pipeline &pipe,
 			}
 
 			now = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
-			VLOG(1) << std::setprecision(0) << std::fixed << "Received FrameSet; now: " << now << "; dframe hardware_ts: " << dts << "; cframe hardware_ts: " << cts;
+			VLOG(1) << std::setprecision(0) << std::fixed << "End of FrameSet Loop; now: " << now << "; dframe hardware_ts: " << dts << "; cframe hardware_ts: " << cts;
 			if (dframe && pc_cfg_active && pc_cfg_counter == pc_cfg_rate)
 			{
 				VLOG(2) << "Publishing pointcloud";

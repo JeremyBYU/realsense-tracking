@@ -16,8 +16,8 @@ active = true
 [[pipeline_streams]]
 device_name = "Intel RealSense D435i"
 stream_name = "Depth"
-width = 848
-height = 480
+width = 424
+height = 240
 framerate = 30
 format = "Z16"
 active = true
@@ -29,12 +29,12 @@ width = 424
 height = 240
 framerate = 30
 format = "BGR8"
-active = true
+active = false
 
 [filters]
 
   [filters.decimation]
-  active = true
+  active = false
   magnitude = 2.0
 
   [filters.disparity]
@@ -54,12 +54,12 @@ active = true
   hole_fill = 1.0
 
   [filters.align]
-  active=true
+  active=false
 
 [publish]
 
   [publish.depth]
-  active = false
+  active = true
   rate = 1
 
   [publish.color]
@@ -67,7 +67,7 @@ active = true
   rate = 1
 
   [publish.rgbd]
-  active = true
+  active = false
   rate = 1
 
   [publish.pose]
