@@ -108,17 +108,20 @@ public:
 	IntegrateServiceImpl(toml::value tcf) : tcf(tcf)
 	{
 
-		// Set calculated member variables
-
+		// Set member variables from configuration file
 		min_translate_change = toml::find_or<double>(tcf, "min_translate_change", 0.0); // meters
 		min_rotation_change = toml::find_or<double>(tcf, "min_rotation_change", 0.0);   // degrees
 		min_rotation_change = (1.0 - cos(degreesToRadians(min_rotation_change))) / 2.0; // number between 0-1
+		// Depth parameters
 		depth_trunc = toml::find_or<double>(tcf, "depth_trunc", 3.0);
 		depth_scale = toml::find_or<double>(tcf, "depth_scale", 1000.0);
-		auto_start = toml::find_or<bool>(tcf, "auto_start", true);
-		save_dir = toml::find_or<std::string>(tcf, "save_dir", "data");
 		auto intrinsic_fpath = toml::find_or<std::string>(tcf, "path_intrinsic", "");
 		open3d::io::ReadIJsonConvertible(intrinsic_fpath, camera_intrinsic);
+		// Application Parameters
+		auto_start = toml::find_or<bool>(tcf, "auto_start", true);
+		save_dir = toml::find_or<std::string>(tcf, "save_dir", "data");
+		// Mesh Parameters
+		color_vertices = toml::find_or<bool>(tcf, "color_vertices", true);
 		// create subscriber
 		sub_rgbd = rspub::SubImage("RGBDMessage");
 		// auto rgbd_rec_callback = std::bind(this->OnRGBDMessage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
@@ -293,6 +296,10 @@ public:
 		mesh_pb.set_halfedges(halfedges.data(), nbytes_halfedges);
 		mesh_pb.set_n_triangles(n_triangles);
 		mesh_pb.set_n_vertices(n_vertices);
+		if (color_vertices)
+		{
+			mesh_pb.set_vertices_colors(mesh->vertex_colors_.data(), nbytes_vertices);
+		}
 		double now3 = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
 		VLOG(1) << std::setprecision(3) << std::fixed << "Mesh Extraction took: " << now1 - now0 << "; Half Edge Extraction: " << now2 - now1 << "; Serialization: " << now3 - now2;
 		VLOG(2) << "Vertices: " << n_vertices << "; Triangles: " << n_triangles;
@@ -420,6 +427,7 @@ protected:
 	double min_translate_change;
 	double min_rotation_change;
 	bool auto_start;
+	bool color_vertices;
 	std::string save_dir;
 	o3d::camera::PinholeCameraIntrinsic camera_intrinsic;
 };

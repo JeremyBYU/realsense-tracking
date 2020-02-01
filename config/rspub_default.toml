@@ -54,7 +54,7 @@ active = false
   hole_fill = 1.0
 
   [filters.align]
-  active=false
+  active=true
 
 [publish]
 

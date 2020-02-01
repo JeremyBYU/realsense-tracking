@@ -22,6 +22,7 @@ message Mesh {
   bytes vertices = 3;
   bytes triangles = 4;
   bytes halfedges = 5;
+  bytes vertices_colors = 6;
 }
 
 message IntegrateRequest
