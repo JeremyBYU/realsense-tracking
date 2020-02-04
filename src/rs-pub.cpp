@@ -238,7 +238,6 @@ void process_pipeline(std::vector<rspub::StreamDetail> dsp, rs2::pipeline &pipe,
 				dframe = frames.get_depth_frame();
 			}
 
-
 			if (dframe && cframe && align)
 			{
 				VLOG(2) << "Applying filter: align";
@@ -247,6 +246,7 @@ void process_pipeline(std::vector<rspub::StreamDetail> dsp, rs2::pipeline &pipe,
 				cframe = frames.get_color_frame();
 			}
 
+			VLOG(2) << "Filtering Complete";
 			// std::cout << "Before depth check: " << depth_cfg_active << " " << depth_cfg_counter << " " << depth_cfg_rate << std::endl;
 			if (dframe && depth_cfg_active && depth_cfg_counter == depth_cfg_rate)
 			{

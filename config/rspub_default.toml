@@ -29,7 +29,7 @@ width = 424
 height = 240
 framerate = 30
 format = "BGR8"
-active = false
+active = true
 
 [filters]
 
@@ -42,15 +42,15 @@ active = false
 
   [filters.temporal]
   active = true
-  smooth_alpha = 0.6
+  smooth_alpha = 0.5
   smooth_delta = 60.0
   persistence_control = 2.0
 
   [filters.spatial]
   active = true
-  smooth_alpha = 0.5
-  smooth_delta = 20.0
-  magnitude = 2.0
+  smooth_alpha = 0.35
+  smooth_delta = 10.0
+  magnitude = 3.0
   hole_fill = 1.0
 
   [filters.align]
@@ -59,7 +59,7 @@ active = false
 [publish]
 
   [publish.depth]
-  active = true
+  active = false
   rate = 1
 
   [publish.color]
@@ -67,7 +67,7 @@ active = false
   rate = 1
 
   [publish.rgbd]
-  active = false
+  active = true
   rate = 1
 
   [publish.pose]

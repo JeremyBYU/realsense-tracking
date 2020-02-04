@@ -26,11 +26,13 @@ def get_mesh_data(resp: ExtractResponse):
         mesh.triangles, dtype=np.int32).reshape((n_triangles, 3))
     vertices = np.fromstring(
         mesh.vertices, dtype=np.float64).reshape((n_vertices, 3))
+    vertices_colors = np.fromstring(
+        mesh.vertices_colors, dtype=np.float64).reshape((n_vertices, 3))
     halfedges = np.fromstring(mesh.halfedges, dtype=np.uint64)
-    return vertices, triangles, halfedges
+    return vertices, triangles, halfedges, vertices_colors
 
 
-def create_mesh_from_data(vertices, triangles, halfedges):
+def create_mesh_from_data(vertices, triangles, halfedges, vertices_colors=None):
     """Combines numpy arrays into a Open3D triangular Mesh
     
     Arguments:
@@ -44,6 +46,10 @@ def create_mesh_from_data(vertices, triangles, halfedges):
     vertices_o3d = o3d.utility.Vector3dVector(vertices)
     triangles_o3d = o3d.utility.Vector3iVector(triangles)
     mesh = o3d.geometry.TriangleMesh(vertices_o3d, triangles_o3d)
+    if vertices_colors is not None:
+        vertices_colors[:,[0, 2]] = vertices_colors[:,[2, 0]]
+        vertices_colors = np.ascontiguousarray(vertices_colors)
+        mesh.vertex_colors = o3d.utility.Vector3dVector(vertices_colors)
     mesh.compute_vertex_normals()
     mesh.compute_triangle_normals()
     return mesh
