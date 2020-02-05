@@ -7,19 +7,16 @@ min_rotation_change= 10.0 # degrees
 [subscribe]
 
   [subscribe.depth]
-  active = false
+  active = true
 
   [subscribe.color]
-  active = false
-
+  active = true
 
   [subscribe.rgbd]
   active = true
 
-
   [subscribe.pose]
   active = true
-
 
   [subscribe.pointcloud]
   active = true
