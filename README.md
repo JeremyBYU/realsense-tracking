@@ -165,3 +165,25 @@ Cmp   Size  Command                                                             
 What I have learned. If you are going to integrate point clouds over time you **need** to use a proper integration method like TSDF Volume Integration. It will smooth out gaussian noise and provide a much better estimate of the environment. This process creates an integrated (read memory efficient) voxel map of the environment and can be "quickly" transformed into a pont cloud or mesh.
 
 If you just try to use slam and cast your point clouds from your noisy sensor it will work, but the noise is compounded! Floor have "layers" to them. Polylidar will just choke on noisy dense point clouds! Polylidar can handle sparse noisy point clouds and dense noisy point cloud at one *instant* in time (just downsample to make less dense).
+
+
+### Execution Timings
+
+```txt
+I0205 19:12:38.424196  3142 rs-integrate-server.cpp:384] Pose Changed
+I0205 19:12:38.438578  3142 rs-integrate-server.cpp:406] Volume Integration took: 11.696 milliseconds
+I0205 19:12:38.606392  3142 rs-integrate-server.cpp:384] Pose Changed
+I0205 19:12:38.618469  3142 rs-integrate-server.cpp:406] Volume Integration took: 8.745 milliseconds
+I0205 19:12:38.789280  3142 rs-integrate-server.cpp:384] Pose Changed
+I0205 19:12:38.802006  3142 rs-integrate-server.cpp:406] Volume Integration took: 10.195 milliseconds
+I0205 19:12:38.975209  3142 rs-integrate-server.cpp:384] Pose Changed
+I0205 19:12:38.991359  3142 rs-integrate-server.cpp:406] Volume Integration took: 13.812 milliseconds
+I0205 19:12:39.147347  3142 rs-integrate-server.cpp:384] Pose Changed
+I0205 19:12:39.163597  3142 rs-integrate-server.cpp:406] Volume Integration took: 13.016 milliseconds
+I0205 19:12:39.456158  3142 rs-integrate-server.cpp:384] Pose Changed
+I0205 19:12:39.476058  3142 rs-integrate-server.cpp:406] Volume Integration took: 17.181 milliseconds
+I0205 19:12:45.089002  3139 rs-integrate-server.cpp:311] Received Extract Request MESH: Default
+I0205 19:12:45.834509  3139 rs-integrate-server.cpp:304] Mesh Extraction took: 495.261; Half Edge Extraction: 236.265; Serialization: 13.906
+170,000 Triangles
+
+```
