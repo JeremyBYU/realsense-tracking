@@ -24,6 +24,20 @@ All dependencies and installation procedures can be found in `Docker/base/Docker
 - Open3D - New Point cloud Processing Library from Intel
 - GFLAGS and GLOG for command line parsing and logging
 
+## Setup ECAL
+
+1. Update each computers hosts file so that they are aware of each other. An example below
+
+```txt
+127.0.0.1       localhost
+::1             localhost
+127.0.1.1       cerberus.localdomain    cerberus
+192.168.1.3     raspberrypi
+
+```
+
+2. Add Multicast route - `sudo route add -net 224.0.0.0 netmask 255.0.0.0 dev YOUR_NETWORK_DEVICE`
+
 ## Run Docker
 
 ### X86 Linux
