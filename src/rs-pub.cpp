@@ -233,7 +233,11 @@ void process_pipeline(std::vector<rspub::StreamDetail> dsp, rs2::pipeline &pipe,
 				for (std::vector<NamedFilter>::const_iterator filter_it = filters.begin(); filter_it != filters.end(); filter_it++)
 				{
 					VLOG(2) << "Applying filter: " << filter_it->_name;
+					auto t0 = std::chrono::high_resolution_clock::now();
 					frames = filter_it->_filter->process(frames);
+					auto t1 = std::chrono::high_resolution_clock::now();
+					float elapsed_d = static_cast<std::chrono::duration<float, std::milli>>(t1 - t0).count();
+					// LOG(INFO) << std::setprecision(3) << std::fixed << "Filter " << filter_it->_name << " took: " << elapsed_d;
 				}
 				dframe = frames.get_depth_frame();
 			}
