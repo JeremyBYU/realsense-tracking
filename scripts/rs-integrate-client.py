@@ -18,6 +18,7 @@ sys.path.insert(1, str(BUILD_DIR))
 
 from Integrate_pb2 import SceneRequestType, DataType, IntegrateRequest, IntegrateResponse, ExtractResponse, ADD, REMOVE, START, ExtractRequest, MESH
 
+counter = 0
 
 def get_mesh_data(resp: ExtractResponse):
     mesh = resp.mesh
@@ -59,6 +60,7 @@ def create_mesh_from_data(vertices, triangles, halfedges, vertices_colors=None):
 def client_resp_callback(service_info, response):
     logging.info("Service: %s; Method: %s", service_info['service_name'], service_info['method_name'])
     m_name = service_info['method_name']
+    global counter
     if (m_name == 'IntegrateScene'):
         resp = IntegrateResponse()
         resp.ParseFromString(response)
