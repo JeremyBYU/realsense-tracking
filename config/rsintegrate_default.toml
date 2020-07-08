@@ -12,6 +12,7 @@ auto_start = true # Create a "Default" scene and begin integrating right away
 save_dir="data"  # Directory to save data
 
 # Paramerters for the TSDF Volume Integration
+# http://www.open3d.org/docs/release/python_api/open3d.integration.ScalableTSDFVolume.html
 [scalable_tsdf]
 voxel_length= 0.05
 sdf_trunc= 0.15
