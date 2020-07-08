@@ -1,5 +1,5 @@
 
-# Real Sense Tracking and Depth Modules
+# RealSense Robotic Modules
 
 The purpose of this repository is to provide a reproducible (possibly isolated) environment for high level robotics software. Currently the main concern of this repo is interacting with Intel RealSense Cameras.  This environment (code of this repo) can be be distributed as a docker image that is cross-compiled to both x86-64 and arm64 architectures (Regular computers as well as raspberry pi). Here is a quick list of thing this repository is meant to do:
 
@@ -21,7 +21,7 @@ All dependencies and installation procedures can be found in `Docker/base/Docker
 - ECAL for marshalling and communication
 - Protobuf - Serialization format (Thinking of changing to Flatbuffers eventually)
 - RealSense SDK
-- Open3D - New Point cloud Processing Library from Intel
+- Open3D - new point cloud and mesh processing library from Intel
 - GFLAGS and GLOG for command line parsing and logging
 
 ## Setup ECAL
