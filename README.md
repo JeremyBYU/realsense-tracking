@@ -26,7 +26,7 @@ All dependencies and installation procedures can be found in `Docker/base/Docker
 
 ## Setup ECAL
 
-This is only required if you want to computer on the same network to talk to each other.
+This is only required if you want two computers on the same network to talk to each other.
 
 1. Update each computers hosts file so that they are aware of each other. An example below
 
