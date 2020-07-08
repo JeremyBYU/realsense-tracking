@@ -98,25 +98,19 @@ Will convert saved protofiles in a folder to text format. This is for any point 
 
 ### RS-Integrate-Server
 
-Creates an RPC Server that allows users to generate meshes on demand with simple requests.
+Creates an RPC Server that allows users to generate meshes on demand with simple requests. This requires both the T265 Poses and D4XX RGBD frames to be published.
 It will automatically subscribe to RGBD Images and integrate them to a voxel volume. Users can (on demand) request
 to extract meshes, polygons, or even pont clouds from the voxel volume. Configured by `config/rsintegrate_default.toml`.
 
 1. `export OMP_NUM_THREADS=1` - Multithreading actually screws this worse!
 2. `GLOG_logtostderr=1 ./bin/rs-integrate-server --v=1`
 
-### Reconstruction
+<!-- ### Reconstruction
 
 This is just an example of doing offline reconstruction in python.
 
-1. `python -m server.ReconstructionSystem.refine_trajectory --config config/reconstruction.json`
+1. `python -m server.ReconstructionSystem.refine_trajectory --config config/reconstruction.json` -->
 
-### RS-Save-Python (Beta)
-
-Doesn't work in docker. Dont recommend to use this, use RS-Save.
-
-1. `cd server/ReconstrucitonSystem`
-2. `python sensors/realsense_recorder` some options
 
 ## Notes
 
@@ -130,6 +124,7 @@ Doesn't work in docker. Dont recommend to use this, use RS-Save.
 ### All dependencies in one folder
 
 This shows a way to run this code here without even needing docker! Just copy the binaries and shared libraries from the docker container and run.
+The following code will copy all dependencies into the `dependencies` folder: `./scripts/cpld.sh ./bin/rs-integrate-server ./dependencies`
 
 A couple of caveats: If you are using raspbian and have the 64bit kernel mode enabled then you must use the loader in the dependencies folder to launch the program.  Basically
 
@@ -167,29 +162,3 @@ Cmp   Size  Command                                                             
 
 ```
 
-### Integration
-
-What I have learned. If you are going to integrate point clouds over time you **need** to use a proper integration method like TSDF Volume Integration. It will smooth out gaussian noise and provide a much better estimate of the environment. This process creates an integrated (read memory efficient) voxel map of the environment and can be "quickly" transformed into a pont cloud or mesh.
-
-If you just try to use slam and cast your point clouds from your noisy sensor it will work, but the noise is compounded! Floor have "layers" to them. Polylidar will just choke on noisy dense point clouds! Polylidar can handle sparse noisy point clouds and dense noisy point cloud at one *instant* in time (just downsample to make less dense).
-
-
-### Execution Timings
-
-```txt
-I0205 19:12:38.424196  3142 rs-integrate-server.cpp:384] Pose Changed
-I0205 19:12:38.438578  3142 rs-integrate-server.cpp:406] Volume Integration took: 11.696 milliseconds
-I0205 19:12:38.606392  3142 rs-integrate-server.cpp:384] Pose Changed
-I0205 19:12:38.618469  3142 rs-integrate-server.cpp:406] Volume Integration took: 8.745 milliseconds
-I0205 19:12:38.789280  3142 rs-integrate-server.cpp:384] Pose Changed
-I0205 19:12:38.802006  3142 rs-integrate-server.cpp:406] Volume Integration took: 10.195 milliseconds
-I0205 19:12:38.975209  3142 rs-integrate-server.cpp:384] Pose Changed
-I0205 19:12:38.991359  3142 rs-integrate-server.cpp:406] Volume Integration took: 13.812 milliseconds
-I0205 19:12:39.147347  3142 rs-integrate-server.cpp:384] Pose Changed
-I0205 19:12:39.163597  3142 rs-integrate-server.cpp:406] Volume Integration took: 13.016 milliseconds
-I0205 19:12:39.456158  3142 rs-integrate-server.cpp:384] Pose Changed
-I0205 19:12:39.476058  3142 rs-integrate-server.cpp:406] Volume Integration took: 17.181 milliseconds
-I0205 19:12:45.089002  3139 rs-integrate-server.cpp:311] Received Extract Request MESH: Default
-I0205 19:12:45.834509  3139 rs-integrate-server.cpp:304] Mesh Extraction took: 495.261; Half Edge Extraction: 236.265; Serialization: 13.906
-170,000 Triangles
-```
