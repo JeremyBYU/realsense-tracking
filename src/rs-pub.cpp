@@ -124,6 +124,8 @@ void enable_manual_streams(rs2::context &ctx, std::vector<rspub::StreamDetail> &
 	LOG(INFO) << "Requesting to start manual streams: " << std::endl;
 	rspub::print_profiles(desired_streams);
 
+	std::set<std::string> all_devices;
+
 	if (single_device)
 	{
 		enable_device_stream(*single_device, desired_devices, ctx, desired_streams, device_sensors, callback);
@@ -135,11 +137,20 @@ void enable_manual_streams(rs2::context &ctx, std::vector<rspub::StreamDetail> &
 		for (auto dev_ : devices)
 		{
 			auto name = std::string(dev_.get_info(RS2_CAMERA_INFO_NAME));
+			all_devices.insert(name);
 			LOG(INFO) << "Devices is: " << name << ": " << dev_.get_info(RS2_CAMERA_INFO_SERIAL_NUMBER);
 		}
 		for (auto dev : devices)
 		{
 			enable_device_stream(dev, desired_devices, ctx, desired_streams, device_sensors, callback);
+		}
+	}
+	for (auto &desired_device: desired_devices)
+	{
+		const bool is_in = all_devices.find(desired_device) != all_devices.end();
+		if (!is_in)
+		{
+			LOG(ERROR) << "ERROR! Asked for " << desired_device << " but not availble";
 		}
 	}
 }

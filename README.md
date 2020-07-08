@@ -1,14 +1,14 @@
 
 # Real Sense Tracking and Depth Modules
 
-The purpose of this repository is to provide a reproducible (possibly isolated) environment for high level robotics software. Currently the main concern of this repo is interacting with Intel RealSense Cameras.  The code of this repository is meant to be distributed as a docker image that is cross-compiled to both x86-64 and arm64 architectures (Regular computers as well as raspberry pi). Here is a quick list of thing this repository is meant to do:
+The purpose of this repository is to provide a reproducible (possibly isolated) environment for high level robotics software. Currently the main concern of this repo is interacting with Intel RealSense Cameras.  This environment (code of this repo) can be be distributed as a docker image that is cross-compiled to both x86-64 and arm64 architectures (Regular computers as well as raspberry pi). Here is a quick list of thing this repository is meant to do:
 
 - Have a stable pre-setup ubuntu environment in a docker image with all installed dependencies. 
 - Communicate with Intel RealSense Devices using librealsense SDK 2.0.
-- Provide a communication framework using [ECAL](https://github.com/continental/ecal) which provides efficient shared memory to publish RealSense "messages".
+- Provide a communication framework using [ECAL](https://github.com/continental/ecal) which provides efficient shared memory to publish "messages".
 - Provide simple configurations file that can configure publishing of realsense cameras and saving data.
-  - See `rspub_default.toml` for publishing and `rssave_default.toml` for saving messages.
-- Provide Python code for postprocessing the data to demonstrate mesh creation.
+  - See `rspub_default.toml` for publishing and `rssave_default.toml` for saving RealSense data.
+- Provide Python client code for visualizing mesh creation.
 
 ## Installed libraries and Dependencies
 
@@ -26,7 +26,7 @@ All dependencies and installation procedures can be found in `Docker/base/Docker
 
 ## Setup ECAL
 
-This is only required if you want to computer on the same network to talk to eachother.
+This is only required if you want to computer on the same network to talk to each other.
 
 1. Update each computers hosts file so that they are aware of each other. An example below
 

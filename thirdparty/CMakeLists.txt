@@ -6,6 +6,6 @@ FetchContent_Declare(
   GIT_TAG        v3.3.1
   GIT_PROGRESS   TRUE
 )
-# set(toml11_BUILD_TEST OFF CACHE BOOL "Build toml tests" FORCE)
+set(toml11_BUILD_TEST OFF CACHE BOOL "Build toml tests" FORCE)
 
 FetchContent_MakeAvailable(extern_toml11)

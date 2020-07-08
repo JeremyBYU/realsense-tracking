@@ -282,7 +282,7 @@ public:
 		double now1 = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
 		if (!mesh)
 			return false;
-		auto halfedges = o3d::geometry::HalfEdgeTriangleMesh::ExtractHalfEdges(*mesh.get());
+		// auto halfedges = o3d::geometry::HalfEdgeTriangleMesh::ExtractHalfEdges(*mesh.get());
 		double now2 = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
 
 		int n_triangles = mesh->triangles_.size();
@@ -292,7 +292,7 @@ public:
 		int nbytes_vertices = n_vertices * 8 * 3;   // 8 bytes per point (double), 3 points per vertex.
 		mesh_pb.set_vertices(mesh->vertices_.data(), nbytes_vertices);
 		mesh_pb.set_triangles(mesh->triangles_.data(), nbytes_triangles);
-		mesh_pb.set_halfedges(halfedges.data(), nbytes_halfedges);
+		// mesh_pb.set_halfedges(halfedges.data(), nbytes_halfedges);
 		mesh_pb.set_n_triangles(n_triangles);
 		mesh_pb.set_n_vertices(n_vertices);
 		if (color_vertices)

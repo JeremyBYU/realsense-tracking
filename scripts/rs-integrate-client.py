@@ -23,14 +23,14 @@ def get_mesh_data(resp: ExtractResponse):
     mesh = resp.mesh
     n_triangles = mesh.n_triangles
     n_vertices = mesh.n_vertices
-    triangles = np.fromstring(
+    triangles = np.frombuffer(
         mesh.triangles, dtype=np.int32).reshape((n_triangles, 3))
-    vertices = np.fromstring(
+    vertices = np.frombuffer(
         mesh.vertices, dtype=np.float64).reshape((n_vertices, 3))
-    vertices_colors = np.fromstring(
+    vertices_colors = np.frombuffer(
         mesh.vertices_colors, dtype=np.float64).reshape((n_vertices, 3))
-    halfedges = np.fromstring(mesh.halfedges, dtype=np.uint64)
-    return vertices, triangles, halfedges, vertices_colors
+    halfedges = np.frombuffer(mesh.halfedges, dtype=np.uint64)
+    return np.copy(vertices), np.copy(triangles), np.copy(halfedges), np.copy(vertices_colors)
 
 
 def create_mesh_from_data(vertices, triangles, halfedges, vertices_colors=None):
@@ -70,6 +70,9 @@ def client_resp_callback(service_info, response):
         logging.info("Triangle Size: %d", len(tri_mesh.triangles))
         if len(tri_mesh.triangles) > 0:
             o3d.visualization.draw_geometries([tri_mesh])
+            resp_user = input("Save Mesh (Y/N):")
+            if resp_user in ['y', 'Y', 'yes']:
+                o3d.io.write_triangle_mesh('data/meshes/integrate_mesh.ply', tri_mesh)
 
 
 def main():

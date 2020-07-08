@@ -18,6 +18,8 @@ RUN apt-get update && apt-get install -q -y \
     python3-numpy  \
     python3-dev \
     git \
+    libc++-7-dev \
+    libc++abi-7-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # setup environment
@@ -41,7 +43,7 @@ RUN apt-get install --no-install-recommends -y build-essential libgtk2.0-dev pkg
                                                libatlas-base-dev libcanberra-gtk* \
                                                libglew-dev liblz4-dev
 # ECAL Dependencies
-RUN apt-get install --no-install-recommends -y graphviz build-essential zlib1g-dev libhdf5-dev libprotobuf-dev libprotoc-dev protobuf-compiler
+RUN apt-get install --no-install-recommends -y graphviz build-essential zlib1g-dev libhdf5-dev libprotobuf-dev libprotoc-dev protobuf-compiler libcurl4-openssl-dev
 
 # Install cmake - This takes like 30 minutes on emulated hardware...
 RUN wget -O /opt/cmake-3.15.5.tar.gz https://cmake.org/files/v3.15/cmake-3.15.5.tar.gz && \
@@ -67,9 +69,9 @@ RUN git clone -b '3.4.7' --single-branch https://github.com/opencv/opencv.git /o
 
 # Prepare for ECAL - Shared Memory Marshalling and Communication
 RUN cd /opt && \
-    git clone --recursive git://github.com/continental/ecal.git && \
-    cd ecal && mkdir build_ &&  cd build_ && \
-    cmake .. -DCMAKE_BUILD_TYPE=Release -DECAL_THIRDPARTY_BUILD_PROTOBUF=OFF -DHAS_QT5=OFF -DBUILD_DOCS=OFF -DBUILD_PY_BINDING=ON && \
+    git clone --single-branch --branch v5.5.2 --recursive git://github.com/continental/ecal.git
+RUN cd /opt/ecal && mkdir build_ &&  cd build_ && \
+    cmake .. -DCMAKE_BUILD_TYPE=Release -DECAL_THIRDPARTY_BUILD_PROTOBUF=OFF -DHAS_QT5=OFF -DBUILD_DOCS=OFF -DECAL_THIRDPARTY_BUILD_CURL=OFF -DECAL_THIRDPARTY_BUILD_HDF5=OFF -DBUILD_PY_BINDING=ON && \
     make -j${N_CPUS} && \
     cd /opt/ecal/build_ && \
     cpack -G DEB && \
@@ -97,10 +99,10 @@ RUN ln -s /usr/bin/python3 /usr/bin/python & \
     ln -s /usr/bin/pip3 /usr/bin/pip
 
 # Open 3D Install
-RUN cd /opt && git clone --single-branch --branch jeremy --recursive https://github.com/JeremyBYU/Open3D && \
-    cd /opt/Open3D && \
+RUN cd /opt && git clone --single-branch --branch v0.10.0 --recursive https://github.com/intel-isl/Open3D.git
+RUN cd /opt/Open3D && \
     mkdir build && cd build && \
-    cmake ../ -DBUILD_CPP_EXAMPLES=OFF -DENABLE_JUPYTER=OFF -DCMAKE_CXX_STANDARD_LIBRARIES="-lX11 -ldl" && \
+    cmake ../ -DBUILD_CPP_EXAMPLES=OFF -DENABLE_JUPYTER=OFF -DGLIBCXX_USE_CXX11_ABI=ON && \
     make -j${N_CPUS} && \
     make install && make python-package && cd /opt/Open3D/build/lib/python_package && pip install . && \
     rm -rf /opt/Open3D

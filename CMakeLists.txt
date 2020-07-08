@@ -30,12 +30,12 @@ find_package(OpenCV REQUIRED)
 find_package(OpenMP)
 find_package(realsense2 REQUIRED)
 find_package(Protobuf REQUIRED)
-find_package(eCAL REQUIRED)
+find_package(eCAL COMPONENTS core REQUIRED)
 find_package(OpenGL)
 find_package(gflags REQUIRED)
 find_package(glog) # Docker ubuntu can not find when REQUIRED, but logging still works?!?!?
 find_package(Eigen3 REQUIRED )
-find_package(Open3D HINTS ${CMAKE_INSTALL_PREFIX}/lib/CMake)
+find_package(Open3D HINTS ${CMAKE_INSTALL_PREFIX}/lib/CMake REQUIRED)
 
 
 
