@@ -1,3 +1,4 @@
+"Looks at saved directory from `rs-save` and processes proto files (point cloud and 6DOF) and saves to more convenient format: .npz and text"
 import time
 import argparse
 from pathlib import Path
@@ -18,6 +19,7 @@ sys.path.insert(0, str(BUILD_DIR.resolve()))
 from PoseMessage_pb2 import PoseMessage, PoseMessageList
 from PointCloudMessage_pb2 import PointCloudMessage
 logging.basicConfig(level=logging.INFO)
+
 
 class Converter(object):
     def __init__(self, data_dir):
@@ -72,10 +74,10 @@ class Converter(object):
     @staticmethod
     def write_log(fh, counter, ht, ts=None):
         if ts is None:
-            fh.write("{:d} {:d} {:d}\n".format(counter, counter, counter+1))
+            fh.write("{:d} {:d} {:d}\n".format(counter, counter, counter + 1))
         else:
             fh.write("{:d} {:d} {:d} {:d}\n".format(
-                counter, counter, counter+1, ts))
+                counter, counter, counter + 1, ts))
         fh.write("{:.8f} {:.8f} {:.8f} {:.8f}\n".format(*ht[0, :]))
         fh.write("{:.8f} {:.8f} {:.8f} {:.8f}\n".format(*ht[1, :]))
         fh.write("{:.8f} {:.8f} {:.8f} {:.8f}\n".format(*ht[2, :]))

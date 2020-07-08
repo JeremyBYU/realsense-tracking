@@ -1,6 +1,0 @@
-[submodule "thirdparty/toml11"]
-	path = thirdparty/toml11
-	url = https://github.com/ToruNiina/toml11.git
-[submodule "thirdparty/polylidar"]
-	path = thirdparty/polylidar
-	url = https://github.com/JeremyBYU/polylidar

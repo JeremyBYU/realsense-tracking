@@ -1,3 +1,4 @@
+"Client that will connect to rs-integrate-server and extract mesh"
 import sys
 from pathlib import Path
 import time

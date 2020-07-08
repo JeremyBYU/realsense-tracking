@@ -1,3 +1,7 @@
+"""Script to parse a saved bag file and extract images into a folder and IMU data into CSV files
+This was useful as creating the correct form of input for XIVO. However, not using that anymore.
+"""
+
 import time
 import argparse
 import pathlib

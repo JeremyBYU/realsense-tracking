@@ -1,4 +1,5 @@
 #!/bin/bash 
+# Takes an input binary file and copies all dynamically linked libraries into a specified folder
 # Author : Hemanth.HM
 # Email : hemanth[dot]hm[at]gmail[dot]com
 # License : GNU GPLv3
