@@ -6,7 +6,7 @@ min_rotation_change= 10.0 # degrees
 # Depth Configuation
 depth_scale = 1000.0 # Z16 conversion to meters. 1 int is 1 millimeter.
 depth_trunc = 3.0 # Truncate depth image after 3 meters
-path_intrinsic = "config/camera_intrinsic_rgb_424.json" # Intriniscs of the RGBD Frames
+path_intrinsic = "config/sensors/camera_intrinsic_rgb_424.json" # Intriniscs of the RGBD Frames
 
 auto_start = true # Create a "Default" scene and begin integrating right away
 save_dir="data"  # Directory to save data

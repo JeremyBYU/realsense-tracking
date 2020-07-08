@@ -1,6 +1,6 @@
-// License: Apache 2.0. See LICENSE file in root directory.
-// Realsense Module
-// Subscribes to Realsense Messages and Saves to Disk
+// License: MIT. See LICENSE file in root directory.
+// RealSense Save Module
+// Subscribes to RealSense Messages and Saves to Disk
 
 #include <chrono>
 #include <thread>

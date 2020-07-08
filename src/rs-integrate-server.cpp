@@ -1,6 +1,5 @@
-// License: Apache 2.0. See LICENSE file in root directory.
-// Realsense Module
-// Subscribes to Realsense Messages and Saves to Disk
+// License: MIT. See LICENSE file in root directory.
+// Integrate RGBD Frames into Volume and Mesh
 
 #include <chrono>
 #include <thread>
@@ -443,7 +442,7 @@ int main(int argc, char *argv[]) try
 	// ECAL Configuration
 	std::vector<std::string> ecal_args;
 	ecal_args.push_back("--default-ini-file");
-	ecal_args.push_back("./config/ecal.ini");
+	ecal_args.push_back("./config/ecal/ecal.ini");
 	if (FLAGS_force_udp)
 	{
 		LOG(INFO) << "Forcing UDP Multicast for ECAL";

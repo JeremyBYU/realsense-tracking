@@ -1,14 +1,14 @@
 
 # Real Sense Tracking and Depth Modules
 
-The purpose of this repository is to provide an isolated widget that can interact with Intel RealSense Cameras.  The code of this repository is meant to be distributed as a docker image that is cross-compiled to both x86-64 and arm64 architectures (Regular computers as well as raspberry pi). Here is a quick list of thing this repository is meant to do:
+The purpose of this repository is to provide a reproducible (possibly isolated) environment for high level robotics software. Currently the main concern of this repo is interacting with Intel RealSense Cameras.  The code of this repository is meant to be distributed as a docker image that is cross-compiled to both x86-64 and arm64 architectures (Regular computers as well as raspberry pi). Here is a quick list of thing this repository is meant to do:
 
 - Have a stable pre-setup ubuntu environment in a docker image with all installed dependencies. 
 - Communicate with Intel RealSense Devices using librealsense SDK 2.0.
-- Provide a marshalling and communication framework using [ECAL](https://github.com/continental/ecal) which provides efficient shared memory to publish RealSense "messages".
+- Provide a communication framework using [ECAL](https://github.com/continental/ecal) which provides efficient shared memory to publish RealSense "messages".
 - Provide simple configurations file that can configure publishing of realsense cameras and saving data.
   - See `rspub_default.toml` for publishing and `rssave_default.toml` for saving messages.
-- Provide Python code for postprocessing the data to demonstrate mesh creation or point cloud alignment.
+- Provide Python code for postprocessing the data to demonstrate mesh creation.
 
 ## Installed libraries and Dependencies
 
@@ -26,6 +26,8 @@ All dependencies and installation procedures can be found in `Docker/base/Docker
 
 ## Setup ECAL
 
+This is only required if you want to computer on the same network to talk to eachother.
+
 1. Update each computers hosts file so that they are aware of each other. An example below
 
 ```txt
@@ -42,7 +44,7 @@ All dependencies and installation procedures can be found in `Docker/base/Docker
 
 ### X86 Linux
 
-1. [Install Docker](https://github.com/continental/ecal)
+1. [Install Docker](https://docs.docker.com/get-docker/)
 2. `git clone --recursive https://github.com/JeremyBYU/realsense-tracking.git && cd realsense-tracking`
 
 ### Raspberry PI 4
@@ -58,11 +60,19 @@ password: pir0b0t
 
 ### Launch Docker
 
-1. `rs-pose`, `rs-enumerate-devices` - Need to "open" the sensors on host first sometimes?
+1. `rs-pose`, `rs-enumerate-devices` - Need to "open" the sensors on host first. Not sure why.
 2. `docker run  --rm --privileged -it --env="DISPLAY" --net=host --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" --mount type=bind,source="$(pwd)",target=/opt/workspace --name realsense jeremybyu/realsense:buildx` - Raspberry PI
 3. Optional - `rm -rf build && mkdir build && cd build && cmake .. && make && cd ..`
 
 Alternative X86 Launch - `docker run  --rm --privileged -it --env="DISPLAY" --net=host --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" --mount type=bind,source="$(pwd)",target=/opt/workspace --name realsense --user $(id -u):$(id -g) jeremybyu/realsense:latest`
+
+## Run Without Docker
+
+Follow `Docker/base/Dockerfile` to install all third party dependencies
+
+1. `mkdir build && cd build`
+2. `cmake .. && cmake --build -j8`
+
 
 ## Applications
 
@@ -116,23 +126,6 @@ Doesn't work in docker. Dont recommend to use this, use RS-Save.
 
 1. `scp pi@192.168.1.3:/home/pi/Documents/realsense-tracking/data/Default.ply data/Default.ply`
 
-### RealSense
-
-Need to use development branch of realsense:
-
-```
-commit 306e68aca67bd0ecaf5bb40ad6266f4ce8e98690 (HEAD -> development, origin/development)
-Merge: 6d6ead55a e5692637f
-Author: Sergey Dorodnicov <sergey.dorodnicov@intel.com>
-Date:   Tue Jan 7 17:17:02 2020 +0200
-
-    Merge pull request #5504 from radfordi/t265-release-908
-    
-     Upgrade T265 firmware to 0.2.0.908
-```
-
-D435i SN - 844212071822
-T265 SN - 943222110884, 0000943222110884
 
 ### All dependencies in one folder
 
@@ -199,5 +192,4 @@ I0205 19:12:39.476058  3142 rs-integrate-server.cpp:406] Volume Integration took
 I0205 19:12:45.089002  3139 rs-integrate-server.cpp:311] Received Extract Request MESH: Default
 I0205 19:12:45.834509  3139 rs-integrate-server.cpp:304] Mesh Extraction took: 495.261; Half Edge Extraction: 236.265; Serialization: 13.906
 170,000 Triangles
-
 ```

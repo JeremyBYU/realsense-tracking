@@ -1,6 +1,6 @@
-// License: Apache 2.0. See LICENSE file in root directory.
-// Copyright(c) 2019 Intel Corporation. All Rights Reserved.
-// Realsense Tracking Module
+// License: MIT. See LICENSE file in root directory.
+// Copyright(c) 2019 Jeremy Castagno. All Rights Reserved.
+// Realsense Publish Module
 
 // This technique works with RSUSB driver (LIBUVC) but should work with kernel drivers as well
 // This example is meant for D435i, to get high frequency motion data at the same time of depth,rgb images
@@ -423,7 +423,7 @@ int live_stream(const toml::value &tcf)
 	return EXIT_SUCCESS;
 }
 
-// using timestamp_t = std::chrono::nanoseconds::nanoseconds;
+
 void OnPoseMessage(const char *topic_name_, const rspub_pb::PoseMessage &pose, const long long time_, const long long clock_)
 {
 	double now = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
@@ -453,7 +453,7 @@ int main(int argc, char *argv[]) try
 	// ECAL Configuration
 	std::vector<std::string> ecal_args;
 	ecal_args.push_back("--default-ini-file");
-	ecal_args.push_back("./config/ecal.ini");
+	ecal_args.push_back("./config/ecal/ecal.ini");
 	if (FLAGS_force_udp)
 	{	
 		LOG(INFO) << "Forcing UDP Multicast for ECAL";
