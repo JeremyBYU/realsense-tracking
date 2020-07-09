@@ -10,9 +10,9 @@ The purpose of this repository is to provide a reproducible (possibly isolated) 
   - See `rspub_default.toml` for publishing and `rssave_default.toml` for saving RealSense data.
 - Provide Python client code for visualizing mesh creation.
 
-## Installed libraries and Dependencies
+## Install Libraries and Dependencies
 
-All dependencies and installation procedures can be found in `Docker/base/Dockerfile`. You can use docker and have everything taken care or you can follow the installation procedures. Here is a basic summary of the environment:
+All dependencies and installation procedures can be found in `Docker/base/Dockerfile`. You can use docker and have everything taken care or you can follow the installation procedures in the file. Here is a basic summary of the environment:
 
 - Ubuntu Base Image 18.04
 - Python 3 w/ Scipy, numpy
