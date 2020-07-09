@@ -71,16 +71,16 @@ RUN git clone -b '3.4.7' --single-branch https://github.com/opencv/opencv.git /o
 RUN cd /opt && \
     git clone --single-branch --branch v5.5.2 --recursive git://github.com/continental/ecal.git
 RUN cd /opt/ecal && mkdir build_ &&  cd build_ && \
-    cmake .. -DCMAKE_BUILD_TYPE=Release -DECAL_THIRDPARTY_BUILD_PROTOBUF=OFF -DHAS_QT5=OFF -DBUILD_DOCS=OFF -DECAL_THIRDPARTY_BUILD_CURL=OFF -DECAL_THIRDPARTY_BUILD_HDF5=OFF -DBUILD_PY_BINDING=ON && \
+    cmake .. -DCMAKE_BUILD_TYPE=Release -DECAL_THIRDPARTY_BUILD_PROTOBUF=OFF -DHAS_QT5=OFF -DBUILD_DOCS=OFF -DECAL_THIRDPARTY_BUILD_CURL=OFF -DECAL_THIRDPARTY_BUILD_HDF5=OFF -DECAL_THIRDPARTY_BUILD_TINYXML2=OFF -DBUILD_PY_BINDING=ON && \
     make -j${N_CPUS} && \
     cd /opt/ecal/build_ && \
     cpack -G DEB && \
     dpkg -i _deploy/eCAL-* && \
-    cd /opt/ecal/build_ && cmake --build . --target create_python_egg --config Release && cd python && pip3 install . && \
+    cd /opt/ecal/build_ && cmake --build . --target create_python_egg --config Release && cd python &&  python3 setup.py bdist_wheel && cp dist/ecal-*.whl /opt && pip3 install . && \
     rm -rf /opt/ecal
 
 # Clone Realsense - Depth, IMU, 6DOF Sensor SDK
-RUN git clone https://github.com/IntelRealSense/librealsense.git /opt/librealsense && cd /opt/librealsense && git checkout development && \
+RUN git clone https://github.com/IntelRealSense/librealsense.git /opt/librealsense && cd /opt/librealsense && git checkout v2.35.2 && \
     mkdir build && cd build && \
     cmake ../ -DFORCE_RSUSB_BACKEND=true -DCMAKE_BUILD_TYPE=release -DBUILD_EXAMPLES=true -DBUILD_GRAPHICAL_EXAMPLES=true -DBUILD_PYTHON_BINDINGS=true && \
     make -j${N_CPUS} && \

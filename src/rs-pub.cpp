@@ -68,6 +68,18 @@ void rs_callback(rs2::frame &frame, eCAL::protobuf::CPublisher<rspub_pb::PoseMes
 	}
 }
 
+/**
+ * @brief Enable a device stream (manual). It will go through all the sensors on the device and "open" them for streaming with an attached callback
+ * 		  This method of interacting is (was?) necessary so that high frequency data (Accelerometer) can be (**reliably** pulled out at the same time as low frequency
+ * 		  data (images). Using a pipeline did not work for me. This is a very manual/heavy way to get the data, but it works.
+ * 
+ * @param dev 					The device of intereste
+ * @param desired_devices 		The string vector of all desired devices
+ * @param ctx 					The RealSense Context
+ * @param desired_streams 		A list of all desired streams for manual streaming
+ * @param device_sensors 		All the device sensors
+ * @param callback 				The callback for processing frames
+ */
 void enable_device_stream(rs2::device &dev, std::vector<std::string> &desired_devices, rs2::context &ctx,
 						  std::vector<rspub::StreamDetail> &desired_streams, std::map<std::string, std::vector<rs2::sensor>> &device_sensors,
 						  std::function<void(rs2::frame)> callback)
@@ -115,6 +127,16 @@ void enable_device_stream(rs2::device &dev, std::vector<std::string> &desired_de
 	}
 }
 
+
+/**
+ * @brief This will enable manual streaming. In other words a specifc stream will have its own isolated callback for processing frames (data) 
+ * 
+ * @param ctx 							The RealSense Context
+ * @param desired_streams 				A list of all desired manual streams
+ * @param device_sensors 				All device sensors
+ * @param callback 						The function callback for processing a RealSense Frame
+ * @param single_device 				If this is a single device (RealSense bag file only has one 'fake' device)
+ */
 void enable_manual_streams(rs2::context &ctx, std::vector<rspub::StreamDetail> &desired_streams, std::map<std::string, std::vector<rs2::sensor>> &device_sensors,
 						   std::function<void(rs2::frame)> callback, rs2::device *single_device = nullptr)
 {
@@ -155,6 +177,15 @@ void enable_manual_streams(rs2::context &ctx, std::vector<rspub::StreamDetail> &
 	}
 }
 
+
+/**
+ * @brief Configures and starts a pipeline for the desired streams. Only works for one device. (e.g. D4XX)
+ * 
+ * @param desired_pipeline_streams 		List of desired streams in the pipeline
+ * @param cfg 							RealSense configuration
+ * @param pipe 							RealSense Pipeline object
+ * @param tcf 							TOML config file
+ */
 void enable_pipe_streams(std::vector<rspub::StreamDetail> &desired_pipeline_streams, rs2::config &cfg, rs2::pipeline &pipe,
 							const toml::value &tcf)
 {
@@ -180,6 +211,20 @@ void enable_pipe_streams(std::vector<rspub::StreamDetail> &desired_pipeline_stre
 	}
 }
 
+
+/**
+ * @brief This will start an already created RealSense pipeline given the desired streams and settings in a config file
+ * 		  The data wll be published on separate topics 
+ * 
+ * @param dsp 				A vector of all streams 
+ * @param pipe 				The realsense pipeline
+ * @param tcf 				The parsed toml config file
+ * @param pub_depth 		The Ecal publisher for depth images
+ * @param pub_color 		The ecal publicsher for color images
+ * @param pub_rgbd 			The ecal publisher for RGBD images
+ * @param pub_pc 			The ecal publisher for point clouds
+ * @param wait 				Should we wait between frames. Deault is no waiting. Useful for pseudo-streaming from bag file.
+ */
 void process_pipeline(std::vector<rspub::StreamDetail> dsp, rs2::pipeline &pipe, const toml::value &tcf, 
 						PubImage &pub_depth, PubImage &pub_color, PubImage &pub_rgbd,
 						PubPointCloud &pub_pc, bool wait=false)
@@ -334,6 +379,13 @@ void process_pipeline(std::vector<rspub::StreamDetail> dsp, rs2::pipeline &pipe,
 
 }
 
+/**
+ * @brief This function will read a RealSense Bag file and begin publishing the data
+ * 
+ * @param file_name 			File name
+ * @param tcf 					Configuration for toml file
+ * @return int 
+ */
 int read_bag(std::string file_name, const toml::value &tcf)
 {
 	// I'm not sure if this works method works full proof for bag files.
@@ -392,7 +444,12 @@ int read_bag(std::string file_name, const toml::value &tcf)
 	return EXIT_SUCCESS;
 }
 
-// This example demonstrates live streaming motion data as well as video data
+/**
+ * @brief This function wil initiate connections to LIVE RealSense Cameras
+ * 
+ * @param tcf 			This is a parsed toml file for configuration
+ * @return int 
+ */
 int live_stream(const toml::value &tcf)
 {
 	// create a publisher (topic name "RSPub")
@@ -478,19 +535,21 @@ int main(int argc, char *argv[]) try
 	LOG(INFO) << "Starting RealSense Publisher";
 	// initialize eCAL API
 	eCAL::Initialize(ecal_args, "RSPub");
-	// create subscriber
-	rspub::SubPose sub_pose("PoseMessage");
-	rspub::SubPointCloud  sub_pc("PointCloudMessage");
-	eCAL::protobuf::CSubscriber<rspub_pb::ImageMessage> sub_depth("DepthMessage");
-	// add receive callback function (_1 = topic_name, _2 = msg, _3 = time, , _4 = clock)
-	auto pose_rec_callback = std::bind(rspub::OnPoseMessage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
-	sub_pose.AddReceiveCallback(pose_rec_callback);
-	auto pc_rec_callback = std::bind(rspub::OnPointCloudMessage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
-	sub_pc.AddReceiveCallback(pc_rec_callback);
-	auto depth_rec_callback = std::bind(rspub::OnDepthMessage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
-	sub_depth.AddReceiveCallback(depth_rec_callback);
-	// enable to receive process internal publications
-	eCAL::Util::EnableLoopback(true);
+
+	// // Remove Subscribers - Only used for debugging
+	// // create subscriber
+	// rspub::SubPose sub_pose("PoseMessage");
+	// rspub::SubPointCloud  sub_pc("PointCloudMessage");
+	// eCAL::protobuf::CSubscriber<rspub_pb::ImageMessage> sub_depth("DepthMessage");
+	// // add receive callback function (_1 = topic_name, _2 = msg, _3 = time, , _4 = clock)
+	// auto pose_rec_callback = std::bind(rspub::OnPoseMessage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
+	// sub_pose.AddReceiveCallback(pose_rec_callback);
+	// auto pc_rec_callback = std::bind(rspub::OnPointCloudMessage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
+	// sub_pc.AddReceiveCallback(pc_rec_callback);
+	// auto depth_rec_callback = std::bind(rspub::OnDepthMessage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
+	// sub_depth.AddReceiveCallback(depth_rec_callback);
+	// // enable to receive process internal publications
+	// eCAL::Util::EnableLoopback(true);
 	// Parse command line flags
 	if(FLAGS_config == "")
 		LOG(ERROR) << "Must specify path to TOML config file";
