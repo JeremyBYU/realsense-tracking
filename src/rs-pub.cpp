@@ -452,43 +452,64 @@ int read_bag(std::string file_name, const toml::value &tcf)
  */
 int live_stream(const toml::value &tcf)
 {
-	// create a publisher (topic name "RSPub")
-	LOG(INFO) << "Creating LiveStream of RealSense" << std::endl;
-	eCAL::Initialize(0, nullptr, "RSPub");
-	PubPose pub_pose("PoseMessage");
-	PubImage pub_depth("DepthMessage");
-	PubImage pub_color("ColorMessage");
-	PubPointCloud pub_pc("PointCloudMessage");
-	PubImage pub_rgbd("RGBDMessage");
-	// Create librealsense context for managing devices
-	rs2::context ctx;
-	// Desired streams that should be manually controlled (no pipeline, i.e., sensor.open)
-	std::vector<rspub::StreamDetail> desired_manual_streams;
-	// Desired streams that should be controlled and SYNCED through a pipeline. Like Depth and Color.
-	std::vector<rspub::StreamDetail> desired_pipeline_streams;
-	// Read from TOML Config file
-	parse_desired_stream(desired_manual_streams, tcf, "manual_streams");
-	parse_desired_stream(desired_pipeline_streams, tcf, "pipeline_streams");
-
-	// needed this variable to keep sensors 'alive'
-	std::map<std::string, std::vector<rs2::sensor>> device_sensors;
-	auto pose_rec_callback = [&pub_pose](rs2::frame frame) { rs_callback(frame, &pub_pose); };
-
-	if (desired_manual_streams.size() > 0)
+	try
 	{
-		enable_manual_streams(ctx, desired_manual_streams, device_sensors, pose_rec_callback);
+		// create a publisher (topic name "RSPub")
+		LOG(INFO) << "Creating LiveStream of RealSense" << std::endl;
+		eCAL::Initialize(0, nullptr, "RSPub");
+		PubPose pub_pose("PoseMessage");
+		PubImage pub_depth("DepthMessage");
+		PubImage pub_color("ColorMessage");
+		PubPointCloud pub_pc("PointCloudMessage");
+		PubImage pub_rgbd("RGBDMessage");
+		// Create librealsense context for managing devices
+		rs2::context ctx;
+		// Desired streams that should be manually controlled (no pipeline, i.e., sensor.open)
+		std::vector<rspub::StreamDetail> desired_manual_streams;
+		// Desired streams that should be controlled and SYNCED through a pipeline. Like Depth and Color.
+		std::vector<rspub::StreamDetail> desired_pipeline_streams;
+		// Read from TOML Config file
+		parse_desired_stream(desired_manual_streams, tcf, "manual_streams");
+		parse_desired_stream(desired_pipeline_streams, tcf, "pipeline_streams");
+
+		// needed this variable to keep sensors 'alive'
+		std::map<std::string, std::vector<rs2::sensor>> device_sensors;
+		auto pose_rec_callback = [&pub_pose](rs2::frame frame) { rs_callback(frame, &pub_pose); };
+
+		if (desired_manual_streams.size() > 0)
+		{
+			enable_manual_streams(ctx, desired_manual_streams, device_sensors, pose_rec_callback);
+		}
+
+		rs2::config cfg;
+		rs2::pipeline pipe(ctx);
+		if (desired_pipeline_streams.size() > 0)
+		{
+			enable_pipe_streams(desired_pipeline_streams, cfg, pipe, tcf);
+		}
+		
+		process_pipeline(desired_pipeline_streams, pipe, tcf, pub_depth, pub_color, pub_rgbd, pub_pc);
+
+		return EXIT_SUCCESS;
+		/* code */
+	}
+	catch (const rs2::error &e)
+	{
+
+		LOG(ERROR) << "RealSense error calling " << e.get_failed_function() << "(" << e.get_failed_args() << "):\n    " << e.what() << std::endl;
+		std::cerr << "RealSense error calling " << e.get_failed_function() << "(" << e.get_failed_args() << "):\n    " << e.what() << std::endl;
+
+		return EXIT_FAILURE;
 	}
 
-	rs2::config cfg;
-	rs2::pipeline pipe(ctx);
-	if (desired_pipeline_streams.size() > 0)
+	catch (const std::exception &e)
 	{
-		enable_pipe_streams(desired_pipeline_streams, cfg, pipe, tcf);
+		LOG(ERROR) << e.what() << std::endl;
+		std::cerr << e.what() << std::endl;
+
+		return EXIT_FAILURE;
 	}
 	
-	process_pipeline(desired_pipeline_streams, pipe, tcf, pub_depth, pub_color, pub_rgbd, pub_pc);
-
-	return EXIT_SUCCESS;
 }
 
 
@@ -515,82 +536,61 @@ void OnPointCloudMessage(const char *topic_name_, const rspub_pb::PointCloudMess
 
 int main(int argc, char *argv[]) try
 {
-	try
-	{
-		google::InitGoogleLogging(argv[0]);
-		gflags::ParseCommandLineFlags(&argc, &argv, true);
+	google::InitGoogleLogging(argv[0]);
+	gflags::ParseCommandLineFlags(&argc, &argv, true);
 
-		// ECAL Configuration
-		std::vector<std::string> ecal_args;
-		ecal_args.push_back("--default-ini-file");
-		ecal_args.push_back("./config/ecal/ecal.ini");
-		if (FLAGS_force_udp)
-		{	
-			LOG(INFO) << "Forcing UDP Multicast for ECAL";
-			ecal_args.push_back("--set_config_key");
-			ecal_args.push_back("publisher/use_udp_mc:1");
+	// ECAL Configuration
+	std::vector<std::string> ecal_args;
+	ecal_args.push_back("--default-ini-file");
+	ecal_args.push_back("./config/ecal/ecal.ini");
+	if (FLAGS_force_udp)
+	{	
+		LOG(INFO) << "Forcing UDP Multicast for ECAL";
+		ecal_args.push_back("--set_config_key");
+		ecal_args.push_back("publisher/use_udp_mc:1");
 
-			ecal_args.push_back("--set_config_key");
-			ecal_args.push_back("publisher/use_shm:0");
-			
-		}
-		LOG(INFO) << "Starting RealSense Publisher";
-		// initialize eCAL API
-		eCAL::Initialize(ecal_args, "RSPub");
-
-		// // Remove Subscribers - Only used for debugging
-		// // create subscriber
-		// rspub::SubPose sub_pose("PoseMessage");
-		// rspub::SubPointCloud  sub_pc("PointCloudMessage");
-		// eCAL::protobuf::CSubscriber<rspub_pb::ImageMessage> sub_depth("DepthMessage");
-		// // add receive callback function (_1 = topic_name, _2 = msg, _3 = time, , _4 = clock)
-		// auto pose_rec_callback = std::bind(rspub::OnPoseMessage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
-		// sub_pose.AddReceiveCallback(pose_rec_callback);
-		// auto pc_rec_callback = std::bind(rspub::OnPointCloudMessage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
-		// sub_pc.AddReceiveCallback(pc_rec_callback);
-		// auto depth_rec_callback = std::bind(rspub::OnDepthMessage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
-		// sub_depth.AddReceiveCallback(depth_rec_callback);
-		// // enable to receive process internal publications
-		// eCAL::Util::EnableLoopback(true);
-		// Parse command line flags
-		if(FLAGS_config == "")
-			LOG(ERROR) << "Must specify path to TOML config file";
+		ecal_args.push_back("--set_config_key");
+		ecal_args.push_back("publisher/use_shm:0");
 		
-		const auto tcf = toml::parse(FLAGS_config);
-		std::thread t1;
-		if (FLAGS_bag == "")
-		{
-			t1 = std::thread(rspub::live_stream, tcf);
-		}
-		else
-		{
-			t1 = std::thread(rspub::read_bag, FLAGS_bag, tcf);
-		}
-
-		eCAL::Process::SleepMS(1000);
-		while (eCAL::Ok())
-		{
-			eCAL::Process::SleepMS(100);
-		}
-		/* code */
 	}
-	catch (const rs2::error &e)
-	{
+	LOG(INFO) << "Starting RealSense Publisher";
+	// initialize eCAL API
+	eCAL::Initialize(ecal_args, "RSPub");
 
-		LOG(ERROR) << "RealSense error calling " << e.get_failed_function() << "(" << e.get_failed_args() << "):\n    " << e.what() << std::endl;
-		std::cerr << "RealSense error calling " << e.get_failed_function() << "(" << e.get_failed_args() << "):\n    " << e.what() << std::endl;
-
-		return EXIT_FAILURE;
-	}
-
-	catch (const std::exception &e)
-	{
-		LOG(ERROR) << e.what() << std::endl;
-		std::cerr << e.what() << std::endl;
-
-		return EXIT_FAILURE;
-	}
+	// // Remove Subscribers - Only used for debugging
+	// // create subscriber
+	// rspub::SubPose sub_pose("PoseMessage");
+	// rspub::SubPointCloud  sub_pc("PointCloudMessage");
+	// eCAL::protobuf::CSubscriber<rspub_pb::ImageMessage> sub_depth("DepthMessage");
+	// // add receive callback function (_1 = topic_name, _2 = msg, _3 = time, , _4 = clock)
+	// auto pose_rec_callback = std::bind(rspub::OnPoseMessage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
+	// sub_pose.AddReceiveCallback(pose_rec_callback);
+	// auto pc_rec_callback = std::bind(rspub::OnPointCloudMessage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
+	// sub_pc.AddReceiveCallback(pc_rec_callback);
+	// auto depth_rec_callback = std::bind(rspub::OnDepthMessage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
+	// sub_depth.AddReceiveCallback(depth_rec_callback);
+	// // enable to receive process internal publications
+	// eCAL::Util::EnableLoopback(true);
+	// Parse command line flags
+	if(FLAGS_config == "")
+		LOG(ERROR) << "Must specify path to TOML config file";
 	
+	const auto tcf = toml::parse(FLAGS_config);
+	std::thread t1;
+	if (FLAGS_bag == "")
+	{
+		t1 = std::thread(rspub::live_stream, tcf);
+	}
+	else
+	{
+		t1 = std::thread(rspub::read_bag, FLAGS_bag, tcf);
+	}
+
+	eCAL::Process::SleepMS(1000);
+	while (eCAL::Ok())
+	{
+		eCAL::Process::SleepMS(100);
+	}
 }
 catch (const rs2::error &e)
 {
