@@ -574,6 +574,7 @@ int main(int argc, char *argv[]) try
 catch (const rs2::error &e)
 {
 
+	LOG(ERROR) << "RealSense error calling " << e.get_failed_function() << "(" << e.get_failed_args() << "):\n    " << e.what() << std::endl;
 	std::cerr << "RealSense error calling " << e.get_failed_function() << "(" << e.get_failed_args() << "):\n    " << e.what() << std::endl;
 
 	return EXIT_FAILURE;
@@ -581,7 +582,7 @@ catch (const rs2::error &e)
 
 catch (const std::exception &e)
 {
-
+	LOG(ERROR) << e.what() << std::endl;
 	std::cerr << e.what() << std::endl;
 
 	return EXIT_FAILURE;
