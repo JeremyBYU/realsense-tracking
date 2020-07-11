@@ -28,7 +28,7 @@ All dependencies and installation procedures can be found in `Docker/base/Docker
 
 This is only required if you want two computers on the same network to talk to each other.
 
-1. Update each computers hosts file so that they are aware of each other. An example below
+1. Update each computers hosts file so that they are aware of each other. An example below. Don't forget the `.locadomain`.
 
 ```txt
 127.0.0.1       localhost
@@ -38,7 +38,16 @@ This is only required if you want two computers on the same network to talk to e
 
 ```
 
-2. Add Multicast route - `sudo route add -net 224.0.0.0 netmask 255.0.0.0 dev YOUR_NETWORK_DEVICE`
+2. Configure Multicast for device - `ifconfig YOUR_NETWORK_DEVICE multicast` 
+3. Add Multicast route - `sudo route add -net 224.0.0.0 netmask 255.0.0.0 dev YOUR_NETWORK_DEVICE`
+
+Note that I am using the **non-default** multi-cast group `224.0.0.0` for ecal because my router was for some reason blocking the default.
+
+When having any problems first see these issues: [Issue 1](`https://github.com/continental/ecal/issues/38`), [Issue 2](https://github.com/continental/ecal/issues/37)
+
+### ECAL Config File
+
+The software is configured to use the `config/ecal/ecal.ini` file. Note that some values have been changed from the default. If you are using `ecal_mon_gui` on an  external computer to monitor messages dont forget to modify *your* `ecal.ini` to point to the correct UDP multicast address and other options (e.g., `ttl`).
 
 ## Run Docker
 
