@@ -12,6 +12,7 @@
 #include <thread>
 #include <map>
 #include <string>
+// #include <memory>
 #include <sstream>
 #include <iostream>
 #include <algorithm>
@@ -43,6 +44,7 @@ std::mutex POSES_MUTEX;
 namespace rspub
 {
 
+// typedef std::map<std::string, std::shared_ptr<eCAL::CPublisher>> PublisherMap;
 
 void rs_callback(rs2::frame &frame, eCAL::protobuf::CPublisher<rspub_pb::PoseMessage> *pose_pub)
 {
@@ -462,6 +464,18 @@ int live_stream(const toml::value &tcf)
 		PubImage pub_color("ColorMessage");
 		PubPointCloud pub_pc("PointCloudMessage");
 		PubImage pub_rgbd("RGBDMessage");
+
+
+		// I thought this might be a better idea but I will have to dynamically cast from base to specific type
+		// I think that a struct might be better
+		// PublisherMap pub_map;
+		// pub_map.insert(std::make_pair("PoseMessage", std::make_shared<PubPose>("PoseMessage")));
+		// pub_map.insert(std::make_pair("DepthMessage", std::make_shared<PubImage>("DepthMessage")));
+		// pub_map.insert(std::make_pair("ColorMessage", std::make_shared<PubImage>("ColorMessage")));
+		// pub_map.insert(std::make_pair("RGBDMessage", std::make_shared<PubImage>("RGBDMessage")));
+		// pub_map.insert(std::make_pair("PointCloudMessage", std::make_shared<PubPointCloud>("PointCloudMessage")));
+		// auto pub_pose_2 = pub_map["PoseMessage"];
+
 		// Create librealsense context for managing devices
 		rs2::context ctx;
 		// Desired streams that should be manually controlled (no pipeline, i.e., sensor.open)

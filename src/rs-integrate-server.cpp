@@ -405,13 +405,6 @@ public:
 			VLOG(1) << std::setprecision(3) << std::fixed << "Volume Integration took: " << now1 - now0 << " milliseconds";
 		}
 	}
-	void ExtractScene(::google::protobuf::RpcController * /* controller_ */, const rspub_pb::ExtractRequest *request_, rspub_pb::IntegrateResponse *response_, ::google::protobuf::Closure * /* done_ */)
-	{
-		// print request
-		std::cout << "Received Extract Request" << std::endl;
-		// and send response
-		response_->set_message("PONG");
-	}
 
 protected:
 	std::shared_ptr<open3d::visualization::Visualizer> vis;

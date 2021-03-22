@@ -1,0 +1,102 @@
+name = "Default Settings for L515 and T265."
+depth_auto_exposure = 1.0 # Set to 1.0 to enable autoexposure
+depth_exposure = 8000.0 # Microseconds for exposure 
+
+### Manual Streams ###
+# Open a stream __manually__, in other words a completely indepenent sensor stream with its own procesing callback
+# This method seems to be the only way to get high frequency data *reliably** out of a Intel RealSense device
+# at the same time as low frequency data 
+[[manual_streams]]
+device_name = "Intel RealSense T265"
+stream_name = "Pose"
+width = 0
+height = 0
+framerate = 200
+format = "6DOF"
+active = false
+
+### Pipeline Streams ###
+# These streams are processed together in ONE callback. These would be streams that make sense to be processed together
+# Such as a depth and rgb stream
+[[pipeline_streams]]
+device_name = "Intel RealSense L515"
+stream_name = "Depth"
+width = 640
+height = 480
+framerate = 30
+format = "Z16"
+active = true
+
+[[pipeline_streams]]
+device_name = "Intel RealSense L515"
+stream_name = "Color"
+width = 1280
+height = 720
+framerate = 30
+format = "BGR8"
+active = true
+
+
+### Filters ###
+# These are the standard RealSense Post Processing filters
+# https://github.com/IntelRealSense/librealsense/blob/master/doc/post-processing-filters.md
+
+[filters]
+
+  [filters.decimation]
+  active = true
+  magnitude = 4.0
+
+  [filters.disparity]
+  active = false
+
+  [filters.temporal]
+  active = false
+  smooth_alpha = 0.5
+  smooth_delta = 60.0
+  persistence_control = 2.0
+
+  [filters.spatial]
+  active = false
+  smooth_alpha = 0.35
+  smooth_delta = 10.0
+  magnitude = 3.0
+  hole_fill = 1.0
+
+  [filters.align]
+  active=true
+
+
+### Topics ###
+# These will be the topics published
+# A rate of 1 means process at the frequency recieved
+# A rate of 2 means process at half frequency (i.e. skip every other message)
+
+[publish]
+
+  # Just Depth
+  [publish.depth]
+  active = false
+  rate = 1
+
+  # Just Color
+  [publish.color]
+  active = false
+  rate = 1
+
+  # Color and Depth combined in one frame
+  [publish.rgbd]
+  active = true
+  rate = 1
+
+  # 6DOF Pose
+  [publish.pose]
+  active = true
+  rate = 1
+
+  # XYZ Point Cloud. RGB Optional
+  [publish.pointcloud]
+  active = false
+  color = true  # add color to point cloud?
+  stride = 2 # will downsample the point cloud
+  rate = 1
