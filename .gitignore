@@ -1,6 +1,7 @@
 Docker/**/cmake_bin/archive
 bin
 build
+cmake-build
 lib
 .vscode/.ropeproject
 *.pyc

@@ -34,7 +34,7 @@ find_package(eCAL COMPONENTS core REQUIRED)
 find_package(OpenGL)
 find_package(gflags REQUIRED)
 find_package(glog) # Docker ubuntu can not find when REQUIRED, but logging still works?!?!?
-find_package(Eigen3 REQUIRED )
+# find_package(Eigen3 REQUIRED )
 find_package(Open3D HINTS ${CMAKE_INSTALL_PREFIX}/lib/CMake REQUIRED)
 
 
@@ -55,52 +55,28 @@ message ("PROTO_HDRS = ${PROTO_HDRS}")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib)
+set(CMAKE_BUILD_INCLUDE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/cmake-build)
 
 
+get_target_property(eigen_include_dirs eigen INTERFACE_INCLUDE_DIRECTORIES)
 
+message ("CMAKE_INSTALL_PREFIX = ${CMAKE_INSTALL_PREFIX}")
+message ("eigen_include_dirs = ${eigen_include_dirs}")
+message ("CMAKE_LIBRARY_OUTPUT_DIRECTORY = ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}")
+message ("CMAKE_ARCHIVE_OUTPUT_DIRECTORY = ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}")
+message ("CMAKE_BUILD_INCLUDE_DIRECTORY = ${CMAKE_BUILD_INCLUDE_DIRECTORY}")
+message ("Open3D_INCLUDE_DIRS = ${Open3D_INCLUDE_DIRS}")
 
-
-# get_cmake_property(_variableNames VARIABLES)
-# list (SORT _variableNames)
-# foreach (_variableName ${_variableNames})
-#     message(STATUS "${_variableName}=${${_variableName}}")
-# endforeach()
-
-# We should really be using target_link_directories
-# but since this is an *application* repository and there will be 
-# many binaries, I dont see any harm.
-link_directories(
-    /usr/lib
-    /usr/lib/x86_64-linux-gnu
-    /usr/local/lib
-    ${DEPENDENCIES}
-    ${Open3D_LIBRARY_DIRS}
-)
-
-include_directories(
-    ${PROJECT_SOURCE_DIR}/src/include
-    /usr/include
-    /usr/local/include
-    /usr/local/include/opencv2
-    ${PROJECT_SOURCE_DIR}/../librealsense/common/res
-    ${PROJECT_SOURCE_DIR}/../librealsense/src
-    ${EIGEN3_INCLUDE_DIR}
-
-    ${PROTOBUF_INCLUDE_DIRS}
-    ${PROJECT_SOURCE_DIR}/build
-    ${GFLAG_INCLUDE_DIRS}
-    ${toml11_SOURCE_DIR}
-    ${Open3D_INCLUDE_DIRS}
-)
-
-
+    
 # Set all the dependencies
-set(DEPENDENCIES glfw realsense2-gl ${OPENGL_LIBRARIES} ${DEPENDENCIES} ${PROTOBUF_LIBRARIES} 
-                 ${Open3D_LIBRARIES} ${OpenCV_LIBRARIES} OpenMP::OpenMP_CXX gflags glog eCAL::core) 
+set(DEPENDENCIES glfw realsense2-gl ${realsense2_LIBRARY} ${OPENGL_LIBRARIES} ${DEPENDENCIES} ${PROTOBUF_LIBRARIES} 
+${Open3D_LIBRARIES} ${OpenCV_LIBRARIES} OpenMP::OpenMP_CXX gflags glog eCAL::core) 
 
 # Add the application sources to the target
 # add_executable(rs-motion-2 src/rs-motion-2.cpp)
 # add_executable(rs-test src/rs-test.cpp src/utility.cpp ${PROTO_SRCS} ${PROTO_HDRS})
+
+add_library(rs-util src/utility.cpp ${PROTO_SRCS})
 add_executable(rs-pub src/rs-pub.cpp src/utility.cpp ${PROTO_SRCS} ${PROTO_HDRS})
 add_executable(rs-save src/rs-save.cpp src/utility.cpp ${PROTO_SRCS} ${PROTO_HDRS})
 add_executable(rs-integrate-server src/rs-integrate-server.cpp src/utility.cpp ${PROTO_SRCS} ${PROTO_HDRS})
@@ -108,10 +84,65 @@ add_executable(rs-integrate-server src/rs-integrate-server.cpp src/utility.cpp $
 # Link the Libraries
 # target_link_libraries(rs-motion-2 ${realsense2_LIBRARY} ${DEPENDENCIES})
 # target_link_libraries(rs-test ${realsense2_LIBRARY} ${DEPENDENCIES}) 
-target_link_libraries(rs-pub ${realsense2_LIBRARY} ${DEPENDENCIES})
-target_link_libraries(rs-save ${realsense2_LIBRARY} ${DEPENDENCIES})
-target_link_libraries(rs-integrate-server ${realsense2_LIBRARY} ${DEPENDENCIES})
+target_link_libraries(rs-pub PUBLIC ${DEPENDENCIES})
+target_link_libraries(rs-save PUBLIC ${DEPENDENCIES})
+target_link_libraries(rs-integrate-server PUBLIC ${DEPENDENCIES})
 
+
+# target_link_directories(rs-pub PUBLIC /usr/lib /usr/lib/x86_64-linux-gnu /usr/local/lib ${CMAKE_BUILD_INCLUDE_DIRECTORY} ${Open3D_LIBRARY_DIRS})
+# target_link_directories(rs-save PUBLIC /usr/lib /usr/lib/x86_64-linux-gnu /usr/local/lib ${CMAKE_BUILD_INCLUDE_DIRECTORY} ${Open3D_LIBRARY_DIRS})
+# target_link_directories(rs-integrate-server PUBLIC /usr/lib /usr/lib/x86_64-linux-gnu /usr/local/lib ${CMAKE_BUILD_INCLUDE_DIRECTORY} ${Open3D_LIBRARY_DIRS})
+
+
+target_include_directories(rs-pub PUBLIC
+    ${PROJECT_SOURCE_DIR}/src/include
+    /usr/include
+    /usr/local/include
+    /usr/local/include/opencv2
+    ${CMAKE_BUILD_INCLUDE_DIRECTORY}
+    ${PROJECT_SOURCE_DIR}/../librealsense/common/res
+    ${PROJECT_SOURCE_DIR}/../librealsense/src
+    
+    ${PROTOBUF_INCLUDE_DIRS}
+    ${GFLAG_INCLUDE_DIRS}
+    ${toml11_SOURCE_DIR}
+    ${Open3D_INCLUDE_DIRS}
+)
+
+target_include_directories(rs-save PUBLIC
+    ${PROJECT_SOURCE_DIR}/src/include
+    /usr/include
+    /usr/local/include
+    /usr/local/include/opencv2
+    ${CMAKE_BUILD_INCLUDE_DIRECTORY}
+    ${PROJECT_SOURCE_DIR}/../librealsense/common/res
+    ${PROJECT_SOURCE_DIR}/../librealsense/src
+
+    ${PROTOBUF_INCLUDE_DIRS}
+    ${GFLAG_INCLUDE_DIRS}
+    ${toml11_SOURCE_DIR}
+    ${Open3D_INCLUDE_DIRS}
+)
+
+target_include_directories(rs-integrate-server PUBLIC
+    ${PROJECT_SOURCE_DIR}/src/include
+    /usr/include
+    /usr/local/include
+    /usr/local/include/opencv2
+    ${CMAKE_BUILD_INCLUDE_DIRECTORY}
+    ${PROJECT_SOURCE_DIR}/../librealsense/common/res
+    ${PROJECT_SOURCE_DIR}/../librealsense/src
+
+    ${PROTOBUF_INCLUDE_DIRS}
+    ${GFLAG_INCLUDE_DIRS}
+    ${toml11_SOURCE_DIR}
+    ${Open3D_INCLUDE_DIRS}
+)
+
+
+target_include_directories(rs-pub SYSTEM PUBLIC ${eigen_include_dirs})
+target_include_directories(rs-save SYSTEM PUBLIC ${eigen_include_dirs})
+target_include_directories(rs-integrate-server SYSTEM PUBLIC ${eigen_include_dirs})
 # Must have this dummy target for the python generated sources by Probobuff CMake.
 add_custom_target(DUMMY_TARGET ALL 
                   DEPENDS ${PY_SOURCES})
