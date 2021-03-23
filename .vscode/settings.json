@@ -78,5 +78,6 @@
         "dframe",
         "intrin",
         "traj"
-    ]
+    ],
+    "cmake.configureOnOpen": true
 }

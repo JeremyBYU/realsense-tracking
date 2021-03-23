@@ -210,6 +210,13 @@ void enable_pipe_streams(std::vector<rspub::StreamDetail> &desired_pipeline_stre
 			sensor.set_option(RS2_OPTION_EXPOSURE, exposure);
 			LOG(INFO) << "Setting exposure to: " << exposure << " microseconds";
 		}
+
+		auto global_time_enabled = toml::find_or<float>(tcf, "global_time_enabled", 0);
+		if (global_time_enabled)
+		{
+			sensor.set_option(RS2_OPTION_GLOBAL_TIME_ENABLED, global_time_enabled);
+			LOG(INFO) << "Enabling Global time";
+		}
 	}
 }
 

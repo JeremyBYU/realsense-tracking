@@ -79,6 +79,7 @@ int WriteProtoData(const T &proto_data, std::string fpath)
 		std::cerr << "Failed to write proto data data." << std::endl;
 		return -1;
 	}
+	return 0;
 }
 
 void OnPoseMessage(const char *topic_name_, const rspub_pb::PoseMessage &pose_msg, const long long time_, const long long clock_)

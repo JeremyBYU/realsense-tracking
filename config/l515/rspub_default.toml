@@ -1,6 +1,7 @@
 name = "Default Settings for L515 and T265."
 depth_auto_exposure = 1.0 # Set to 1.0 to enable autoexposure
 depth_exposure = 8000.0 # Microseconds for exposure 
+global_time_enabled = 1.0
 
 ### Manual Streams ###
 # Open a stream __manually__, in other words a completely indepenent sensor stream with its own procesing callback
@@ -13,7 +14,7 @@ width = 0
 height = 0
 framerate = 200
 format = "6DOF"
-active = false
+active = true
 
 ### Pipeline Streams ###
 # These streams are processed together in ONE callback. These would be streams that make sense to be processed together

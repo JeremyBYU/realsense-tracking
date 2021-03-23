@@ -24,6 +24,16 @@ All dependencies and installation procedures can be found in `Docker/base/Docker
 - Open3D - new point cloud and mesh processing library from Intel
 - GFLAGS and GLOG for command line parsing and logging
 
+### Local Install
+
+If you want to install locally please execute the following scripts (there will need to be some adjustments for you environment)
+
+0. `./Docker/base/dependencies_local.sh`
+1. `./Docker/base/ecal_local.sh`
+2. `./Docker/base/opencv_local.sh`
+3. `./Docker/base/realsense_local.sh` - Uses RSUSB backend, not kernel
+
+
 ## Setup ECAL
 
 This is only required if you want two computers on the same network to talk to each other.
