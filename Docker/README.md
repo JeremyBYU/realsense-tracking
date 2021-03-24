@@ -3,6 +3,8 @@
 
 Taken from here mostly: https://engineering.docker.com/2019/06/getting-started-with-docker-for-arm-on-linux/
 
+Also read this: https://medium.com/@artur.klauser/building-multi-architecture-docker-images-with-buildx-27d80f7e2408
+
 1. Install docker
 2. `export DOCKER_CLI_EXPERIMENTAL=enabled` - Enable experimental buildx commands
 3. `docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3`

@@ -133,6 +133,29 @@ This is just an example of doing offline reconstruction in python.
 
 ## Notes
 
+### Deploy Binaries instead of Docker
+
+Instead of *deploying* a docker image, you can just deploy the binaries it built! The following script will gather all the dependencies for the binary in the `bin/$ARCH` folder.
+You must be inside the docker container when executing this script
+
+1. `./scripts/dependencies/gather_all.sh`
+
+
+#### X86_64
+
+1. `export LD_LIBRARY_PATH=./bin/x86_64`
+2. `GLOG_logtostderr=1 ./bin/x86_64/ld-linux-x86-64.so.2 ./bin/rs-pub --help`.
+
+#### aarch64
+
+A couple of caveats when running binaries in your envrionment: If you are using raspbian and have the 64bit kernel mode enabled then you [must use the loader](https://siddhesh.in/posts/changing-the-default-loader-for-a-program-in-its-elf.html) in the dependencies folder to launch the program. Basically
+
+1. `export LD_LIBRARY_PATH=./bin/aarch64`
+2. `GLOG_logtostderr=1 ./bin/aarch64/ld-linux-aarch64.so.1  ./bin/rs-pub --help`.
+
+Just tested this on ARM and it actually worked! The only thing that was missing was `libecaltime-localtime.so`.
+
+
 ### RPI SSH
 
 #### Copy Saved Mesh File
@@ -140,17 +163,6 @@ This is just an example of doing offline reconstruction in python.
 1. `scp pi@192.168.1.3:/home/pi/Documents/realsense-tracking/data/Default.ply data/Default.ply`
 
 
-### All dependencies in one folder
-
-This shows a way to run this code here without even needing docker! Just copy the binaries and shared libraries from the docker container and run.
-The following code will copy all dependencies into the `dependencies` folder: `./scripts/cpld.sh ./bin/rs-integrate-server ./dependencies`
-
-A couple of caveats: If you are using raspbian and have the 64bit kernel mode enabled then you must use the loader in the dependencies folder to launch the program.  Basically
-
-1. `export LD_LIBRARY_PATH=./dependencies`
-1. `GLOG_logtostderr=1 ./dependencies/ld-linux-aarch64.so.1 ./bin/rs-pub`.
-
-Just tested this on ARM and it actually worked! The only thing that was missing was `libecaltime-localtime.so`.
 
 ### Trim Down Image
 

@@ -17,7 +17,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -std=c++17 -Wno-narrowing -Wno-register -fPIC -g")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mtune=native -march=native") # beware eigen issues when shared libraries compiled with different optimization levels!!!!!
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mtune=native -march=native") # beware eigen has issues when shared libraries are compiled with different optimization levels!!!!!
 set(CMAKE_BUILD_TYPE "Release")
 
 
@@ -53,9 +53,9 @@ message ("PROTO_SRCS = ${PROTO_SRCS}")
 message ("PROTO_HDRS = ${PROTO_HDRS}")
 
 # Set the output directories of cmake
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib)
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin/${CMAKE_HOST_SYSTEM_PROCESSOR})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib/${CMAKE_HOST_SYSTEM_PROCESSOR})
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib/${CMAKE_HOST_SYSTEM_PROCESSOR})
 
 
 # get_target_property(eigen_include_dirs eigen INTERFACE_INCLUDE_DIRECTORIES)
@@ -90,7 +90,7 @@ target_link_libraries(rs-save PUBLIC ${DEPENDENCIES} rs-util)
 target_link_libraries(rs-integrate-server PUBLIC ${DEPENDENCIES} rs-util)
 
 # Set the include directories
-set(CMAKE_BUILD_INCLUDE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/cmake-build)
+set(CMAKE_BUILD_INCLUDE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 set(INCLUDE_DIRS_ALL 
     ${PROJECT_SOURCE_DIR}/src/include
     /usr/include

@@ -3,7 +3,7 @@
 ARG FROM_IMAGE=ubuntu:bionic
 FROM $FROM_IMAGE
 ARG TARGETPLATFORM
-ARG N_CPUS=18
+ARG N_CPUS=12
 
 # setup timezone
 RUN echo 'Etc/UTC' > /etc/timezone && \
@@ -27,6 +27,10 @@ ENV LANG C.UTF-8
 ENV LC_ALL C.UTF-8
 
 RUN echo ${N_CPUS}
+
+# Link python to python3
+RUN ln -s /usr/bin/python3 /usr/bin/python & \
+    ln -s /usr/bin/pip3 /usr/bin/pip
     
 # clone source
 ENV MYWS /opt/workspace
@@ -45,18 +49,21 @@ RUN apt-get install --no-install-recommends -y build-essential libgtk2.0-dev pkg
 # ECAL Dependencies
 RUN apt-get install --no-install-recommends -y graphviz build-essential zlib1g-dev libhdf5-dev libprotobuf-dev libprotoc-dev protobuf-compiler libcurl4-openssl-dev
 
+# Open3D Dependencies
+RUN apt-get install --no-install-recommends -y libeigen3-dev
+
 # Install cmake - This takes like 30 minutes on emulated hardware...
-RUN wget -O /opt/cmake-3.15.5.tar.gz https://cmake.org/files/v3.15/cmake-3.15.5.tar.gz && \
+RUN wget -O /opt/cmake-3.18.6.tar.gz https://cmake.org/files/v3.18/cmake-3.18.6.tar.gz && \
     cd /opt && \
-    tar -xzf cmake-3.15.5.tar.gz && \
-    rm /opt/cmake-3.15.5.tar.gz && \
-    cd /opt/cmake-3.15.5 && \
-    ./configure --prefix=/opt/cmake-3.15.5 && \
+    tar -xzf cmake-3.18.6.tar.gz && \
+    rm /opt/cmake-3.18.6.tar.gz && \
+    cd /opt/cmake-3.18.6 && \
+    ./configure --prefix=/opt/cmake-3.18.6 && \
     make -j${N_CPUS} && \
     make install && \
     rm -rf Source && rm -rf Bootstrap.cmk && rm -rf Tests && rm -rf Utilities
 
-ENV PATH "/opt/cmake-3.15.5/bin:$PATH"
+ENV PATH "/opt/cmake-3.18.6/bin:$PATH"
 
 # Prepare OpenCV Creation File
 COPY opencv.sh /tmp/  
@@ -69,49 +76,43 @@ RUN git clone -b '3.4.7' --single-branch https://github.com/opencv/opencv.git /o
 
 # Prepare for ECAL - Shared Memory Marshalling and Communication
 RUN cd /opt && \
-    git clone --single-branch --branch v5.5.2 --recursive git://github.com/continental/ecal.git
+    git clone --single-branch --branch v5.8.5 --recursive git://github.com/continental/ecal.git
 RUN cd /opt/ecal && mkdir build_ &&  cd build_ && \
-    cmake .. -DCMAKE_BUILD_TYPE=Release -DECAL_THIRDPARTY_BUILD_PROTOBUF=OFF -DHAS_QT5=OFF -DBUILD_DOCS=OFF -DECAL_THIRDPARTY_BUILD_CURL=OFF -DECAL_THIRDPARTY_BUILD_HDF5=OFF -DECAL_THIRDPARTY_BUILD_TINYXML2=OFF -DBUILD_PY_BINDING=ON && \
+    cmake .. -DCMAKE_BUILD_TYPE=Release -DECAL_THIRDPARTY_BUILD_PROTOBUF=OFF -DHAS_QT5=OFF -DBUILD_DOCS=OFF -DECAL_THIRDPARTY_BUILD_CURL=OFF -DECAL_THIRDPARTY_BUILD_HDF5=OFF -DECAL_THIRDPARTY_BUILD_TINYXML2=ON -DBUILD_PY_BINDING=ON && \
     make -j${N_CPUS} && \
     cd /opt/ecal/build_ && \
     cpack -G DEB && \
     dpkg -i _deploy/eCAL-* && \
-    cd /opt/ecal/build_ && cmake --build . --target create_python_egg --config Release && cd python &&  python3 setup.py bdist_wheel && cp dist/ecal-*.whl /opt && pip3 install . && \
+    cd /opt/ecal/build_ && cmake --build . --target create_python_wheel --config Release && pip install _deploy/ecal-* && \
     rm -rf /opt/ecal
 
 # Clone Realsense - Depth, IMU, 6DOF Sensor SDK
-RUN git clone https://github.com/IntelRealSense/librealsense.git /opt/librealsense && cd /opt/librealsense && git checkout v2.35.2 && \
-    mkdir build && cd build && \
+RUN git clone --single-branch --branch v2.40.0 --recursive https://github.com/IntelRealSense/librealsense.git /opt/librealsense && \
+    cd /opt/librealsense && mkdir build && cd build && \
     cmake ../ -DFORCE_RSUSB_BACKEND=true -DCMAKE_BUILD_TYPE=release -DBUILD_EXAMPLES=true -DBUILD_GRAPHICAL_EXAMPLES=true -DBUILD_PYTHON_BINDINGS=true && \
     make -j${N_CPUS} && \
     make install && \
+    echo "from .pyrealsense2 import *" >> /usr/lib/python3/dist-packages/pyrealsense2/__init__.py && \
     rm -rf /opt/librealsense
 
 ENV PYTHONPATH $PYTHONPATH:/usr/local/lib
 
-# Prepare XIVO - Visual SLAM on Host Computer
-# COPY xivo.sh /tmp/  
-# RUN chmod u+x /tmp/xivo.sh
-# RUN bash /tmp/xivo.sh ${TARGETPLATFORM} 
-
-# Link python to python3
-RUN ln -s /usr/bin/python3 /usr/bin/python & \
-    ln -s /usr/bin/pip3 /usr/bin/pip
-
 # Open 3D Install
-RUN cd /opt && git clone --single-branch --branch v0.10.0 --recursive https://github.com/intel-isl/Open3D.git
+RUN git clone --single-branch --branch v0.12.0 --recursive https://github.com/intel-isl/Open3D.git /opt/Open3D
+COPY o3d.patch /opt/Open3D/o3d.patch
+RUN cd /opt/Open3D && git apply o3d.patch
 RUN cd /opt/Open3D && \
     mkdir build && cd build && \
-    cmake ../ -DBUILD_CPP_EXAMPLES=OFF -DENABLE_JUPYTER=OFF -DGLIBCXX_USE_CXX11_ABI=ON && \
+    cmake ../ -DBUILD_CPP_EXAMPLES=OFF -DENABLE_JUPYTER=OFF -DGLIBCXX_USE_CXX11_ABI=ON -DUSE_SYSTEM_EIGEN3=ON && \
     make -j${N_CPUS} && \
-    make install && make python-package && cd /opt/Open3D/build/lib/python_package && pip install . && \
+    make install && make install-pip-package && \
     rm -rf /opt/Open3D
 
 # Stuff I like/need
 RUN apt-get install --no-install-recommends -y nano htop
 
 # Our Project Dependencies
-RUN apt-get install --no-install-recommends -y libgflags-dev libgoogle-glog-dev python3-scipy python3-matplotlib libeigen3-dev
+RUN apt-get install --no-install-recommends -y libgflags-dev libgoogle-glog-dev python3-scipy python3-matplotlib
 RUN pip3 install protobuf
 
 # Visualization
