@@ -1,4 +1,12 @@
-#!/bin/bash
+#!/bin/zsh
+
+# exit when any command fails
+set -e
+
+# keep track of the last executed command
+trap 'last_command=$current_command; current_command=$BASH_COMMAND' DEBUG
+# echo an error message before exiting
+trap 'echo "\"${last_command}\" command filed with exit code $?."' EXIT
 
 # Clone Open CV
 git clone -b '3.4.7' --single-branch https://github.com/opencv/opencv.git ~/Software/opencv
