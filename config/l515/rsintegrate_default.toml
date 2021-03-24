@@ -1,0 +1,26 @@
+name = "Integration Server Settings"
+# Integratrion only occurs if the camera moves this much
+min_translate_change = 0.10 # meters
+min_rotation_change= 10.0 # degrees
+
+# Depth Configuation
+depth_scale = 4000.0 # Z16 conversion to meters. 1 int is .25 millimeter.
+depth_trunc = 3.0 # Truncate depth image after 3 meters
+# path_intrinsic = "config/l515/camera_intrinsic_rgb_640.json" # Intriniscs of the RGBD Frames
+path_intrinsic = "config/l515/camera_intrinsic_depth_320.json" # Intriniscs of the RGBD Frames
+
+auto_start = true # Create a "Default" scene and begin integrating right away
+save_dir="data"  # Directory to save data
+
+# Paramerters for the TSDF Volume Integration
+# http://www.open3d.org/docs/release/python_api/open3d.integration.ScalableTSDFVolume.html
+[scalable_tsdf]
+voxel_length= 0.05
+sdf_trunc= 0.15
+depth_sampling_stride=4
+color_type= 1 # None, Color, Gray
+
+# Mesh Extraction
+color_vertices=true
+
+

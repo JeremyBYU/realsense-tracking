@@ -12,7 +12,7 @@ import open3d as o3d
 from ecal.core.service import Client
 
 THIS_DIR = Path(__file__).parent
-BUILD_DIR = (THIS_DIR / ".." / "build").resolve()
+BUILD_DIR = (THIS_DIR / ".." / "cmake-build").resolve()
 sys.path.insert(1, str(BUILD_DIR))
 
 

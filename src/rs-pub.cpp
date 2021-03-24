@@ -241,9 +241,10 @@ void process_pipeline(std::vector<rspub::StreamDetail> dsp, rs2::pipeline &pipe,
 
 	// create filters for depth image
 	std::vector<NamedFilter> filters;
-	const bool align = create_filters(filters, tcf);
-	rs2::align align_to_color(RS2_STREAM_COLOR);
-
+	const std::tuple<bool, std::string> align = create_filters(filters, tcf);
+	auto stream_to_align = std::get<1>(align) == "color" ? RS2_STREAM_COLOR : RS2_STREAM_DEPTH;
+	rs2::align align_to_color(stream_to_align); // when aligining to color, no distortion in coeffecients
+												 // when aligining to depth, no distortion in coeffecients
 	auto depth_cfg = toml::find(tcf, "publish", "depth");
 	auto depth_cfg_active = toml::find_or<bool>(depth_cfg, "active", false);
 	int depth_cfg_rate = toml::find_or<int>(depth_cfg, "rate", 1);
@@ -289,7 +290,8 @@ void process_pipeline(std::vector<rspub::StreamDetail> dsp, rs2::pipeline &pipe,
 			double cts = 0;
 
 			double now = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
-			VLOG(1) << std::setprecision(0) << std::fixed << "Received FrameSet; now: " << now << "; dwidth: " << dframe.get_width();
+			auto start_cwidth = cframe ? cframe.get_width(): 0; 
+			VLOG(1) << std::setprecision(0) << std::fixed << "Received FrameSet; now: " << now << "; dwidth: " << dframe.get_width() << "; cwidth: " << start_cwidth;
 			// continue; // LOG(INFO) << std::setprecision(0) << std::fixed << "Received FrameSet; now: " << now << "; cwidth: " << cframe.get_width();
 			if (dframe)
 			{
@@ -307,13 +309,15 @@ void process_pipeline(std::vector<rspub::StreamDetail> dsp, rs2::pipeline &pipe,
 				dframe = frames.get_depth_frame();
 			}
 
-			if (dframe && cframe && align)
+			if (dframe && cframe && std::get<0>(align))
 			{
 				VLOG(2) << "Applying filter: align";
 				frames = align_to_color.process(frames);
 				dframe = frames.get_depth_frame();
 				cframe = frames.get_color_frame();
 			}
+
+			
 
 			VLOG(2) << "Filtering Complete";
 			// std::cout << "Before depth check: " << depth_cfg_active << " " << depth_cfg_counter << " " << depth_cfg_rate << std::endl;
@@ -356,8 +360,15 @@ void process_pipeline(std::vector<rspub::StreamDetail> dsp, rs2::pipeline &pipe,
 
 			}
 
+			// auto test = dframe.get_profile().as<rs2::video_stream_profile>(); 
+			// auto my_intrinsics = test.get_intrinsics();
+			// VLOG(4) << std::setprecision(2) << std::fixed << "Intrinsics: " << my_intrinsics.ppx << ", " << my_intrinsics.ppy << ", " << my_intrinsics.fx << ", " << my_intrinsics.fy;
+			// VLOG(4) << std::setprecision(2) << std::fixed << "Coefs: " << my_intrinsics.coeffs[0] << ", " << my_intrinsics.coeffs[1] << ", " << my_intrinsics.coeffs[2] << ", " << my_intrinsics.coeffs[3] << ", " << my_intrinsics.coeffs[4];
+			
+			start_cwidth = cframe ? cframe.get_width(): 0; 
 			now = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
-			VLOG(1) << std::setprecision(0) << std::fixed << "End of FrameSet Loop; now: " << now << "; dframe hardware_ts: " << dts << "; cframe hardware_ts: " << cts;
+			VLOG(1) << std::setprecision(0) << std::fixed << "End of FrameSet Loop; now: " << now << "; dframe hardware_ts: " << dts << "; cframe hardware_ts: " << cts
+			        << "; dwidth: " << dframe.get_width() << "; cwidth: " << start_cwidth;
 			if (dframe && pc_cfg_active && pc_cfg_counter == pc_cfg_rate)
 			{
 				VLOG(2) << "Publishing pointcloud";

@@ -18,7 +18,8 @@ cd build
 cmake .. -D CMAKE_BUILD_TYPE=release \
     -D BUILD_CPP_EXAMPLES=OFF \
     -D ENABLE_JUPYTER=OFF \
-    -D GLIBCXX_USE_CXX11_ABI=ON
+    -D GLIBCXX_USE_CXX11_ABI=ON \
+    -D USE_SYSTEM_EIGEN3=ON
 
 
 make -j12

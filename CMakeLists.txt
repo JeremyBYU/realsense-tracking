@@ -16,7 +16,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # add_definitions(-DNDEBUG)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -std=c++17 -Wno-narrowing -Wno-register -fPIC -g")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mtune=native -march=native")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mtune=native -march=native") # beware eigen issues when shared libraries compiled with different optimization levels!!!!!
 set(CMAKE_BUILD_TYPE "Release")
 
 
@@ -34,7 +35,7 @@ find_package(eCAL COMPONENTS core REQUIRED)
 find_package(OpenGL)
 find_package(gflags REQUIRED)
 find_package(glog) # Docker ubuntu can not find when REQUIRED, but logging still works?!?!?
-# find_package(Eigen3 REQUIRED )
+find_package(Eigen3 REQUIRED )
 find_package(Open3D HINTS ${CMAKE_INSTALL_PREFIX}/lib/CMake REQUIRED)
 
 
@@ -57,7 +58,7 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib)
 
 
-get_target_property(eigen_include_dirs eigen INTERFACE_INCLUDE_DIRECTORIES)
+# get_target_property(eigen_include_dirs eigen INTERFACE_INCLUDE_DIRECTORIES)
 
 message ("CMAKE_INSTALL_PREFIX = ${CMAKE_INSTALL_PREFIX}")
 message ("eigen_include_dirs = ${eigen_include_dirs}")
@@ -102,6 +103,7 @@ set(INCLUDE_DIRS_ALL
     ${GFLAG_INCLUDE_DIRS}
     ${toml11_SOURCE_DIR}
     ${Open3D_INCLUDE_DIRS}
+    ${EIGEN3_INCLUDE_DIR}
 ) 
 
 target_include_directories(rs-util PUBLIC

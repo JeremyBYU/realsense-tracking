@@ -92,7 +92,7 @@ void parse_desired_stream(std::vector<StreamDetail> &sds, const toml::value &tcf
 	}
 }
 
-bool create_filters(std::vector<NamedFilter> &filters, const toml::value &tcf)
+std::tuple<bool, std::string> create_filters(std::vector<NamedFilter> &filters, const toml::value &tcf)
 {
 	try
 	{
@@ -168,8 +168,9 @@ bool create_filters(std::vector<NamedFilter> &filters, const toml::value &tcf)
 		{
 			auto filter = toml::find(filters_t, "align");
 			auto active = toml::find<bool>(filter, "active");
+			auto stream = toml::find_or<std::string>(filter, "stream", "color");
 			if (active)
-				return active;
+				return {active, stream};
 		}
 		catch (const std::exception &e)
 		{
@@ -183,7 +184,7 @@ bool create_filters(std::vector<NamedFilter> &filters, const toml::value &tcf)
 		std::cerr << e.what() << '\n';
 	}
 
-	return false;
+	return {false, ""};;
 }
 
 void fill_pointcloud(rs2::depth_frame &dframe, rs2::video_frame &cframe, rs2::pointcloud &pc, rs2::points &points, bool color = false)

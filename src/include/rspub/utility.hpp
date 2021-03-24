@@ -176,7 +176,7 @@ struct StreamDetail
 };
 
 void parse_desired_stream(std::vector<StreamDetail> &sds, const toml::value &tcf, std::string streams_str);
-bool create_filters(std::vector<NamedFilter> &filters, const toml::value &tcf);
+std::tuple<bool, std::string> create_filters(std::vector<NamedFilter> &filters, const toml::value &tcf);
 
 void fill_pose_message(rs2_pose &pose, rspub_pb::PoseMessage &pm, double ts);
 void fill_image_message(rs2::video_frame &dframe, rspub_pb::ImageMessage &frame_image);

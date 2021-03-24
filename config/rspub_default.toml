@@ -65,6 +65,7 @@ active = true
 
   [filters.align]
   active=true
+  stream="color"
 
 
 ### Topics ###

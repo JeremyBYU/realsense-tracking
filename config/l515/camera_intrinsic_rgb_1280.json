@@ -1,0 +1,65 @@
+{
+    "width": 424,
+    "height": 240,
+    "intrinsic_matrix": [ // COLUMN ORDER EIGEN
+        307.8533935546875,
+        0,
+        0,
+        0,
+        307.8641357421875,
+        0,
+        204.47328186035156,
+        121.65782165527344,
+        1
+    ]
+}
+
+// void SetIntrinsics(
+// int width, int height, double fx, double fy, double cx, double cy) {
+// width_ = width;
+// height_ = height;
+// intrinsic_matrix_.setIdentity();
+// intrinsic_matrix_(0, 0) = fx;
+// intrinsic_matrix_(1, 1) = fy;
+// intrinsic_matrix_(0, 2) = cx;
+// intrinsic_matrix_(1, 2) = cy;
+// }
+
+
+// Please select the desired streaming profile: 21
+
+// Principal Point         : 641.068, 377.135
+// Focal Length            : 915.622, 916.252
+// Distortion Model        : Inverse Brown Conrady
+// Distortion Coefficients : [0.172687,-0.531972,-0.000920576,0.0010761,0.467484]
+
+
+
+// Please select the desired streaming profile: 76
+
+// Principal Point         : 320.712, 251.423
+// Focal Length            : 610.415, 610.834
+// Distortion Model        : Inverse Brown Conrady
+// Distortion Coefficients : [0.172687,-0.531972,-0.000920576,0.0010761,0.467484]
+
+
+// Depth 640X 480
+// I0323 20:44:04.646411 158153 rs-pub.cpp:365] Intrinsics: 322.36, 247.46, 459.23, 459.09
+// I0323 20:44:04.646445 158153 rs-pub.cpp:366] Coefs: 0.00, 0.00, 0.00, 0.00, 0.00
+
+
+// 640X480 Decimate 2
+// I0323 20:44:59.359383 158413 rs-pub.cpp:365] Intrinsics: 161.18, 123.73, 229.62, 229.54
+// I0323 20:44:59.359397 158413 rs-pub.cpp:366] Coefs: 0.00, 0.00, 0.00, 0.00, 0.00
+
+// 11 : Depth #0 (Video Stream: Z16 320x240@ 30Hz)
+
+// Please select the desired streaming profile: 11
+
+// Principal Point         : 160.428, 123.735
+// Focal Length            : 229.615, 229.941
+// Distortion Model        : None
+// Distortion Coefficients : [0,0,0,0,0]
+// Show stream intrinsics again?[y/n]: 
+
+

@@ -27,6 +27,7 @@
 #include <open3d/pipelines/integration/ScalableTSDFVolume.h>
 #include <open3d/io/IJsonConvertibleIO.h>
 #include <open3d/io/TriangleMeshIO.h>
+#include <open3d/io/ImageIO.h>
 #include <open3d/geometry/HalfEdgeTriangleMesh.h>
 #include <Eigen/Geometry>
 
@@ -116,6 +117,9 @@ public:
 		depth_scale = toml::find_or<double>(tcf, "depth_scale", 1000.0);
 		auto intrinsic_fpath = toml::find_or<std::string>(tcf, "path_intrinsic", "");
 		open3d::io::ReadIJsonConvertible(intrinsic_fpath, camera_intrinsic);
+
+		// std::cout << camera_intrinsic.GetPrincipalPoint().first << std::endl;
+		// std::cout << "No crash yet" << std::endl;
 		// Application Parameters
 		auto_start = toml::find_or<bool>(tcf, "auto_start", true);
 		save_dir = toml::find_or<std::string>(tcf, "save_dir", "data");
@@ -362,6 +366,7 @@ public:
 
 	void OnRGBDMessage(const char *topic_name_, const rspub_pb::ImageMessage &im_msg, const long long time_, const long long clock_)
 	{
+		// std::cout << "OnRGBDMessage" << std::endl;
 		double now = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
 		VLOG(2) << std::setprecision(0) << std::fixed << "Received RGBDMessage; now: " << now << "; send_ts: " << time_ / 1000 << "; hardware_ts: " << im_msg.hardware_ts() << std::endl;
 
@@ -385,14 +390,20 @@ public:
 		auto H_t265_W = make_transform(rotation, translation);
 		Eigen::Matrix4d extrinsic = (H_t265_d400.inverse() * H_t265_W * H_t265_d400).inverse();
 
+		// std::cout << "About to Create Image" << std::endl;
 		// Unfortunately these are making copies
 		// I dont think theres anyway to avoid this with O3D API
 		auto color_image = createImage(image_data_ptr, w, h, 3, 1);
 		auto depth_image = createImage(image_data_second_ptr, w, h, 1, 2);
+
+		// o3d::io::WriteImage("blah_color.png", *color_image);
+		// o3d::io::WriteImage("blah_depth.png", *depth_image);
+		// std::cout << "Created Image" << std::endl;
 		// I think this may even be a copy!
 		auto rgbd_image = o3dGeom::RGBDImage::CreateFromColorAndDepth(*color_image, *depth_image,
 																	  depth_scale = depth_scale, depth_trunc = depth_trunc, false);
-
+		// std::cout << "Here is extrinsics" << extrinsic << std::endl;
+		// std::cout << "Created RGBD Image" << std::endl;
 		for (auto &scene_name : scene_names)
 		{
 			VLOG(3) << "Looking at " << scene_name;
@@ -401,7 +412,7 @@ public:
 				continue;
 			VLOG(2) << "Integrating " << scene_name;
 			double now0 = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
-			scene.volume->Integrate(*rgbd_image.get(), camera_intrinsic, extrinsic);
+			scene.volume->Integrate(*rgbd_image, camera_intrinsic, extrinsic);
 			double now1 = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
 			VLOG(1) << std::setprecision(3) << std::fixed << "Volume Integration took: " << now1 - now0 << " milliseconds";
 		}
