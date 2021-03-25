@@ -1,7 +1,7 @@
 # Docker file to setup base robotics environment
 # Ubunut base, python 3, cmake 3.15, realsense, open cv, 
 ARG FROM_IMAGE=ubuntu:bionic
-FROM $FROM_IMAGE
+FROM $FROM_IMAGE as base_install
 ARG TARGETPLATFORM
 ARG N_CPUS=12
 
@@ -50,7 +50,9 @@ RUN apt-get install --no-install-recommends -y build-essential libgtk2.0-dev pkg
 RUN apt-get install --no-install-recommends -y graphviz build-essential zlib1g-dev libhdf5-dev libprotobuf-dev libprotoc-dev protobuf-compiler libcurl4-openssl-dev
 
 # Open3D Dependencies
-RUN apt-get install --no-install-recommends -y libeigen3-dev
+RUN apt-get install --no-install-recommends -y libeigen3-dev libblas-dev liblapack-dev liblapacke-dev libxi-dev
+
+FROM base_install as cmake_install
 
 # Install cmake - This takes like 30 minutes on emulated hardware...
 RUN wget -O /opt/cmake-3.18.6.tar.gz https://cmake.org/files/v3.18/cmake-3.18.6.tar.gz && \
@@ -65,6 +67,7 @@ RUN wget -O /opt/cmake-3.18.6.tar.gz https://cmake.org/files/v3.18/cmake-3.18.6.
 
 ENV PATH "/opt/cmake-3.18.6/bin:$PATH"
 
+FROM cmake_install as opencv_install
 # Prepare OpenCV Creation File
 COPY opencv.sh /tmp/  
 RUN chmod u+x /tmp/opencv.sh
@@ -74,6 +77,7 @@ RUN git clone -b '3.4.7' --single-branch https://github.com/opencv/opencv.git /o
     git clone -b '3.4.7' --single-branch https://github.com/opencv/opencv_contrib.git /opt/opencv_contrib && \
     bash /tmp/opencv.sh ${TARGETPLATFORM}
 
+FROM opencv_install as ecal_install
 # Prepare for ECAL - Shared Memory Marshalling and Communication
 RUN cd /opt && \
     git clone --single-branch --branch v5.8.5 --recursive git://github.com/continental/ecal.git
@@ -86,6 +90,7 @@ RUN cd /opt/ecal && mkdir build_ &&  cd build_ && \
     cd /opt/ecal/build_ && cmake --build . --target create_python_wheel --config Release && pip install _deploy/ecal-* && \
     rm -rf /opt/ecal
 
+FROM ecal_install as realsense_install
 # Clone Realsense - Depth, IMU, 6DOF Sensor SDK
 RUN git clone --single-branch --branch v2.40.0 --recursive https://github.com/IntelRealSense/librealsense.git /opt/librealsense && \
     cd /opt/librealsense && mkdir build && cd build && \
@@ -97,17 +102,18 @@ RUN git clone --single-branch --branch v2.40.0 --recursive https://github.com/In
 
 ENV PYTHONPATH $PYTHONPATH:/usr/local/lib
 
+FROM realsense_install as o3d_install
 # Open 3D Install
-RUN git clone --single-branch --branch v0.12.0 --recursive https://github.com/intel-isl/Open3D.git /opt/Open3D
-COPY o3d.patch /opt/Open3D/o3d.patch
-RUN cd /opt/Open3D && git apply o3d.patch
-RUN cd /opt/Open3D && \
+COPY o3d.patch /opt/o3d.patch
+RUN git clone --single-branch --branch v0.12.0 --recursive https://github.com/intel-isl/Open3D.git /opt/Open3D && \
+    cd /opt/Open3D && git apply ../o3d.patch && \
     mkdir build && cd build && \
-    cmake ../ -DBUILD_CPP_EXAMPLES=OFF -DENABLE_JUPYTER=OFF -DGLIBCXX_USE_CXX11_ABI=ON -DUSE_SYSTEM_EIGEN3=ON && \
+    cmake ../ -DBUILD_CPP_EXAMPLES=OFF -DBUILD_EXAMPLES=OFF -DBUILD_JUPYTER_EXTENSION=OFF -DENABLE_JUPYTER=OFF -DGLIBCXX_USE_CXX11_ABI=ON -DUSE_SYSTEM_EIGEN3=ON -DBUILD_GUI=OFF -DBUILD_FILAMENT_FROM_SOURCE=OFF && \
     make -j${N_CPUS} && \
     make install && make install-pip-package && \
     rm -rf /opt/Open3D
 
+FROM o3d_install as final_install
 # Stuff I like/need
 RUN apt-get install --no-install-recommends -y nano htop
 
@@ -115,19 +121,9 @@ RUN apt-get install --no-install-recommends -y nano htop
 RUN apt-get install --no-install-recommends -y libgflags-dev libgoogle-glog-dev python3-scipy python3-matplotlib
 RUN pip3 install protobuf
 
-# Visualization
-# RUN apt-get install --no-install-recommends -y x11vnc \
-#     xorg-dev \
-#     xterm \
-#     xvfb
-
-
-# EXPOSE 5920
-
 # setup entrypoint
 COPY ./base_entrypoint.sh /
 
 # TO ADD LATER
-
 ENTRYPOINT ["/base_entrypoint.sh"]
 CMD ["bash"]

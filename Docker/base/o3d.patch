@@ -1,3 +1,17 @@
+diff --git a/cpp/open3d/core/linalg/BlasWrapper.h b/cpp/open3d/core/linalg/BlasWrapper.h
+index a5893d39..61582eef 100644
+--- a/cpp/open3d/core/linalg/BlasWrapper.h
++++ b/cpp/open3d/core/linalg/BlasWrapper.h
+@@ -26,6 +26,9 @@
+ 
+ #pragma once
+ 
++#if __aarch64__
++#include "/usr/include/aarch64-linux-gnu/cblas-netlib.h" 
++#endif
+ #include "open3d/core/linalg/LinalgHeadersCPU.h"
+ #include "open3d/core/linalg/LinalgHeadersCUDA.h"
+ #include "open3d/utility/Console.h"
 diff --git a/cpp/open3d/geometry/Line3D.cpp b/cpp/open3d/geometry/Line3D.cpp
 index 28e2e6c6..40851253 100644
 --- a/cpp/open3d/geometry/Line3D.cpp

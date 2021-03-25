@@ -32,3 +32,25 @@ Also read this: https://medium.com/@artur.klauser/building-multi-architecture-do
 
 1. cd `realsense-tracking` - The main directory
 2. `docker run --rm --privileged -it --env="DISPLAY" --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" --volume="$(pwd):/opt/workspace:rw" jeremybyu/realsense:latest`
+
+
+
+## Extra Docker Notes
+
+
+
+**Launch Another Terminal for the same Container**
+
+`docker exec -it <container_id> bash`
+
+
+**Learn abotu Docker Compose**
+https://docs.docker.com/compose/compose-file/compose-file-v3/
+
+**Shared IPC Docker**
+https://stackoverflow.com/questions/23889187/is-it-possible-to-share-memory-between-docker-containers
+
+
+
+
+

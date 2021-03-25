@@ -38,8 +38,9 @@ If you want to install locally please execute the following scripts (there will 
 
 This is only required if you want two computers on the same network to talk to each other.
 
-1. Update each computers hosts file so that they are aware of each other. An example below. Don't forget the `.locadomain`.
+1. Update each computers hosts file so that they are aware of each other. An example below. Don't forget the `.localdomain`.
 
+Example:
 ```txt
 127.0.0.1       localhost
 ::1             localhost
@@ -70,26 +71,39 @@ The software is configured to use the `config/ecal/ecal.ini` file. Note that som
 
 A raspberry pi image has already been created and set up. Download the image and flash the sd card.
 
-uname: ubuntu
+uname: a2sys
 
-password: pir0b0t
+password: a2sysblah
 
-1. `ssh -X ubuntu@192.168.1.25` - Allows XForwarding if needed. Might need to use gui (hdmi) to find out what the ip is first. IP subject to change for your own network.
+1. `ssh -X a2sys@192.168.1.25` - Allows XForwarding if needed. Might need to use gui (hdmi) to find out what the ip is first. IP subject to change for your own network.
 2. `cd $HOME/Documents/realsense-tracking`
 
 ### Launch Docker
 
-1. `rs-pose`, `rs-enumerate-devices` - Need to "open" the sensors on host first. Not sure why.
+1. `rs-pose`, `rs-enumerate-devices` - Need to "open" the sensors on host first before launching docker. Not sure why.
 2. `docker run  --rm --privileged -it --env="DISPLAY" --net=host --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" --mount type=bind,source="$(pwd)",target=/opt/workspace --name realsense jeremybyu/realsense:buildx` - Raspberry PI
 3. Optional - `rm -rf build && mkdir build && cd build && cmake .. && make && cd ..`
 
 Alternative X86 Launch - `docker run  --rm --privileged -it --env="DISPLAY" --net=host --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" --mount type=bind,source="$(pwd)",target=/opt/workspace --name realsense --user $(id -u):$(id -g) jeremybyu/realsense:latest`
 
-## Run Without Docker
 
-Follow `Docker/base/Dockerfile` to install all third party dependencies
+Also see `Docker/README.md` for building and launching.
 
-1. `mkdir build && cd build`
+## Run Locally
+
+Install all dependencies and simply `cd` to `realsense-tracking`
+
+
+## Build Applications
+
+Make a cmake `build` directory. I use:
+
+* `cmake-build` for local development. No docker.
+* `dk-x86_64-build` for x86 Docker development. On your local computer, inside docker x86 container, building application.
+* `dk-aarch64-build` for arm Docker development. On your local computer, inside docker arm container (using QEMU underneath), building application.
+
+0. If using docker, enter into terminal shell
+1. `mkdir MY_BUILD_DIR && cd MY_BUILD_DIR`
 2. `cmake .. && cmake --build -j8`
 
 
@@ -119,16 +133,10 @@ Will convert saved protofiles in a folder to text format. This is for any point 
 
 Creates an RPC Server that allows users to generate meshes on demand with simple requests. This requires both the T265 Poses and D4XX RGBD frames to be published.
 It will automatically subscribe to RGBD Images and integrate them to a voxel volume. Users can (on demand) request
-to extract meshes, polygons, or even pont clouds from the voxel volume. Configured by `config/rsintegrate_default.toml`.
+to extract meshes from the voxel volume. Configured by `config/rsintegrate_default.toml`.
 
 1. `export OMP_NUM_THREADS=1` - Multithreading actually screws this worse!
 2. `GLOG_logtostderr=1 ./bin/rs-integrate-server --v=1`
-
-<!-- ### Reconstruction
-
-This is just an example of doing offline reconstruction in python.
-
-1. `python -m server.ReconstructionSystem.refine_trajectory --config config/reconstruction.json` -->
 
 
 ## Notes
@@ -163,10 +171,11 @@ Just tested this on ARM and it actually worked! The only thing that was missing 
 1. `scp pi@192.168.1.3:/home/pi/Documents/realsense-tracking/data/Default.ply data/Default.ply`
 
 
-
 ### Trim Down Image
 
-The image is 3.1 GB.  Open3D is about 1.1 GB! 475 MB of that is the python installs from extension (338 MB is just the open3d.so file). Maybe get rid of it?
+The image is 3.1 GB.  Open3D is about 1.1 GB! 475 MB of that is the python installs from extension (338 MB is just the `open3d.so` file). Maybe get rid of it?
+
+[Helpful Reseouce](https://towardsdatascience.com/slimming-down-your-docker-images-275f0ca9337e)
 
 ```txt
 Cmp   Size  Command                                                                                  Permission     UID:GID       Size  Filetree

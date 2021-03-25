@@ -13,6 +13,7 @@ trap 'echo "\"${last_command}\" command filed with exit code $?."' EXIT
 git clone --single-branch --branch v0.12.0 --recursive https://github.com/intel-isl/Open3D.git ~/Software/Open3D
 
 # NEED TO APPLY PATCH FILE - git appply o3d.patch
+# https://github.com/intel-isl/Open3D/issues/2468
 cd ~/Software/Open3D
 mkdir build
 cd build
