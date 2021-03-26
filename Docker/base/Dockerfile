@@ -121,6 +121,7 @@ RUN apt-get install --no-install-recommends -y nano htop
 RUN apt-get install --no-install-recommends -y libgflags-dev libgoogle-glog-dev python3-scipy python3-matplotlib
 RUN pip3 install protobuf
 
+COPY ecal.ini /usr/local/etc/ecal/ecal.ini
 # setup entrypoint
 COPY ./base_entrypoint.sh /
 
