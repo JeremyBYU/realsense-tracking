@@ -84,7 +84,7 @@ password: a2sysblah
 2. `docker run  --rm --privileged -it --env="DISPLAY" --net=host --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" --mount type=bind,source="$(pwd)",target=/opt/workspace --name realsense jeremybyu/realsense:buildx` - Raspberry PI
 3. Optional - `rm -rf build && mkdir build && cd build && cmake .. && make && cd ..`
 
-Alternative X86 Launch - `docker run  --rm --privileged -it --env="DISPLAY" --net=host --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" --mount type=bind,source="$(pwd)",target=/opt/workspace --name realsense --user $(id -u):$(id -g) jeremybyu/realsense:latest`
+Alternative X86 Launch - `docker run  --rm --privileged -it --env="DISPLAY" --net=host --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" --mount type=bind,source="$(pwd)",target=/opt/workspace --name realsense --user $(id -u):$(id -g) --ipc=host jeremybyu/realsense:latest`
 
 
 Also see `Docker/README.md` for building and launching.
@@ -109,11 +109,17 @@ Make a cmake `build` directory. I use:
 
 ## Applications
 
+All log files should be saved in the `logs` directory. Simply add `--log_dir=./logs` to command line of any application below.
+You can view the log files with: `less +F logs/rs-pub.INFO`
+Your can clear log files with: `./scripts/misc/clear_logs.sh`
+
 ### RS-Pub
 
 Will publish topics which are configured in a toml file. Configured by `config/rspub_default.toml`.
 
 1. `GLOG_logtostderr=1 ./bin/rs-pub`
+
+`./bin/x86_64/rs-pub --log_dir=./logs --v=1 --config=config/l515/rspub_default.toml` 
 
 `--force_udp` is an option
 

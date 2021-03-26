@@ -237,9 +237,9 @@ void create_folders(std::string &base_path, std::map<std::string, std::string> &
 int main(int argc, char *argv[]) try
 {
 	google::InitGoogleLogging(argv[0]);
+	gflags::ParseCommandLineFlags(&argc, &argv, true);
 	LOG(INFO) << "Starting rs-save";
 	// Parse command line flags
-	gflags::ParseCommandLineFlags(&argc, &argv, true);
 	const auto tcf = toml::parse(FLAGS_config);
 	std::string base_path = toml::find_or(tcf, "base_path", "");
 	min_translate_change = toml::find_or<double>(tcf, "min_translate_change", min_translate_change); // meters

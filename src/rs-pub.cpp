@@ -215,7 +215,18 @@ void enable_pipe_streams(std::vector<rspub::StreamDetail> &desired_pipeline_stre
 		if (global_time_enabled)
 		{
 			sensor.set_option(RS2_OPTION_GLOBAL_TIME_ENABLED, global_time_enabled);
-			LOG(INFO) << "Enabling Global time";
+			LOG(INFO) << "Enabling Global time on depth sensor";
+		}
+	}
+
+	auto sensor_color = profile.get_device().first<rs2::color_sensor>();
+	if (sensor_color)
+	{
+		auto global_time_enabled = toml::find_or<float>(tcf, "global_time_enabled", 0);
+		if (global_time_enabled)
+		{
+			sensor_color.set_option(RS2_OPTION_GLOBAL_TIME_ENABLED, global_time_enabled);
+			LOG(INFO) << "Enabling Global time on color sensor";
 		}
 	}
 }
@@ -545,23 +556,23 @@ int live_stream(const toml::value &tcf)
 }
 
 
-void OnPoseMessage(const char *topic_name_, const rspub_pb::PoseMessage &pose, const long long time_, const long long clock_)
-{
-	double now = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
-	VLOG(1) << std::setprecision(0) << std::fixed << "Received PoseMessage; now: " << now << "; send_ts: " << time_ / 1000 << "; hardware_ts: " << pose.hardware_ts() << std::endl;
-}
+// void OnPoseMessage(const char *topic_name_, const rspub_pb::PoseMessage &pose, const long long time_, const long long clock_)
+// {
+// 	double now = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
+// 	VLOG(1) << std::setprecision(0) << std::fixed << "Received PoseMessage; now: " << now << "; send_ts: " << time_ / 1000 << "; hardware_ts: " << pose.hardware_ts() << std::endl;
+// }
 
-void OnDepthMessage(const char *topic_name_, const rspub_pb::ImageMessage &im_msg, const long long time_, const long long clock_)
-{
-	double now = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
-	VLOG(1) << std::setprecision(0) << std::fixed << "Received DepthMessage; now: " << now << "; send_ts: " << time_ / 1000 << "; hardware_ts: " << im_msg.hardware_ts() << std::endl;
-}
+// void OnDepthMessage(const char *topic_name_, const rspub_pb::ImageMessage &im_msg, const long long time_, const long long clock_)
+// {
+// 	double now = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
+// 	VLOG(1) << std::setprecision(0) << std::fixed << "Received DepthMessage; now: " << now << "; send_ts: " << time_ / 1000 << "; hardware_ts: " << im_msg.hardware_ts() << std::endl;
+// }
 
-void OnPointCloudMessage(const char *topic_name_, const rspub_pb::PointCloudMessage &im_msg, const long long time_, const long long clock_)
-{
-	double now = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
-	VLOG(1) << std::setprecision(0) << std::fixed << "Received PointCloudMessage; now: " << now << "; send_ts: " << time_ / 1000 << "; hardware_ts: " << im_msg.hardware_ts() << std::endl;
-}
+// void OnPointCloudMessage(const char *topic_name_, const rspub_pb::PointCloudMessage &im_msg, const long long time_, const long long clock_)
+// {
+// 	double now = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
+// 	VLOG(1) << std::setprecision(0) << std::fixed << "Received PointCloudMessage; now: " << now << "; send_ts: " << time_ / 1000 << "; hardware_ts: " << im_msg.hardware_ts() << std::endl;
+// }
 
 
 } // namespace rstracker

@@ -440,10 +440,11 @@ protected:
 
 int main(int argc, char *argv[]) try
 {
-	google::InitGoogleLogging(argv[0]);
-	LOG(INFO) << "Starting rs-integrate-server";
+	std::cout << "Starting up in rs-integrate-server" << std::endl;
 	// Parse command line flags
+	google::InitGoogleLogging(argv[0]);
 	gflags::ParseCommandLineFlags(&argc, &argv, true);
+	LOG(INFO) << "Starting rs-integrate-server";
 	// ECAL Configuration
 	std::vector<std::string> ecal_args;
 	ecal_args.push_back("--default-ini-file");
@@ -466,14 +467,9 @@ int main(int argc, char *argv[]) try
 	eCAL::protobuf::CServiceServer<rspub_pb::IntegrateService> integrate_service(integrate_service_impl);
 
 	std::string save_scene;
-	LOG(INFO) << "Enter scene name to save data: ";
+	LOG(INFO) << "Waiting for service requests: ";
 	while (eCAL::Ok())
 	{
-		std::cin >> save_scene;
-		if (save_scene == ""s)
-			save_scene = "Default";
-		LOG(INFO) << "Saving mesh of " << save_scene;
-		integrate_service_impl->SaveMesh(save_scene);
 		eCAL::Process::SleepMS(10);
 	}
 	eCAL::Finalize();

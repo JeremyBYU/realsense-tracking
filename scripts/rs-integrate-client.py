@@ -14,6 +14,9 @@ from ecal.core.service import Client
 THIS_DIR = Path(__file__).parent
 BUILD_DIR = (THIS_DIR / ".." / "cmake-build").resolve()
 sys.path.insert(1, str(BUILD_DIR))
+BUILD_DIR = (THIS_DIR / ".." / "dk-x86_64-build").resolve()
+sys.path.insert(1, str(BUILD_DIR))
+
 
 
 from Integrate_pb2 import SceneRequestType, DataType, IntegrateRequest, IntegrateResponse, ExtractResponse, ADD, REMOVE, START, ExtractRequest, MESH

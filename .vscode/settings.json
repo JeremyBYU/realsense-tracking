@@ -70,7 +70,9 @@
         "variant": "cpp",
         "*.ipp": "cpp",
         "shared_mutex": "cpp",
-        "bit": "cpp"
+        "bit": "cpp",
+        "strstream": "cpp",
+        "regex": "cpp"
     },
     "python.pythonPath": "/home/jeremy/miniconda3/envs/realsense/bin/python",
     "cSpell.words": [
