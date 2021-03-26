@@ -584,7 +584,7 @@ int main(int argc, char *argv[]) try
 
 	// ECAL Configuration
 	std::vector<std::string> ecal_args;
-	ecal_args.push_back("--default-ini-file");
+	ecal_args.push_back("--ecal-ini-file");
 	ecal_args.push_back("./config/ecal/ecal.ini");
 	if (FLAGS_force_udp)
 	{	

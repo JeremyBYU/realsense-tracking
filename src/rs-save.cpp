@@ -239,6 +239,12 @@ int main(int argc, char *argv[]) try
 	google::InitGoogleLogging(argv[0]);
 	gflags::ParseCommandLineFlags(&argc, &argv, true);
 	LOG(INFO) << "Starting rs-save";
+
+	// ECAL Configuration
+	std::vector<std::string> ecal_args;
+	ecal_args.push_back("--ecal-ini-file");
+	ecal_args.push_back("./config/ecal/ecal.ini");
+
 	// Parse command line flags
 	const auto tcf = toml::parse(FLAGS_config);
 	std::string base_path = toml::find_or(tcf, "base_path", "");
@@ -271,7 +277,7 @@ int main(int argc, char *argv[]) try
 	LOG(INFO) << "Using this data folder: " << base_path;
 
 	// initialize eCAL API
-	eCAL::Initialize(0, nullptr, "RSSave");
+	eCAL::Initialize(ecal_args, "RSSave");
 	// create subscriber
 	rspub::SubPose sub_pose("PoseMessage");
 	rspub::SubImage sub_depth("DepthMessage");
