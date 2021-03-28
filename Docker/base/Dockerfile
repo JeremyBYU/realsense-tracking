@@ -1,9 +1,10 @@
 # Docker file to setup base robotics environment
 # Ubunut base, python 3, cmake 3.15, realsense, open cv, 
 ARG FROM_IMAGE=ubuntu:bionic
-FROM $FROM_IMAGE as base_install
-ARG TARGETPLATFORM
 ARG N_CPUS=12
+ARG TARGETPLATFORM
+FROM $FROM_IMAGE as base_install
+ARG N_CPUS
 
 # setup timezone
 RUN echo 'Etc/UTC' > /etc/timezone && \
@@ -68,6 +69,7 @@ RUN wget -O /opt/cmake-3.18.6.tar.gz https://cmake.org/files/v3.18/cmake-3.18.6.
 ENV PATH "/opt/cmake-3.18.6/bin:$PATH"
 
 FROM cmake_install as opencv_install
+ARG N_CPUS
 # Prepare OpenCV Creation File
 COPY opencv.sh /tmp/  
 RUN chmod u+x /tmp/opencv.sh
@@ -78,6 +80,7 @@ RUN git clone -b '3.4.7' --single-branch https://github.com/opencv/opencv.git /o
     bash /tmp/opencv.sh ${TARGETPLATFORM}
 
 FROM opencv_install as ecal_install
+ARG N_CPUS
 # Prepare for ECAL - Shared Memory Marshalling and Communication
 RUN cd /opt && \
     git clone --single-branch --branch v5.8.5 --recursive git://github.com/continental/ecal.git
@@ -91,11 +94,12 @@ RUN cd /opt/ecal && mkdir build_ &&  cd build_ && \
     rm -rf /opt/ecal
 
 FROM ecal_install as realsense_install
+ARG N_CPUS
 # Clone Realsense - Depth, IMU, 6DOF Sensor SDK
 RUN git clone --single-branch --branch v2.40.0 --recursive https://github.com/IntelRealSense/librealsense.git /opt/librealsense && \
     cd /opt/librealsense && mkdir build && cd build && \
     cmake ../ -DFORCE_RSUSB_BACKEND=true -DCMAKE_BUILD_TYPE=release -DBUILD_EXAMPLES=true -DBUILD_GRAPHICAL_EXAMPLES=true -DBUILD_PYTHON_BINDINGS=true && \
-    make -j12 && \
+    make -j${N_CPUS}&& \
     make install && \
     echo "from .pyrealsense2 import *" >> /usr/lib/python3/dist-packages/pyrealsense2/__init__.py && \
     rm -rf /opt/librealsense
@@ -103,17 +107,19 @@ RUN git clone --single-branch --branch v2.40.0 --recursive https://github.com/In
 ENV PYTHONPATH $PYTHONPATH:/usr/local/lib
 
 FROM realsense_install as o3d_install
+ARG N_CPUS
 # Open 3D Install
 COPY o3d.patch /opt/o3d.patch
 RUN git clone --single-branch --branch v0.12.0 --recursive https://github.com/intel-isl/Open3D.git /opt/Open3D && \
     cd /opt/Open3D && git apply ../o3d.patch && \
     mkdir build && cd build && \
     cmake ../ -DBUILD_CPP_EXAMPLES=OFF -DBUILD_EXAMPLES=OFF -DBUILD_JUPYTER_EXTENSION=OFF -DENABLE_JUPYTER=OFF -DGLIBCXX_USE_CXX11_ABI=ON -DUSE_SYSTEM_EIGEN3=ON -DBUILD_GUI=OFF -DBUILD_FILAMENT_FROM_SOURCE=OFF && \
-    make -j12 && \
+    make -j${N_CPUS} && \
     make install && make install-pip-package && \
     rm -rf /opt/Open3D
 
 FROM o3d_install as final_install
+ARG N_CPUS
 # Stuff I like/need
 RUN apt-get install --no-install-recommends -y nano htop
 
