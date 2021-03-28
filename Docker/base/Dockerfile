@@ -93,20 +93,7 @@ RUN cd /opt/ecal && mkdir build_ &&  cd build_ && \
     cd /opt/ecal/build_ && cmake --build . --target create_python_wheel --config Release && pip install _deploy/ecal-* && \
     rm -rf /opt/ecal
 
-FROM ecal_install as realsense_install
-ARG N_CPUS
-# Clone Realsense - Depth, IMU, 6DOF Sensor SDK
-RUN git clone --single-branch --branch v2.40.0 --recursive https://github.com/IntelRealSense/librealsense.git /opt/librealsense && \
-    cd /opt/librealsense && mkdir build && cd build && \
-    cmake ../ -DFORCE_RSUSB_BACKEND=true -DCMAKE_BUILD_TYPE=release -DBUILD_EXAMPLES=true -DBUILD_GRAPHICAL_EXAMPLES=true -DBUILD_PYTHON_BINDINGS=true && \
-    make -j${N_CPUS}&& \
-    make install && \
-    echo "from .pyrealsense2 import *" >> /usr/lib/python3/dist-packages/pyrealsense2/__init__.py && \
-    rm -rf /opt/librealsense
-
-ENV PYTHONPATH $PYTHONPATH:/usr/local/lib
-
-FROM realsense_install as o3d_install
+FROM ecal_install as o3d_install
 ARG N_CPUS
 # Open 3D Install
 COPY o3d.patch /opt/o3d.patch
@@ -118,7 +105,19 @@ RUN git clone --single-branch --branch v0.12.0 --recursive https://github.com/in
     make install && make install-pip-package && \
     rm -rf /opt/Open3D
 
-FROM o3d_install as final_install
+FROM o3d_install as realsense_install
+ARG N_CPUS
+# Clone Realsense - Depth, IMU, 6DOF Sensor SDK
+RUN git clone --single-branch --branch v2.37.0 --recursive https://github.com/IntelRealSense/librealsense.git /opt/librealsense && \
+    cd /opt/librealsense && mkdir build && cd build && \
+    cmake ../ -DFORCE_RSUSB_BACKEND=true -DCMAKE_BUILD_TYPE=release -DBUILD_EXAMPLES=true -DBUILD_GRAPHICAL_EXAMPLES=true -DBUILD_PYTHON_BINDINGS=true && \
+    make -j${N_CPUS}&& \
+    make install && \
+    echo "from .pyrealsense2 import *" >> /usr/lib/python3/dist-packages/pyrealsense2/__init__.py && \
+    rm -rf /opt/librealsense
+
+
+FROM realsense_install as final_install
 ARG N_CPUS
 # Stuff I like/need
 RUN apt-get install --no-install-recommends -y nano htop
@@ -127,6 +126,7 @@ RUN apt-get install --no-install-recommends -y nano htop
 RUN apt-get install --no-install-recommends -y libgflags-dev libgoogle-glog-dev python3-scipy python3-matplotlib
 RUN pip3 install protobuf
 
+ENV PYTHONPATH $PYTHONPATH:/usr/local/lib
 COPY ecal.ini /usr/local/etc/ecal/ecal.ini
 # setup entrypoint
 COPY ./base_entrypoint.sh /
