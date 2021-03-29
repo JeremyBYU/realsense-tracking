@@ -63,9 +63,9 @@ void rs_callback(rs2::frame &frame,
   } else if (frame.get_profile().stream_type() == RS2_STREAM_ACCEL) {
   } else if (frame.get_profile().stream_type() == RS2_STREAM_POSE) {
     POSE_COUNTER += 1;
-    if (POSE_COUNTER % POSE_RATE)
+    if (POSE_COUNTER % POSE_RATE == 0)
     {
-      std::cout << "Received Poses; Pose Counter: " << POSE_COUNTER << std::endl;
+      std::cout << "Pose Count: " << POSE_COUNTER << std::endl;
     }
     auto pframe = frame.as<rs2::pose_frame>();
     rs2_pose pose = pframe.get_pose_data();
@@ -403,7 +403,7 @@ void process_pipeline(std::vector<rspub::StreamDetail> dsp, rs2::pipeline &pipe,
           auto diff = std::abs(transform.ts - ts_merged);
           if (FRAME_COUNTER % FRAME_RATE == 0)
           {
-            std::cout << "Frame Count: " << FRAME_COUNTER << "; Pose timestamp diff (ms): " << diff;
+            std::cout << "Frame Count: " << FRAME_COUNTER << "; Pose timestamp diff (ms): " << diff << std::endl;
           }
           
           if (diff > static_cast<double>(POSE_RATE)) {
@@ -496,15 +496,6 @@ int read_bag(std::string file_name, const toml::value &tcf) {
   // Read from TOML Config file
   parse_desired_stream(desired_manual_streams, tcf, "manual_streams");
   parse_desired_stream(desired_pipeline_streams, tcf, "pipeline_streams");
-  // std::vector<rspub::StreamDetail> desired_manual_streams = {{"Intel
-  // RealSense T265", "Pose", rspub::STRM_ENUM.at("Pose"s), 0, 0, 200,
-  // rspub::FMT_ENUM.at("6DOF"s)}}; std::vector<rspub::StreamDetail>
-  // desired_pipeline_streams = {{"Intel RealSense D435I", "Depth",
-  // rspub::STRM_ENUM.at("Depth"s), 640, 480, 30, rspub::FMT_ENUM.at("Z16"s)},
-  // 																 {"Intel RealSense
-  // D435I", "Color", rspub::STRM_ENUM.at("Color"s), 640, 480, 30,
-  // rspub::FMT_ENUM.at("BGR8"s)}};
-
   // needed this variable to keep sensors 'alive'
   std::map<std::string, std::vector<rs2::sensor>> device_sensors;
   auto pose_rec_callback = [&pub_pose](rs2::frame frame) {
@@ -608,20 +599,30 @@ int live_stream(const toml::value &tcf) {
   }
 }
 
+/**
+ * @brief This function wil initiate connections to LIVE RealSense Cameras
+ *        and try to reconnect if there is issues. This very naive reconnection
+ *        procedure seems to be working on RPI4. However on x86 boards I have not
+ *        experienced any issues to test the reconnection.
+ *
+ * @param tcf 			This is a parsed toml file for configuration
+ * @return int
+ */
 int repeat_live_stream(const toml::value &tcf) {
   int repeat = 0;
   int max_repeat = 5;
   do {
     auto result = live_stream(tcf);
-    std::cout << "Whoa we exited the live stream!" << result << std::endl;
+    LOG(WARNING) << "Live stream has exited! Result: " << result;
     if (result == EXIT_FAILURE) {
-      std::cout << "Failure! Will try to restart" << std::endl;
+      LOG(ERROR) << "Live stream has failed";
+      std::cout << "Live stream has failed! Will try to restart...." << std::endl;
       std::this_thread::sleep_for(std::chrono::seconds(1));
       repeat++;
-
     } else {
-      std::cout << "Exit Succesfully! Won't restart" << std::endl;
-      repeat = 3;
+      LOG(ERROR) << "Live steam exited successfully! Won't restart.";
+      std::cout << "Live steam exited successfully! Won't restart." << std::endl;
+      repeat = max_repeat;
     }
   } while (repeat < max_repeat);
 }
