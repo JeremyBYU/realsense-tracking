@@ -8,7 +8,7 @@ trap 'last_command=$current_command; current_command=$BASH_COMMAND' DEBUG
 # echo an error message before exiting
 trap 'echo "\"${last_command}\" command filed with exit code $?."' EXIT
 
-architectures="x86_64"
+architectures="aarch64"
 bin_dir="bin/"
 dist_dir="bin/"
 

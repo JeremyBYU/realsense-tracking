@@ -41,6 +41,9 @@ DEFINE_bool(force_udp, false, "Force UDP Multicast for publishers");
 rspub::RingBuffer<rspub::TransformTS> POSES(100);
 std::mutex POSES_MUTEX;
 
+int POSE_COUNTER=0;
+bool POSE_PROBLEM=false;
+
 namespace rspub
 {
 
@@ -51,11 +54,17 @@ void rs_callback(rs2::frame &frame, eCAL::protobuf::CPublisher<rspub_pb::PoseMes
 	if (frame.get_profile().stream_type() == RS2_STREAM_GYRO)
 	{
 	}
+	if (frame.get_profile().stream_type() == RS2_STREAM_DEPTH)
+	{
+	    std::cout << "Got Depth" <<std::endl;
+	}
 	else if (frame.get_profile().stream_type() == RS2_STREAM_ACCEL)
 	{
 	}
 	else if (frame.get_profile().stream_type() == RS2_STREAM_POSE)
 	{
+	    std::cout << "Got Pose: " << POSE_COUNTER << std::endl;
+	    POSE_COUNTER += 1;
 		auto pframe = frame.as<rs2::pose_frame>();
 		rs2_pose pose = pframe.get_pose_data();
 		// std::cout << std::setprecision(0) << std::fixed << std::left << std::setw(11) << "POSE: " << frame.get_timestamp() << std::endl;
@@ -364,6 +373,13 @@ void process_pipeline(std::vector<rspub::StreamDetail> dsp, rs2::pipeline &pipe,
 					double ts_merged = dframe.get_timestamp();
 					auto transform = getNearestTransformTS(ts_merged, POSES);
 					fill_image_message_transform(transform, rgbd_message);
+					auto diff = std::abs(transform.ts - ts_merged);
+					std::cout << "Here is the diff " << diff << std::endl;
+					if (diff > 200.0)
+					{
+					    std::cout << "Whoa too much diff" << std::endl;
+					    throw "POSE and RGBD Drift!";
+					} 
 					// LOG(INFO) << std::setprecision(3) << std::fixed <<  "Current Timestamp: " << ts_merged << "; transform Timestamp: " << transform.ts << "; translation x: " << transform.pos[0];
 				}
 				pub_rgbd.Send(rgbd_message);
@@ -475,6 +491,9 @@ int read_bag(std::string file_name, const toml::value &tcf)
 	return EXIT_SUCCESS;
 }
 
+
+
+
 /**
  * @brief This function wil initiate connections to LIVE RealSense Cameras
  * 
@@ -555,6 +574,31 @@ int live_stream(const toml::value &tcf)
 	
 }
 
+int repeat_live_stream(const toml::value &tcf)
+{
+    int repeat = 0;
+    int max_repeat = 5;
+    do
+    {
+        auto result = live_stream(tcf);
+        std::cout << "Whoa we exited the live stream!" << result << std::endl;
+        if (result == EXIT_FAILURE)
+        {
+            std::cout << "Failure! Will try to restart" << std::endl;
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+            repeat++;
+            
+        }
+        else
+        {
+            std::cout << "Exit Succesfully! Won't restart" << std::endl;
+            repeat = 3;
+        }
+    }
+    while(repeat < max_repeat);
+
+}
+
 
 // void OnPoseMessage(const char *topic_name_, const rspub_pb::PoseMessage &pose, const long long time_, const long long clock_)
 // {
@@ -622,7 +666,7 @@ int main(int argc, char *argv[]) try
 	std::thread t1;
 	if (FLAGS_bag == "")
 	{
-		t1 = std::thread(rspub::live_stream, tcf);
+		t1 = std::thread(rspub::repeat_live_stream, tcf);
 	}
 	else
 	{
