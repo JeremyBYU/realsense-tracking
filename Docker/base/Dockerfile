@@ -108,12 +108,12 @@ RUN git clone --single-branch --branch v0.12.0 --recursive https://github.com/in
 FROM o3d_install as realsense_install
 ARG N_CPUS
 # Clone Realsense - Depth, IMU, 6DOF Sensor SDK
-RUN git clone --single-branch --branch v2.37.0 --recursive https://github.com/IntelRealSense/librealsense.git /opt/librealsense && \
+RUN git clone --single-branch --branch v2.35.2 --recursive https://github.com/IntelRealSense/librealsense.git /opt/librealsense && \
     cd /opt/librealsense && mkdir build && cd build && \
     cmake ../ -DFORCE_RSUSB_BACKEND=true -DCMAKE_BUILD_TYPE=release -DBUILD_EXAMPLES=true -DBUILD_GRAPHICAL_EXAMPLES=true -DBUILD_PYTHON_BINDINGS=true && \
     make -j${N_CPUS}&& \
     make install && \
-    echo "from .pyrealsense2 import *" >> /usr/lib/python3/dist-packages/pyrealsense2/__init__.py && \
+    # echo "from .pyrealsense2 import *" >> /usr/lib/python3/dist-packages/pyrealsense2/__init__.py && \
     rm -rf /opt/librealsense
 
 
