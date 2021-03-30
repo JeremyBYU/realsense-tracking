@@ -82,9 +82,8 @@ RUN git clone -b '3.4.7' --single-branch https://github.com/opencv/opencv.git /o
 FROM opencv_install as ecal_install
 ARG N_CPUS
 # Prepare for ECAL - Shared Memory Marshalling and Communication
-RUN cd /opt && \
-    git clone --single-branch --branch v5.8.5 --recursive git://github.com/continental/ecal.git
-RUN cd /opt/ecal && mkdir build_ &&  cd build_ && \
+RUN git clone --single-branch --branch v5.8.5 --recursive git://github.com/continental/ecal.git /opt/ecal && \
+    cd /opt/ecal && mkdir build_ &&  cd build_ && \
     cmake .. -DCMAKE_BUILD_TYPE=Release -DECAL_THIRDPARTY_BUILD_PROTOBUF=OFF -DHAS_QT5=OFF -DBUILD_DOCS=OFF -DECAL_THIRDPARTY_BUILD_CURL=OFF -DECAL_THIRDPARTY_BUILD_HDF5=OFF -DECAL_THIRDPARTY_BUILD_TINYXML2=ON -DBUILD_PY_BINDING=ON && \
     make -j${N_CPUS} && \
     cd /opt/ecal/build_ && \
@@ -100,7 +99,17 @@ COPY o3d.patch /opt/o3d.patch
 RUN git clone --single-branch --branch v0.12.0 --recursive https://github.com/intel-isl/Open3D.git /opt/Open3D && \
     cd /opt/Open3D && git apply ../o3d.patch && \
     mkdir build && cd build && \
-    cmake ../ -DBUILD_CPP_EXAMPLES=OFF -DBUILD_EXAMPLES=OFF -DBUILD_JUPYTER_EXTENSION=OFF -DENABLE_JUPYTER=OFF -DGLIBCXX_USE_CXX11_ABI=ON -DUSE_SYSTEM_EIGEN3=ON -DBUILD_GUI=OFF -DBUILD_FILAMENT_FROM_SOURCE=OFF && \
+    cmake ../ \
+        -DBUILD_EXAMPLES=OFF \
+        -DBUILD_EXAMPLES=OFF \
+        -DBUILD_JUPYTER_EXTENSION=OFF \
+        -DENABLE_JUPYTER=OFF \
+        -DBUILD_CACHED_CUDA_MANAGER=OFF \
+        -DGLIBCXX_USE_CXX11_ABI=ON \
+        -DBUILD_GUI=OFF \
+        -DUSE_SYSTEM_EIGEN3=ON \
+        -DBUILD_GUI=OFF \
+        -DBUILD_FILAMENT_FROM_SOURCE=OFF && \
     make -j${N_CPUS} && \
     make install && make install-pip-package && \
     rm -rf /opt/Open3D
