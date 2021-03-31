@@ -3,20 +3,23 @@ services:
   # This will connect to realsense devices and publish. Configured with config/l515/rspub_default.toml
   rs-pub:
     container_name: rs-pub
-    image: "jeremybyu/realsense:${TAG}"
+    env_file:
+      - .env
+    image: "jeremybyu/landing:${TAG}"
     privileged: true
     network_mode: "host"
     ipc: "host"
     user: "1000:1000"
     volumes:
       - $PWD:/opt/workspace
-    command: ./bin/${ARCH}/rs-pub --log_dir=./logs --v=2 --config=config/l515/rspub_default.toml
+    entrypoint: [./scripts/launch/launch_rspub.sh]
+    # command: ./bin/${ARCH}/rs-pub --log_dir=./logs --v=2 --config=config/l515/rspub_default.toml
   # This is an RPC Server that is also subscribing to any RGBD Images that are published. Configured with config/l515/rsintegrate_default.toml
   rs-integrate:
     container_name: rs-integrate
-    environment:
-     - ARCH=${ARCH}
-    image: "jeremybyu/realsense:${TAG}"
+    env_file:
+      - .env
+    image: "jeremybyu/landing:${TAG}"
     privileged: true
     network_mode: "host"
     ipc: "host"

@@ -41,3 +41,5 @@ RUN git clone --recursive https://github.com/JeremyBYU/OrganizedPointFilters.git
     cmake --build . --target python-package --config Release -j${N_CPUS} && \
     cd lib/python_package && pip install . && \
     rm -rf /opt/opf
+
+CMD ["bash"]

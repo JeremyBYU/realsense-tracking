@@ -304,7 +304,7 @@ public:
 			mesh_pb.set_vertices_colors(mesh->vertex_colors_.data(), nbytes_vertices);
 		}
 		double now3 = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
-		VLOG(1) << std::setprecision(3) << std::fixed << "Mesh Extraction took: " << now1 - now0 << "; Half Edge Extraction: " << now2 - now1 << "; Serialization: " << now3 - now2;
+		LOG(INFO) << std::setprecision(3) << std::fixed << "Mesh Extraction took: " << now1 - now0 << "; Half Edge Extraction: " << now2 - now1 << "; Serialization: " << now3 - now2;
 		VLOG(2) << "Vertices: " << n_vertices << "; Triangles: " << n_triangles;
 		return true;
 	}
@@ -414,7 +414,7 @@ public:
 			double now0 = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
 			scene.volume->Integrate(*rgbd_image, camera_intrinsic, extrinsic);
 			double now1 = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
-			VLOG(1) << std::setprecision(3) << std::fixed << "Volume Integration took: " << now1 - now0 << " milliseconds";
+			LOG(INFO) << std::setprecision(3) << std::fixed << "Volume Integration took: " << now1 - now0 << " milliseconds";
 		}
 	}
 
