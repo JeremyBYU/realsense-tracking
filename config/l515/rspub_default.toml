@@ -78,8 +78,8 @@ active = true
 
   # Just Depth
   [publish.depth]
-  active = false
-  rate = 1
+  active = true
+  rate = 10
 
   # Just Color
   [publish.color]
@@ -89,12 +89,12 @@ active = true
   # Color and Depth combined in one frame
   [publish.rgbd]
   active = true
-  rate = 1
+  rate = 3
 
   # 6DOF Pose
   [publish.pose]
   active = true
-  rate = 1
+  rate = 20
 
   # XYZ Point Cloud. RGB Optional
   [publish.pointcloud]

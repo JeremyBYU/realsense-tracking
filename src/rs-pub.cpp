@@ -48,6 +48,10 @@ int FRAME_COUNTER = 0;
 const int POSE_RATE = 200;
 const int FRAME_RATE = 30;
 
+// Need global because of callback
+int POSE_PUB_RATE = 1;
+
+
 
 namespace rspub {
 
@@ -71,9 +75,12 @@ void rs_callback(rs2::frame &frame,
     rs2_pose pose = pframe.get_pose_data();
     // std::cout << std::setprecision(0) << std::fixed << std::left <<
     // std::setw(11) << "POSE: " << frame.get_timestamp() << std::endl;
-    rspub_pb::PoseMessage pose_message;
-    fill_pose_message(pose, pose_message, frame.get_timestamp());
-    pose_pub->Send(pose_message);
+    if (POSE_COUNTER % POSE_PUB_RATE == 0)
+    {
+      rspub_pb::PoseMessage pose_message;
+      fill_pose_message(pose, pose_message, frame.get_timestamp());
+      pose_pub->Send(pose_message);
+    }
 
     // Push only TRANSFORM information into a 100 size ringbuffer
     std::lock_guard<std::mutex> lockGuard(POSES_MUTEX);
@@ -558,6 +565,11 @@ int live_stream(const toml::value &tcf) {
     // Read from TOML Config file
     parse_desired_stream(desired_manual_streams, tcf, "manual_streams");
     parse_desired_stream(desired_pipeline_streams, tcf, "pipeline_streams");
+
+    // Read the publication rate for poses. Set as global variable
+    // Global variable will be used in callback.
+    auto tcf_pose = toml::find(tcf, "publish", "pose");
+    POSE_PUB_RATE = toml::find_or<int>(tcf_pose, "rate", 1);
 
     // needed this variable to keep sensors 'alive'
     std::map<std::string, std::vector<rs2::sensor>> device_sensors;

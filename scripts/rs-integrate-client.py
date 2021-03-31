@@ -19,7 +19,7 @@ sys.path.insert(1, str(BUILD_DIR))
 
 
 
-from Integrate_pb2 import SceneRequestType, DataType, IntegrateRequest, IntegrateResponse, ExtractResponse, ADD, REMOVE, START, ExtractRequest, MESH
+from PoseMessage_pb2 import PoseMessage
 
 counter = 0
 
