@@ -13,12 +13,25 @@ from PoseMessage_pb2 import PoseMessage
 from ImageMessage_pb2 import ImageMessage
 
 
+from polylidar import MatrixDouble, MatrixFloat, extract_point_cloud_from_float_depth
+
+IDENTITY = np.identity(3)
+IDENTITY_MAT = MatrixDouble(IDENTITY)
+
+
 def process_image(landing_service, queue:Queue):
     while True:
         image = queue.get()
         image_np = np.frombuffer(image.image_data, dtype=np.uint16).reshape((image.height, image.width))
+
+        depth_image = np.multiply(image_np, depth_scale, dtype=np.float32)
+        points = extract_point_cloud_from_float_depth(MatrixFloat(
+            depth_image), MatrixDouble(intrinsics), IDENTITY_MAT, stride=stride)
         image_np = image_np * landing_service.config['depth_scale']
         logger.info("Frame Number: %s", image.frame_number)
+
+        # create opc
+
 
 
 class LandingService(object):
@@ -66,7 +79,7 @@ class LandingService(object):
         self.sub_pose.set_callback(self.callback_pose)
 
         # create subscriber for depth information and connect callback
-        self.sub_depth = ProtoSubscriber("RGBDMessage", ImageMessage)
+        self.sub_depth = ProtoSubscriber("DepthMessage", ImageMessage)
         self.sub_depth.set_callback(self.callback_depth)
 
         self.landing_queue = Queue()

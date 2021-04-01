@@ -54,7 +54,7 @@ RUN apt-get install --no-install-recommends -y graphviz build-essential zlib1g-d
 RUN apt-get install --no-install-recommends -y libeigen3-dev libblas-dev liblapack-dev liblapacke-dev libxi-dev
 
 FROM base_install as cmake_install
-
+ARG N_CPUS
 # Install cmake - This takes like 30 minutes on emulated hardware...
 RUN wget -O /opt/cmake-3.18.6.tar.gz https://cmake.org/files/v3.18/cmake-3.18.6.tar.gz && \
     cd /opt && \

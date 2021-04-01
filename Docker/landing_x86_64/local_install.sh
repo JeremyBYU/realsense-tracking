@@ -7,7 +7,7 @@ trap 'last_command=$current_command; current_command=$BASH_COMMAND' DEBUG
 # echo an error message before exiting
 trap 'echo "\"${last_command}\" command filed with exit code $?."' EXIT
 
-INSTALL_DIR=/home/jeremy2/Software
+INSTALL_DIR=/home/jeremy/Software
 
 # Clone Polylidar3D
 git clone --recursive https://github.com/JeremyBYU/polylidar.git $INSTALL_DIR/polylidar && \
