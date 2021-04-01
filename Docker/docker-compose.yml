@@ -9,7 +9,7 @@ services:
     privileged: true
     network_mode: "host"
     ipc: "host"
-    user: "1000:1000"
+    user: "${UID}:${GID}"
     volumes:
       - $PWD:/opt/workspace
     entrypoint: [./scripts/launch/launch_rspub.sh]
@@ -23,7 +23,7 @@ services:
     privileged: true
     network_mode: "host"
     ipc: "host"
-    user: "1000:1000"
+    user: "${UID}:${GID}"
     volumes:
       - $PWD:/opt/workspace
     depends_on:

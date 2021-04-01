@@ -1,6 +1,6 @@
 import sys
 import time
-from threading import Lock
+from multiprocessing import Process, Lock, Queue
 import numpy as np
 import matplotlib.pyplot as plt
 from landing.helper.helper_logging import logger
@@ -11,6 +11,14 @@ from ecal.core.subscriber import ProtoSubscriber
 
 from PoseMessage_pb2 import PoseMessage
 from ImageMessage_pb2 import ImageMessage
+
+
+def process_image(landing_service, queue:Queue):
+    while True:
+        image = queue.get()
+        image_np = np.frombuffer(image.image_data, dtype=np.uint16).reshape((image.height, image.width))
+        image_np = image_np * landing_service.config['depth_scale']
+        logger.info("Frame Number: %s", image.frame_number)
 
 
 class LandingService(object):
@@ -26,10 +34,8 @@ class LandingService(object):
 
     def callback_depth(self, topic_name, image:ImageMessage, time_):
         try:
-            image_np = np.frombuffer(image.image_data, dtype=np.uint16).reshape((image.height, image.width))
-            image_np = image_np * self.config['depth_scale']
+            self.landing_queue.put(image)
             self.frame_count += 1
-            logger.info("Frame Number: %s", image.frame_number)
         except Exception as e:
             logger.exception("Error in callback depth")
 
@@ -60,13 +66,18 @@ class LandingService(object):
         self.sub_pose.set_callback(self.callback_pose)
 
         # create subscriber for depth information and connect callback
-        self.sub_depth = ProtoSubscriber("DepthMessage", ImageMessage)
+        self.sub_depth = ProtoSubscriber("RGBDMessage", ImageMessage)
         self.sub_depth.set_callback(self.callback_depth)
+
+        self.landing_queue = Queue()
+        self.landing_process = Process(target=process_image, args=(self, self.landing_queue))
+        self.landing_process.daemon = True
+        self.landing_process.start()        # Launch reader_proc() as a separate python proc
 
 
     def run(self):
         frame_start = time.perf_counter()
-        blocking_timer = time.perf_counter()
+        
         while ecal_core.ok():
             rgbd_fps = self.frame_count / (time.perf_counter() - frame_start)
             logger.info("RGBD FPS: %.1f", rgbd_fps)

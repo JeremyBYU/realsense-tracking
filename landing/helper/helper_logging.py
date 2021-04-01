@@ -1,5 +1,6 @@
 
 import logging
+import multiprocessing_logging
 
 FORMAT = "%(message)s"
 
@@ -13,3 +14,6 @@ formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(messag
 ch.setFormatter(formatter)
 # add the handlers to the logger
 logger.addHandler(ch)
+
+
+multiprocessing_logging.install_mp_handler(logger)
