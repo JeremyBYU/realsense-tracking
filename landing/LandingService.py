@@ -1,68 +1,46 @@
 import sys
 import time
-from pathlib import Path
+from threading import Lock
+import numpy as np
+import matplotlib.pyplot as plt
+from landing.helper.helper_logging import logger
 
 import ecal.core.core as ecal_core
 import ecal.core.service as ecal_service
 from ecal.core.subscriber import ProtoSubscriber
 
-
-# Its seems that it spawn a python THREAD for the server, and subsriber
-
-
-THIS_FILE = Path(__file__)
-THIS_DIR = THIS_FILE.parent
-BUILD_DIR = THIS_DIR.parent.parent / "dk-x86_64-build"
-print(BUILD_DIR.resolve())
-sys.path.insert(1, str(BUILD_DIR))
-
-
 from PoseMessage_pb2 import PoseMessage
 from ImageMessage_pb2 import ImageMessage
 
 
-
-frame_count = 0
-
-
-# All subscription callbacks are in the same thread
-# If one blocks, no messages will be recieved by the other SUBSCRIPTION CALLBACKS
-#    does not affect subscriptions or main thread
-
-# All Service callbacks are in the same thread
-# If one blocks, no messages will be recieved by the other SERVICE CALLBACKS
-#    does not affect subscriptions or main thread
-
-
-def callback_pose1(topic_name, pose, time_):
-    pass
-    print("YO")
-    # print("")
-    print(f"Pose translation: {pose.translation}; Pose HTS: {pose.hardware_ts:.2f}; Pose RTS: {time_/1000:.2f}")
-
 class LandingService(object):
     def __init__(self, config):
+        self.config = config
         self.frame_count = 0
         self.setup()
-        self.run()
 
     def callback_pose(self, topic_name, pose, time_):
         pass
         # print("")
         # print(f"Pose translation: {pose.translation}; Pose HTS: {pose.hardware_ts:.2f}; Pose RTS: {time_/1000:.2f}")
 
-    def callback_depth(self, topic_name, image, time_):
-        self.frame_count += 1
+    def callback_depth(self, topic_name, image:ImageMessage, time_):
+        try:
+            image_np = np.frombuffer(image.image_data, dtype=np.uint16).reshape((image.height, image.width))
+            image_np = image_np * self.config['depth_scale']
+            self.frame_count += 1
+        except Exception as e:
+            logger.exception("Error in callback depth")
 
     # define the server method "find_touchdown" function
     def callback_find_touchdown(self, method_name, req_type, resp_type, request):
-        print("'LandingService' method '{}' called with {}".format(method_name, request))
+        logger.info("'LandingService' method %s called with %s",method_name, request)
         time.sleep(.3)
         return 0, bytes("thank you for calling touchdown :-)", "ascii")
 
     # define the server method "initiate_landing" function
     def callback_initiate_landing(self, method_name, req_type, resp_type, request):
-        print("'LandingService' method '{}' called with {}".format(method_name, request))
+        logger.info("'LandingService' method '%s' called with %s", method_name, request)
         return 0, bytes("thank you for calling initiate landing :-)", "ascii")
 
     def setup(self):
@@ -90,7 +68,7 @@ class LandingService(object):
         blocking_timer = time.perf_counter()
         while ecal_core.ok():
             rgbd_fps = self.frame_count / (time.perf_counter() - frame_start)
-            print(f"RGDB FPS: {rgbd_fps:.1f}")
+            logger.info("RGBD FPS: %.1f", rgbd_fps)
             if (time.perf_counter() - frame_start) > 10:
                 frame_start = time.perf_counter()
                 self.frame_count = 0
@@ -98,20 +76,3 @@ class LandingService(object):
 
         # finalize eCAL API
         ecal_core.finalize()
-
-
-
-def main():
-    global frame_count
-    # print eCAL version and date
-    print("eCAL {} ({})\n".format(ecal_core.getversion(), ecal_core.getdate()))
-
-    LandingService({})
-    # initialize eCAL API
-
-    # need seperate process for communicating with serial connection
-
-
-
-if __name__ == "__main__":
-    main()
