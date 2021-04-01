@@ -17,14 +17,13 @@ def start(config_file):
     with open(config_file) as file:
         config = yaml.safe_load(file)
 
-    # protobuf files are generated dynamcailly in an archetecture specific build directory
+    # protobuf files are generated dynamically in an archetecture specific build directory
     build_dir = THIS_DIR.parent / f"dk-{config['arch']}-build"
     sys.path.insert(1, str(build_dir))
     from landing.LandingService import LandingService
 
     ls = LandingService(config)
     ls.run()
-
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Check LiDAR")

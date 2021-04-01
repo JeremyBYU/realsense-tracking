@@ -334,7 +334,6 @@ void process_pipeline(std::vector<rspub::StreamDetail> dsp, rs2::pipeline &pipe,
 
       auto dframe = frames.get_depth_frame();
       auto cframe = frames.get_color_frame();
-
       double dts = 0;
       double cts = 0;
 

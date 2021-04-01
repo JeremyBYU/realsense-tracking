@@ -29,6 +29,7 @@ class LandingService(object):
             image_np = np.frombuffer(image.image_data, dtype=np.uint16).reshape((image.height, image.width))
             image_np = image_np * self.config['depth_scale']
             self.frame_count += 1
+            logger.info("Frame Number: %s", image.frame_number)
         except Exception as e:
             logger.exception("Error in callback depth")
 
