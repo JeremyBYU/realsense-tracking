@@ -4,6 +4,7 @@ from multiprocessing import Process, Lock, Queue
 import numpy as np
 import matplotlib.pyplot as plt
 from landing.helper.helper_logging import logger
+import open3d as o3d
 
 import ecal.core.core as ecal_core
 import ecal.core.service as ecal_service
@@ -13,23 +14,50 @@ from PoseMessage_pb2 import PoseMessage
 from ImageMessage_pb2 import ImageMessage
 
 
-from polylidar import MatrixDouble, MatrixFloat, extract_point_cloud_from_float_depth
+from polylidar import Polylidar3D, MatrixDouble, MatrixFloat, extract_point_cloud_from_float_depth
+from fastga import GaussianAccumulatorS2Beta, IcoCharts
+from landing.helper.helper_polylidar import extract_polygons_from_points
+from landing.helper.helper_utility import create_projection_matrix
+from landing.helper.o3d_util import create_o3d_pc
 
 IDENTITY = np.identity(3)
 IDENTITY_MAT = MatrixDouble(IDENTITY)
 
 
 def process_image(landing_service, queue:Queue):
-    while True:
-        image = queue.get()
-        image_np = np.frombuffer(image.image_data, dtype=np.uint16).reshape((image.height, image.width))
+    config = landing_service.config
+    stride =  config['mesh']['stride']
 
-        depth_image = np.multiply(image_np, depth_scale, dtype=np.float32)
-        points = extract_point_cloud_from_float_depth(MatrixFloat(
-            depth_image), MatrixDouble(intrinsics), IDENTITY_MAT, stride=stride)
-        image_np = image_np * landing_service.config['depth_scale']
+        # Create Polylidar Objects
+    pl = Polylidar3D(**config['polylidar'])
+    ga = GaussianAccumulatorS2Beta(level=config['fastga']['level'])
+    ico = IcoCharts(level=config['fastga']['level'])
+
+    while True:
+        
+        image = queue.get()
         logger.info("Frame Number: %s", image.frame_number)
 
+        # Get numpy array from image
+        image_np = np.frombuffer(image.image_data, dtype=np.uint16).reshape((image.height, image.width))
+
+        print(image.height, image.width)
+        print(image_np.shape)
+        # Convert to float depth map
+        image_np = np.multiply(image_np, landing_service.config['depth_scale'], dtype=np.float32)
+        # Get intrinsics
+        intrinsics = create_projection_matrix(image.fx, image.fy, image.cx, image.cy)
+        # Create OPC
+        points = extract_point_cloud_from_float_depth(MatrixFloat(
+            image_np), MatrixDouble(intrinsics), IDENTITY_MAT, stride=stride)
+
+        new_shape = (int(image_np.shape[0] / stride), int(image_np.shape[1] / stride), 3)
+        opc = np.asarray(points).reshape(new_shape)  # organized point cloud (will have NaNs!)
+
+        extract_polygons_from_points(opc, pl, ga, ico, config)
+        # for visuazation
+        # pcd =create_o3d_pc(opc)
+        # o3d.visualization.draw_geometries([pcd])
         # create opc
 
 

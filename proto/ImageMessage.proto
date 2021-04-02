@@ -10,13 +10,18 @@ message ImageMessage {
     int32 bpp=5;
     int32 format=6;
     int32 frame_number=7;
+    // Optional Intrinsics
+    float fx=8;
+    float fy=9;
+    float cx=10;
+    float cy=11;
     // Optional extriniscs
-    Vec3 translation=8;
-    Vec4 rotation=9;
+    Vec3 translation=12;
+    Vec4 rotation=13;
     // Optional secondary image (RGBD)
-    bytes image_data_second = 10;
-    int32 bpp_second = 11;
-    int32 format_second = 12;
+    bytes image_data_second = 14;
+    int32 bpp_second = 15;
+    int32 format_second = 16;
 }
 
 

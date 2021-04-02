@@ -313,6 +313,9 @@ void fill_image_message(rs2::video_frame &dframe, rspub_pb::ImageMessage &frame_
 	int nbytes = w * h * dframe.get_bytes_per_pixel();
 	auto format = dframe.get_profile().format();
 	const int frame_number = static_cast<int>(dframe.get_frame_number());
+	auto intrinsic = dframe.get_profile().as<rs2::video_stream_profile>().get_intrinsics();
+    // prof = processed.get_profile().as_video_stream_profile()
+    // intr = prof.get_intrinsics()
 	// std::cout << "Depth bpp: " << dframe.get_bytes_per_pixel() << "; Total Bytes: " <<  nbytes << std::endl;
 
 	frame_image.set_hardware_ts(dframe.get_timestamp());
@@ -322,6 +325,10 @@ void fill_image_message(rs2::video_frame &dframe, rspub_pb::ImageMessage &frame_
 	frame_image.set_bpp(dframe.get_bytes_per_pixel());
 	frame_image.set_format(format);
 	frame_image.set_frame_number(frame_number);
+	frame_image.set_fx(intrinsic.fx);
+	frame_image.set_fy(intrinsic.fy);
+	frame_image.set_cx(intrinsic.ppx);
+	frame_image.set_cy(intrinsic.ppy);
 }
 
 void fill_image_message_second(rs2::video_frame &dframe, rspub_pb::ImageMessage &frame_image)

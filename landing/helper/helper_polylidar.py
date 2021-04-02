@@ -1,6 +1,7 @@
 import time
 import numpy as np
 from scipy.spatial.transform import Rotation as R
+import open3d as o3d
 
 from polylidar.polylidarutil.plane_filtering import filter_planes
 from polylidar import MatrixDouble, Polylidar3D, MatrixUInt8
@@ -9,7 +10,7 @@ from fastga import GaussianAccumulatorS2, MatX3d, IcoCharts
 from fastga.peak_and_cluster import find_peaks_from_ico_charts
 
 from landing.helper.helper_logging import logger
-from landing.helper.helper_meshes import create_meshes
+from landing.helper.helper_meshes import create_meshes, create_open_3d_mesh_from_tri_mesh
 
 
 def choose_dominant_plane_normal(avg_peaks, rooftop_normal=[0.0, 0.0, -1.0]):
@@ -97,6 +98,22 @@ def extract_all_dominant_plane_normals(tri_mesh, level=5, with_o3d=False, ga_=No
     ga.clear_count()
     return avg_peaks, timings
 
+def prefilter_polys(points, polygons, avg_peak, drone_pose=np.array([0, 0, 0])):
+    return polygons
+
+def filter_and_create_polygons(points, polygons, rm=None, line_radius=0.005,
+                               postprocess=dict(filter=dict(hole_area=dict(min=0.025, max=100.0), hole_vertices=dict(min=6), plane_area=dict(min=0.05)),
+                                                positive_buffer=0.00, negative_buffer=0.00, simplify=0.0), prefilter=False, avg_peak=np.array([0, 0, -1]),
+                                                drone_pose=np.array([0.0, 0.0, 0.0])):
+    " Apply polygon filtering algorithm, return Open3D Mesh Lines "
+    if prefilter:
+        polygons = prefilter_polys(points, polygons, avg_peak, drone_pose=drone_pose)
+    t1 = time.perf_counter()
+    # planes, obstacles = filter_planes(polygons, points, postprocess, rm=rm)
+    planes = filter_planes(polygons, points, postprocess, rm=rm)
+    t2 = time.perf_counter()
+    return planes, (t2 - t1) * 1000
+
 
 def extract_planes_and_polygons_from_mesh(tri_mesh, avg_peaks,
                                           polylidar_kwargs=dict(alpha=0.0, lmax=0.1, min_triangles=2000,
@@ -127,9 +144,6 @@ def extract_planes_and_polygons_from_mesh(tri_mesh, avg_peaks,
         rm, _ = R.align_vectors([[0, 0, 1]], [avg_peak])
         polygons_for_normal = all_polygons[i]
         all_triangle_sets = all_planes[i]
-        # tri_normals = np.array(tri_mesh.triangle_normals)
-        # print(len(polygons_for_normal))
-        # import ipdb; ipdb.set_trace()
         if len(polygons_for_normal) > 0:
             planes_shapely, filter_time = filter_and_create_polygons(
                 vertices, polygons_for_normal, rm=rm, postprocess=postprocess, avg_peak=avg_peak, **kwargs)
@@ -172,20 +186,21 @@ def extract_polygons_from_points(opc, pl, ga, ico, config,
     tri_mesh, timings = create_meshes(opc, **config['mesh']['filter'])
     alg_timings.update(timings)
 
-    # o3d_mesh = create_open_3d_mesh_from_tri_mesh(tri_mesh)
-    # o3d.visualization.draw_geometries([o3d_mesh])
+    o3d_mesh = create_open_3d_mesh_from_tri_mesh(tri_mesh)
+    o3d.visualization.draw_geometries([o3d_mesh])
 
     # 2. Get dominant plane normals
-    avg_peaks, _, _, _, timings = extract_all_dominant_plane_normals(
+    avg_peaks, timings = extract_all_dominant_plane_normals(
         tri_mesh, ga_=ga, ico_chart_=ico, **config['fastga'])
     # only looking for most dominant plane of the rooftop
     avg_peaks = choose_dominant_plane_normal(avg_peaks, gravity_vector)
     alg_timings.update(timings)
+    print(avg_peaks)
     # 3. Extract Planes and Polygons
     planes, triangle_sets, timings = extract_planes_and_polygons_from_mesh(tri_mesh, avg_peaks, pl_=pl,
                                                                            postprocess=config['polygon']['postprocess'], **kwargs)
     alg_timings.update(timings)
+    print(planes)
+    print()
     # 100 ms to plot.... wish we had opengl line-width control
-    if all_polys is not None:
-        update_linemesh(planes, all_polys)
     return planes, alg_timings, tri_mesh, avg_peaks, triangle_sets
