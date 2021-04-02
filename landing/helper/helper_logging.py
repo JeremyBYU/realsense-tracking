@@ -14,6 +14,7 @@ formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(messag
 ch.setFormatter(formatter)
 # add the handlers to the logger
 logger.addHandler(ch)
+logger.propagate = False
 
 
-multiprocessing_logging.install_mp_handler(logger)
+# multiprocessing_logging.install_mp_handler(logger)

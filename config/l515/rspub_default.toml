@@ -79,7 +79,7 @@ active = true
   # Just Depth
   [publish.depth]
   active = true
-  rate = 10
+  rate = 30
 
   # Just Color
   [publish.color]
@@ -94,7 +94,7 @@ active = true
   # 6DOF Pose
   [publish.pose]
   active = true
-  rate = 20
+  rate = 100
 
   # XYZ Point Cloud. RGB Optional
   [publish.pointcloud]

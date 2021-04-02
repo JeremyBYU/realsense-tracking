@@ -11,6 +11,7 @@ from fastga.peak_and_cluster import find_peaks_from_ico_charts
 
 from landing.helper.helper_logging import logger
 from landing.helper.helper_meshes import create_meshes, create_open_3d_mesh_from_tri_mesh
+from landing.helper.o3d_util import create_linemesh_from_shapely, get_segments
 
 
 def choose_dominant_plane_normal(avg_peaks, rooftop_normal=[0.0, 0.0, -1.0]):
@@ -187,7 +188,6 @@ def extract_polygons_from_points(opc, pl, ga, ico, config,
     alg_timings.update(timings)
 
     o3d_mesh = create_open_3d_mesh_from_tri_mesh(tri_mesh)
-    o3d.visualization.draw_geometries([o3d_mesh])
 
     # 2. Get dominant plane normals
     avg_peaks, timings = extract_all_dominant_plane_normals(
@@ -195,12 +195,14 @@ def extract_polygons_from_points(opc, pl, ga, ico, config,
     # only looking for most dominant plane of the rooftop
     avg_peaks = choose_dominant_plane_normal(avg_peaks, gravity_vector)
     alg_timings.update(timings)
-    print(avg_peaks)
-    # 3. Extract Planes and Polygons
+    logger.info("FastGA found peaks: %s", avg_peaks)
+    # 3. Extract Planes and Polygons, Filter, Simplify
     planes, triangle_sets, timings = extract_planes_and_polygons_from_mesh(tri_mesh, avg_peaks, pl_=pl,
                                                                            postprocess=config['polygon']['postprocess'], **kwargs)
     alg_timings.update(timings)
-    print(planes)
-    print()
-    # 100 ms to plot.... wish we had opengl line-width control
+    # line_meshes = create_linemesh_from_shapely(planes[0][0])
+    # o3d.visualization.draw_geometries([o3d_mesh, *get_segments(line_meshes)])
+
     return planes, alg_timings, tri_mesh, avg_peaks, triangle_sets
+
+

@@ -1,5 +1,6 @@
 import open3d as o3d
 import numpy as np
+from .LineMesh import LineMesh
 # from .LineMesh import LineMesh
 # from airsimcollect.helper.helper_transforms import seg2rgb
 # from airsimcollect.helper.helper_logging import logger
@@ -34,6 +35,11 @@ def add_polys(all_polys, vis):
         line_mesh.add_line(vis, False)
     return []
 
+def get_segments(all_polys):
+    all_segments = []
+    for line_mesh in all_polys:
+        all_segments.extend(line_mesh.cylinder_segments)
+    return all_segments
 
 def get_extrinsics(vis):
     ctr = vis.get_view_control()
@@ -97,25 +103,25 @@ def translate_meshes(meshes, shift_x=True):
 #         line_meshes.add_to_vis()
 
 
-# def create_linemesh_from_linear_ring(linear_ring, height=0, line_radius=0.15, rotate_func=None, color=GREEN):
-#     points = np.array(linear_ring)
-#     if points.shape[1] == 2:
-#         height_np = np.ones((points.shape[0], 1)) * height
-#         points = np.concatenate((points, height_np), axis=1)
-#     if rotate_func:
-#         points = rotate_func(points)
-#     return LineMesh(points, colors=color, radius=line_radius)
+def create_linemesh_from_linear_ring(linear_ring, height=0, line_radius=0.02, rotate_func=None, color=GREEN):
+    points = np.array(linear_ring)
+    if points.shape[1] == 2:
+        height_np = np.ones((points.shape[0], 1)) * height
+        points = np.concatenate((points, height_np), axis=1)
+    if rotate_func:
+        points = rotate_func(points)
+    return LineMesh(points, colors=color, radius=line_radius)
 
 
-# def create_linemesh_from_shapely(polygon, height=0, line_radius=0.15, rotate_func=None, color=GREEN, **kwargs):
-#     all_line_meshes = [create_linemesh_from_linear_ring(
-#         polygon.exterior, height, line_radius, rotate_func, color=color)]
+def create_linemesh_from_shapely(polygon, height=0, line_radius=0.02, rotate_func=None, color=GREEN, **kwargs):
+    all_line_meshes = [create_linemesh_from_linear_ring(
+        polygon.exterior, height, line_radius, rotate_func, color=color)]
 
-#     for hole in polygon.interiors:
-#         all_line_meshes.append(create_linemesh_from_linear_ring(
-#             hole, height, line_radius, rotate_func, color=ORANGE))
+    for hole in polygon.interiors:
+        all_line_meshes.append(create_linemesh_from_linear_ring(
+            hole, height, line_radius, rotate_func, color=ORANGE))
 
-#     return all_line_meshes
+    return all_line_meshes
 
 
 # def update_frustum(vis, dist_to_plane=5.0, start_pos=np.array([0.0, 0.0, 0.0]), hfov=90, vfov=90,

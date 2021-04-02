@@ -9,7 +9,6 @@ THIS_DIR = THIS_FILE.parent
 CONFIG_DIR = THIS_DIR.parent / "config" / "landing"
 LANDING_CONFIG_FILE = CONFIG_DIR / "landing.yml"
 
-print("test")
 
 def start(config_file):
     print(config_file)
