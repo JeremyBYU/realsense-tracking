@@ -27,8 +27,13 @@ cd lib/python_package && pip install .
 
 # Clone OrganizedPointFilters
 git clone --recursive https://github.com/JeremyBYU/OrganizedPointFilters.git $INSTALL_DIR/opf && \
-cd $INSTALL_DIR//opf && mkdir cmake-build && cd cmake-build && \
+cd $INSTALL_DIR/opf && mkdir cmake-build && cd cmake-build && \
 cmake .. -DCMAKE_BUILD_TYPE=Release -DFETCHCONTENT_QUIET=OFF && \
 make -j${N_CPUS} && \
 cmake --build . --target python-package --config Release -j${N_CPUS} && \
 cd lib/python_package && pip install .
+
+
+git clone --recursive https://github.com/JeremyBYU/polylabelfast.git $INSTALL_DIR/polylabelfast && \
+cd $INSTALL_DIR/polylabelfast && \
+pip install .

@@ -12,7 +12,22 @@ from fastga.peak_and_cluster import find_peaks_from_ico_charts
 from landing.helper.helper_logging import logger
 from landing.helper.helper_meshes import create_meshes, create_open_3d_mesh_from_tri_mesh
 from landing.helper.o3d_util import create_linemesh_from_shapely, get_segments
+from polylabelfast import polylabelfast
 
+def tuple_to_list(tuplelist):
+    return [list(row) for row in list(tuplelist)]
+
+# def poly_to_rings(poly):
+#     ext_coord = tuple_to_list(list(poly.exterior.coords))
+#     holes = [tuple_to_list(ring.coords) for ring in poly.interiors]
+#     holes.insert(0, ext_coord)
+#     return holes
+
+def poly_to_rings(poly):
+    ext_coord = list(np.array(poly.exterior.coords)[:, :2])
+    holes = [list(np.array(ring.coords)[:, :2]) for ring in poly.interiors]
+    holes.insert(0, ext_coord)
+    return holes
 
 def choose_dominant_plane_normal(avg_peaks, rooftop_normal=[0.0, 0.0, -1.0]):
     dots = np.array([avg_peaks[i, :].dot(rooftop_normal) for i in range(avg_peaks.shape[0])])
@@ -187,7 +202,6 @@ def extract_polygons_from_points(opc, pl, ga, ico, config,
     tri_mesh, timings = create_meshes(opc, **config['mesh']['filter'])
     alg_timings.update(timings)
 
-    o3d_mesh = create_open_3d_mesh_from_tri_mesh(tri_mesh)
 
     # 2. Get dominant plane normals
     avg_peaks, timings = extract_all_dominant_plane_normals(
@@ -200,9 +214,43 @@ def extract_polygons_from_points(opc, pl, ga, ico, config,
     planes, triangle_sets, timings = extract_planes_and_polygons_from_mesh(tri_mesh, avg_peaks, pl_=pl,
                                                                            postprocess=config['polygon']['postprocess'], **kwargs)
     alg_timings.update(timings)
-    # line_meshes = create_linemesh_from_shapely(planes[0][0])
-    # o3d.visualization.draw_geometries([o3d_mesh, *get_segments(line_meshes), o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.5)])
+    chosen_plane = choose_polygon(planes)
 
-    return planes, alg_timings, tri_mesh, avg_peaks, triangle_sets
+    return chosen_plane, alg_timings, tri_mesh, avg_peaks, triangle_sets
+
+
+def get_touchdown_point(poly, precision=0.05):
+    all_rings = poly_to_rings(poly)
+    point, dist = polylabelfast(all_rings,precision=precision)
+    result = dict(point=np.array(point), dist=dist)
+    return result
+
+
+def get_3D_touchdown_point(chosen_plane, precision=0.05):
+    poly_3D, meta = chosen_plane
+    poly_2D = meta['poly_2D']
+    rm_inv:R = meta['rm_inv']
+    z_value = meta['z_value']
+    touchdown_point = get_touchdown_point(poly_2D, precision)
+    point_planar = np.array([*touchdown_point['point'], z_value])
+    point3D = rm_inv.apply(point_planar)
+    touchdown_point['point'] = point3D
+    return touchdown_point
+
+def choose_polygon(planes):
+    if len(planes) == 0:
+        return None
+    elif len(planes) == 1:
+        return planes[0]
+    else:
+        # TODO possible plane merging, no should do that in polylidar
+        index_chosen = 0
+        max_area = 0.0
+        for index, (poly, meta) in enumerate(planes):
+            if meta['area'] > max_area:
+                index_chosen = index
+                max_area = meta['area']
+        return planes[index_chosen]
+
 
 

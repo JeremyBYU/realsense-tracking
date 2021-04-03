@@ -1,6 +1,6 @@
 import sys
 import time
-from multiprocessing import Process, Lock, Queue
+from multiprocessing import Process, Lock, Queue, Manager
 import numpy as np
 import matplotlib.pyplot as plt
 from landing.helper.helper_logging import logger
@@ -17,48 +17,61 @@ from ImageMessage_pb2 import ImageMessage
 
 from polylidar import Polylidar3D, MatrixDouble, MatrixFloat, extract_point_cloud_from_float_depth
 from fastga import GaussianAccumulatorS2Beta, IcoCharts
-from landing.helper.helper_polylidar import extract_polygons_from_points
+from landing.helper.helper_polylidar import extract_polygons_from_points, get_3D_touchdown_point
 from landing.helper.helper_utility import create_projection_matrix, create_transform
-from landing.helper.o3d_util import create_o3d_pc
+from landing.helper.o3d_util import create_o3d_pc, create_linemesh_from_shapely, get_segments
+from landing.helper.helper_meshes import create_open_3d_mesh_from_tri_mesh
+
+
 
 IDENTITY = np.identity(3)
 IDENTITY_MAT = MatrixDouble(IDENTITY)
 
 
-
-
-
 class LandingService(object):
     def __init__(self, config):
+        # This is our configuration variable, holds all parameters
         self.config = config
+        # A simple frame counter
         self.frame_count = 0
-        self.setup_frames()
-        self.setup()
 
-    def callback_pose(self, topic_name, pose:PoseMessage, time_):
+        self.manager = Manager() # manages shared data between processes
+        # These will contain the results of all single scan touchdowns points
+        self.single_scan_touchdowns = self.manager.list() # Lock is implicit when accessing between processes
+        # These will contain the results of all integrated touchdown points
+        self.integrated_touchdowns = self.manager.list() # Lock is implicit when accessing between processes
+
+        # Will set up all frames and fixed transformations
+        self.setup_frames()
+        # Wil set up ECAL communication
+        self.setup_ecal()
+
+    def callback_pose(self, topic_name, pose: PoseMessage, time_):
         # logger.info(f"Pose of T265 in T265 World Frame: translation: {vec3_to_str(pose.translation)}; \
         #                 rotation (deg): {np_to_str(t265_rot)}; Pose HTS: {pose.hardware_ts:.2f}; Pose RTS: {time_/1000:.2f}")
         try:
             # position and rotation of t265 in "t265 axis world frame" # see readme for definitions
-            H_t265_w_t265 = create_transform([pose.translation.x, pose.translation.y, pose.translation.z], 
-                                        [pose.rotation.x, pose.rotation.y, pose.rotation.z, pose.rotation.w])
-            t265_rot = R.from_matrix(H_t265_w_t265[:3,:3]).as_euler('xyz', degrees=True)
-            logger.debug(f"Pose of T265 in T265 World Frame: translation: {vec3_to_str(pose.translation)}; rotation (deg): {np_to_str(t265_rot)}")
+            H_t265_w_t265 = create_transform([pose.translation.x, pose.translation.y, pose.translation.z],
+                                             [pose.rotation.x, pose.rotation.y, pose.rotation.z, pose.rotation.w])
+            t265_rot = R.from_matrix(H_t265_w_t265[:3, :3]).as_euler('xyz', degrees=True)
+            logger.debug(
+                f"Pose of T265 in T265 World Frame: translation: {vec3_to_str(pose.translation)}; rotation (deg): {np_to_str(t265_rot)}")
 
             H_body_w_t265 = H_t265_w_t265 @ self.body_frame_transform_in_t265_frame
-            body_rot = R.from_matrix(H_body_w_t265[:3,:3]).as_euler('xyz', degrees=True)
-            logger.debug(f"Pose of Body in T265 World Frame: translation: {np_to_str(H_body_w_t265[:3, 3])}; rotation (deg): {np_to_str(body_rot)};")
+            body_rot = R.from_matrix(H_body_w_t265[:3, :3]).as_euler('xyz', degrees=True)
+            logger.debug(
+                f"Pose of Body in T265 World Frame: translation: {np_to_str(H_body_w_t265[:3, 3])}; rotation (deg): {np_to_str(body_rot)};")
             # convert t265 axis world frame to ned world frame
-            # Robot Modelling and Control, Spong, Similarity Transform 2.3.1, Page 41 
-            H_body_w_ned = self.t265_world_to_ned_world @ H_body_w_t265 @ np.linalg.inv(self.t265_world_to_ned_world) 
-            ned_rot = R.from_matrix(H_body_w_ned[:3,:3]).as_euler('xyz', degrees=True)
-            logger.info(f"Pose of Body in NED World Frame: translation: {np_to_str(H_body_w_ned[:3, 3])}; rotation (deg): {np_to_str(ned_rot)}")
-
-            
+            # Robot Modelling and Control, Spong, Similarity Transform 2.3.1, Page 41
+            H_body_w_ned = self.t265_world_to_ned_world @ H_body_w_t265 @ np.linalg.inv(self.t265_world_to_ned_world)
+            ned_rot = R.from_matrix(H_body_w_ned[:3, :3]).as_euler('xyz', degrees=True)
+            logger.info(
+                f"Pose of Body in NED World Frame: translation: {np_to_str(H_body_w_ned[:3, 3])}; rotation (deg): {np_to_str(ned_rot)}")
+            # TODO - Write data to Matt?? 
         except Exception as e:
             logger.exception("Error!")
-		# auto H_t265_W = make_transform(rotation, translation);
-		# Eigen::Matrix4d extrinsic = (H_t265_d400.inverse() * H_t265_W * H_t265_d400).inverse();
+            # auto H_t265_W = make_transform(rotation, translation);
+            # Eigen::Matrix4d extrinsic = (H_t265_d400.inverse() * H_t265_W * H_t265_d400).inverse();
         pass
 
     def callback_depth(self, topic_name, image: ImageMessage, time_):
@@ -97,15 +110,15 @@ class LandingService(object):
         self.body_frame_transform_in_t265_frame[:3, 3] = -self.body_frame_transform_in_t265_frame[:3, 3]
         print()
         print(self.body_frame_transform_in_t265_frame)
-        # rotates world frame of t265 slam to world frame of drone axes 
+        # rotates world frame of t265 slam to world frame of drone axes
         self.t265_world_to_ned_world = self.t265_axes
 
         self.l515_to_t265_frame = np.linalg.inv(self.t265_to_drone_body) @ self.l515_to_drone_body
 
-        # p_l515 = np.array([0, 0, 1, 1]) 
+        # p_l515 = np.array([0, 0, 1, 1])
         # import ipdb;ipdb.set_trace()
 
-    def setup(self):
+    def setup_ecal(self):
         ecal_core.initialize(sys.argv, "Landing_Server")
         # set process state
         ecal_core.set_process_state(1, 1, "Healthy")
@@ -125,7 +138,7 @@ class LandingService(object):
         self.sub_depth.set_callback(self.callback_depth)
 
         self.landing_queue = Queue()
-        self.landing_process = Process(target=process_image, args=(self, self.landing_queue))
+        self.landing_process = Process(target=process_image, args=(self, self.landing_queue, self.single_scan_touchdowns))
         self.landing_process.daemon = True
         self.landing_process.start()        # Launch reader_proc() as a separate python proc
 
@@ -139,13 +152,13 @@ class LandingService(object):
                 frame_start = time.perf_counter()
                 self.frame_count = 0
             time.sleep(1.0)
+            print(f"Main thread: {len(self.single_scan_touchdowns)}")
 
         # finalize eCAL API
         ecal_core.finalize()
 
 
-
-def process_image(landing_service:LandingService, queue: Queue):
+def process_image(landing_service: LandingService, queue: Queue, single_scan_touchdowns):
     config = landing_service.config
     stride = config['mesh']['stride']
 
@@ -158,34 +171,54 @@ def process_image(landing_service:LandingService, queue: Queue):
 
         image = queue.get()
         # logger.info("Frame Number: %s", image.frame_number)
-
+        t1 = time.perf_counter()
         # Get numpy array from image
         image_np = np.frombuffer(image.image_data, dtype=np.uint16).reshape((image.height, image.width))
-
         # Convert to float depth map
         image_np = np.multiply(image_np, landing_service.config['depth_scale'], dtype=np.float32)
         # Get intrinsics
-        intrinsics = create_projection_matrix(image.fx, image.fy, image.cx, image.cy)
-        # Get Extrinsics for body frame
-        H_t265_w_t265 = create_transform([image.translation.x, image.translation.y, image.translation.z], 
-                                    [image.rotation.x, image.rotation.y, image.rotation.z, image.rotation.w])
-        
+        intrinsics = MatrixDouble(create_projection_matrix(image.fx, image.fy, image.cx, image.cy))
+        # Get extrinsics for t265, in world t265 frame
+        H_t265_w_t265 = create_transform([image.translation.x, image.translation.y, image.translation.z],
+                                         [image.rotation.x, image.rotation.y, image.rotation.z, image.rotation.w])
+        t2 = time.perf_counter()
         # Put in world ned frame
         extrinsics_world_ned = landing_service.t265_world_to_ned_world @ H_t265_w_t265 @ landing_service.l515_to_t265_frame
         extrinsics_world_ned_ = MatrixDouble(extrinsics_world_ned)
         extrinsics_body_frame_ = MatrixDouble(landing_service.l515_to_drone_body)
-        extrinsics_ = extrinsics_body_frame_ if config['single_scan']['command_frame'] == 'body' else extrinsics_world_ned_
-        # TODO, also put in body frame
+        # Put in frame chosen by user
+        extrinsics = extrinsics_body_frame_ if config['single_scan']['command_frame'] == 'body' else extrinsics_world_ned_
         # Create OPC
-        points = extract_point_cloud_from_float_depth(MatrixFloat(
-            image_np), MatrixDouble(intrinsics), extrinsics_, stride=stride)
-
+        points = extract_point_cloud_from_float_depth(MatrixFloat(image_np), intrinsics, extrinsics, stride=stride)
         new_shape = (int(image_np.shape[0] / stride), int(image_np.shape[1] / stride), 3)
         opc = np.asarray(points).reshape(new_shape)  # organized point cloud (will have NaNs!)
-        # extract_polygons_from_points(opc, pl, ga, ico, config)
+        t3 = time.perf_counter()
+        chosen_plane, alg_timings, tri_mesh, avg_peaks, _ = extract_polygons_from_points(opc, pl, ga, ico, config)
+        if chosen_plane is not None:
+            touchdown_point = get_3D_touchdown_point(chosen_plane, config['polylabel']['precision'])
+            # VISUALIZATION
+            # line_meshes = create_linemesh_from_shapely(chosen_plane[0])
+            # tp = o3d.geometry.TriangleMesh.create_icosahedron(0.05).translate(touchdown_point['point'] )
+            # o3d_mesh = create_open_3d_mesh_from_tri_mesh(tri_mesh)
+            # o3d.visualization.draw_geometries([o3d_mesh, tp, *get_segments(line_meshes), o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.5)])
+
+        else:
+            touchdown_point = None
+        t4 = time.perf_counter()
+
+        touchdown_results = dict(polygon=chosen_plane, alg_timings=alg_timings, avg_peaks=avg_peaks, touchdown_point=touchdown_point)
+        single_scan_touchdowns.append(touchdown_results)
+
+        # d1 = (t2-t1) * 1000
+        # d2 = (t3-t2) * 1000
+        # d3 = (t4-t3) * 1000
+        # logger.info("D1: %.2f, D2: %.2f, D3: %.2f, timings: %s", d1, d2, d3, alg_timings)
+        # print(f"Process thread: {len(single_scan_touchdowns)}")
+
 
 def vec3_to_str(vec):
     return f"{vec.x:.1f}, {vec.y:.1f}, {vec.z:.1f}"
+
 
 def np_to_str(vec):
     start = ""

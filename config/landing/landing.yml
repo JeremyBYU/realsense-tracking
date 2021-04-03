@@ -5,12 +5,12 @@ beaglebone:
 depth_scale: 0.00025
 mesh:
     use_cuda: false # use GPU CUDA acceleration for mesh smoothing
-    stride: 1 # skip rows/columns
+    stride: 2 # skip rows/columns
     filter:
         loops_laplacian: 1 # how many iterations
-        _lambda: 0.65 # weight factor for laplacian update
+        _lambda: 1.0 # weight factor for laplacian update
         kernel_size: 3 # only changes for laplacian
-        loops_bilateral: 2 # how many iterations
+        loops_bilateral: 1 # how many iterations
         sigma_length: 0.3 # std of distance between triangles centroids
         sigma_angle: 0.2 # std of distance between triangles normals
 polylidar: # Parameters we send to polylidar. Determine plane and polygon extraction from point clouds.
@@ -50,7 +50,7 @@ polygon:
         negative_buffer: 0.1 # m, Negative buffer to polygon. Expands holes and constricts outer hull of polygon
         simplify: 0.05 # m, simplify edges of polygon
 polylabel:
-    precision: 0.1
+    precision: 0.05
 
 single_scan:
     command_frame: "body" # 'body' or 'world'
