@@ -94,7 +94,7 @@ active = true
   # 6DOF Pose
   [publish.pose]
   active = true
-  rate = 100
+  rate = 6
 
   # XYZ Point Cloud. RGB Optional
   [publish.pointcloud]

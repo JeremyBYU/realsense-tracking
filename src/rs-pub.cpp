@@ -47,6 +47,7 @@ int POSE_COUNTER = 0;
 int FRAME_COUNTER = 0;
 const int POSE_RATE = 200;
 const int FRAME_RATE = 30;
+const double POSE_SYNC_MAX = 200; // max amount of millisecond drift between video and pose. 
 
 // Need global because of callback
 int POSE_PUB_RATE = 1;
@@ -382,8 +383,26 @@ void process_pipeline(std::vector<rspub::StreamDetail> dsp, rs2::pipeline &pipe,
         VLOG(2) << "Publishing dframe";
         rspub_pb::ImageMessage depth_message;
         fill_image_message(dframe, depth_message);
+
+        if (POSES.sz > 0 && POSES.full()) {
+          // Get nearest pose
+          rspub::TransformTS transform;
+          {
+            std::lock_guard<std::mutex> lockGuard(POSES_MUTEX);
+            transform = getNearestTransformTS(dframe.get_timestamp(), POSES);
+          }
+          fill_image_message_transform(transform, depth_message);
+          auto diff = std::abs(transform.ts - dframe.get_timestamp());
+          // Only publish pose if its close in sync
+          if (diff > POSE_SYNC_MAX)
+          {
+            LOG(ERROR) << "Depth and Pose have drifted more than 1 second from eachother!";
+            throw std::runtime_error("Depth and Pose data out of sync");
+          }
+        }
         pub_depth.Send(depth_message);
         depth_cfg_counter = 0;
+        
       }
 
       if (cframe && color_cfg_active && color_cfg_counter == color_cfg_rate) {
@@ -412,7 +431,7 @@ void process_pipeline(std::vector<rspub::StreamDetail> dsp, rs2::pipeline &pipe,
             std::cout << "Frame Count: " << FRAME_COUNTER << "; Pose timestamp diff (ms): " << diff << std::endl;
           }
           
-          if (diff > static_cast<double>(POSE_RATE)) {
+          if (diff > POSE_SYNC_MAX) {
             LOG(ERROR) << "RGBD and Pose have drifted more than 1 second from eachother!";
             std::cout << "RGBD and Pose have drifted more than 1 second from eachother!" << std::endl;
             throw std::runtime_error("RGBD and Pose data out of sync");

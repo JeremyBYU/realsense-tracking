@@ -201,7 +201,7 @@ def extract_polygons_from_points(opc, pl, ga, ico, config,
                                                                            postprocess=config['polygon']['postprocess'], **kwargs)
     alg_timings.update(timings)
     # line_meshes = create_linemesh_from_shapely(planes[0][0])
-    # o3d.visualization.draw_geometries([o3d_mesh, *get_segments(line_meshes)])
+    # o3d.visualization.draw_geometries([o3d_mesh, *get_segments(line_meshes), o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.5)])
 
     return planes, alg_timings, tri_mesh, avg_peaks, triangle_sets
 

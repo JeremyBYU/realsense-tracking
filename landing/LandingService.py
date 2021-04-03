@@ -25,49 +25,8 @@ IDENTITY = np.identity(3)
 IDENTITY_MAT = MatrixDouble(IDENTITY)
 
 
-def process_image(landing_service, queue: Queue):
-    config = landing_service.config
-    stride = config['mesh']['stride']
 
-    # Create Polylidar Objects
-    pl = Polylidar3D(**config['polylidar'])
-    ga = GaussianAccumulatorS2Beta(level=config['fastga']['level'])
-    ico = IcoCharts(level=config['fastga']['level'])
 
-    while True:
-
-        image = queue.get()
-        logger.info("Frame Number: %s", image.frame_number)
-
-        # Get numpy array from image
-        image_np = np.frombuffer(image.image_data, dtype=np.uint16).reshape((image.height, image.width))
-
-        # Convert to float depth map
-        image_np = np.multiply(image_np, landing_service.config['depth_scale'], dtype=np.float32)
-        # Get intrinsics
-        intrinsics = create_projection_matrix(image.fx, image.fy, image.cx, image.cy)
-        # Get Extrinsics for body frame
-        # Create OPC
-        points = extract_point_cloud_from_float_depth(MatrixFloat(
-            image_np), MatrixDouble(intrinsics), IDENTITY_MAT, stride=stride)
-
-        new_shape = (int(image_np.shape[0] / stride), int(image_np.shape[1] / stride), 3)
-        opc = np.asarray(points).reshape(new_shape)  # organized point cloud (will have NaNs!)
-
-        # extract_polygons_from_points(opc, pl, ga, ico, config)
-        # for visuazation
-        # pcd =create_o3d_pc(opc)
-        # o3d.visualization.draw_geometries([pcd])
-        # create opc
-
-def vec3_to_str(vec):
-    return f"{vec.x:.1f}, {vec.y:.1f}, {vec.z:.1f}"
-
-def np_to_str(vec):
-    start = ""
-    for x in vec:
-        start += f"{x:.1f} "
-    return start
 
 class LandingService(object):
     def __init__(self, config):
@@ -84,19 +43,18 @@ class LandingService(object):
             H_t265_w_t265 = create_transform([pose.translation.x, pose.translation.y, pose.translation.z], 
                                         [pose.rotation.x, pose.rotation.y, pose.rotation.z, pose.rotation.w])
             t265_rot = R.from_matrix(H_t265_w_t265[:3,:3]).as_euler('xyz', degrees=True)
-            logger.info(f"Pose of T265 in T265 World Frame: translation: {vec3_to_str(pose.translation)}; rotation (deg): {np_to_str(t265_rot)}")
+            logger.debug(f"Pose of T265 in T265 World Frame: translation: {vec3_to_str(pose.translation)}; rotation (deg): {np_to_str(t265_rot)}")
 
             H_body_w_t265 = H_t265_w_t265 @ self.body_frame_transform_in_t265_frame
             body_rot = R.from_matrix(H_body_w_t265[:3,:3]).as_euler('xyz', degrees=True)
-            logger.info(f"Pose of Body in T265 World Frame: translation: {np_to_str(H_body_w_t265[:3, 3])}; rotation (deg): {np_to_str(body_rot)};")
-            # convert to t265 axis world frame to ned world frame
+            logger.debug(f"Pose of Body in T265 World Frame: translation: {np_to_str(H_body_w_t265[:3, 3])}; rotation (deg): {np_to_str(body_rot)};")
+            # convert t265 axis world frame to ned world frame
             # Robot Modelling and Control, Spong, Similarity Transform 2.3.1, Page 41 
             H_body_w_ned = self.t265_world_to_ned_world @ H_body_w_t265 @ np.linalg.inv(self.t265_world_to_ned_world) 
             ned_rot = R.from_matrix(H_body_w_ned[:3,:3]).as_euler('xyz', degrees=True)
             logger.info(f"Pose of Body in NED World Frame: translation: {np_to_str(H_body_w_ned[:3, 3])}; rotation (deg): {np_to_str(ned_rot)}")
+
             
-            
-        
         except Exception as e:
             logger.exception("Error!")
 		# auto H_t265_W = make_transform(rotation, translation);
@@ -142,6 +100,11 @@ class LandingService(object):
         # rotates world frame of t265 slam to world frame of drone axes 
         self.t265_world_to_ned_world = self.t265_axes
 
+        self.l515_to_t265_frame = np.linalg.inv(self.t265_to_drone_body) @ self.l515_to_drone_body
+
+        # p_l515 = np.array([0, 0, 1, 1]) 
+        # import ipdb;ipdb.set_trace()
+
     def setup(self):
         ecal_core.initialize(sys.argv, "Landing_Server")
         # set process state
@@ -179,3 +142,53 @@ class LandingService(object):
 
         # finalize eCAL API
         ecal_core.finalize()
+
+
+
+def process_image(landing_service:LandingService, queue: Queue):
+    config = landing_service.config
+    stride = config['mesh']['stride']
+
+    # Create Polylidar Objects
+    pl = Polylidar3D(**config['polylidar'])
+    ga = GaussianAccumulatorS2Beta(level=config['fastga']['level'])
+    ico = IcoCharts(level=config['fastga']['level'])
+
+    while True:
+
+        image = queue.get()
+        # logger.info("Frame Number: %s", image.frame_number)
+
+        # Get numpy array from image
+        image_np = np.frombuffer(image.image_data, dtype=np.uint16).reshape((image.height, image.width))
+
+        # Convert to float depth map
+        image_np = np.multiply(image_np, landing_service.config['depth_scale'], dtype=np.float32)
+        # Get intrinsics
+        intrinsics = create_projection_matrix(image.fx, image.fy, image.cx, image.cy)
+        # Get Extrinsics for body frame
+        H_t265_w_t265 = create_transform([image.translation.x, image.translation.y, image.translation.z], 
+                                    [image.rotation.x, image.rotation.y, image.rotation.z, image.rotation.w])
+        
+        # Put in world ned frame
+        extrinsics_world_ned = landing_service.t265_world_to_ned_world @ H_t265_w_t265 @ landing_service.l515_to_t265_frame
+        extrinsics_world_ned_ = MatrixDouble(extrinsics_world_ned)
+        extrinsics_body_frame_ = MatrixDouble(landing_service.l515_to_drone_body)
+        extrinsics_ = extrinsics_body_frame_ if config['single_scan']['command_frame'] == 'body' else extrinsics_world_ned_
+        # TODO, also put in body frame
+        # Create OPC
+        points = extract_point_cloud_from_float_depth(MatrixFloat(
+            image_np), MatrixDouble(intrinsics), extrinsics_, stride=stride)
+
+        new_shape = (int(image_np.shape[0] / stride), int(image_np.shape[1] / stride), 3)
+        opc = np.asarray(points).reshape(new_shape)  # organized point cloud (will have NaNs!)
+        # extract_polygons_from_points(opc, pl, ga, ico, config)
+
+def vec3_to_str(vec):
+    return f"{vec.x:.1f}, {vec.y:.1f}, {vec.z:.1f}"
+
+def np_to_str(vec):
+    start = ""
+    for x in vec:
+        start += f"{x:.1f} "
+    return start
