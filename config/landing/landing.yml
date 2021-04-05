@@ -15,8 +15,8 @@ mesh:
         sigma_angle: 0.2 # std of distance between triangles normals
 polylidar: # Parameters we send to polylidar. Determine plane and polygon extraction from point clouds.
     alpha: 0.0 # must be set to 0.0 if using lmax
-    lmax: 0.2 # maximum distance between points in plane for spatial connection
-    z_thresh: 0.1 # enforce point to plane distance constraints during region growing.
+    lmax: 0.15 # maximum distance between points in plane for spatial connection
+    z_thresh: 0.05 # enforce point to plane distance constraints during region growing.
     norm_thresh: 0.96 # Not used, set to the same as norm_thresh_min. Will deprecate later.
     norm_thresh_min: 0.96 # triangles must have a minimum amount of planarity.
     min_hole_vertices: 4 # minimum number of vertices in a hole to return
@@ -46,8 +46,8 @@ polygon:
                 min: 0.5 # m^2
                 max: 400
         # These parameters correspond to Shapely polygon geometry operations
-        positive_buffer: 0.05 # m, Positively expand polygon.  Fills in small holes
-        negative_buffer: 0.1 # m, Negative buffer to polygon. Expands holes and constricts outer hull of polygon
+        positive_buffer: 0.02 # m, Positively expand polygon.  Fills in small holes
+        negative_buffer: 0.05 # m, Negative buffer to polygon. Expands holes and constricts outer hull of polygon
         simplify: 0.05 # m, simplify edges of polygon
 polylabel:
     precision: 0.05

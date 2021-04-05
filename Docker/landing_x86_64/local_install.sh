@@ -10,7 +10,7 @@ trap 'echo "\"${last_command}\" command filed with exit code $?."' EXIT
 INSTALL_DIR=/home/jeremy/Software
 
 # Clone Polylidar3D
-git clone --recursive https://github.com/JeremyBYU/polylidar.git $INSTALL_DIR/polylidar && \
+git clone -b 'landing' --single-branch --recursive https://github.com/JeremyBYU/polylidar.git $INSTALL_DIR/polylidar && \
 cd $INSTALL_DIR/polylidar && mkdir cmake-build && cd cmake-build && \
 cmake .. -DCMAKE_BUILD_TYPE=Release -DFETCHCONTENT_QUIET=OFF && \
 make -j${N_CPUS} && \

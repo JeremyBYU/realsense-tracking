@@ -6,6 +6,7 @@ import ecal.core.core as ecal_core
 from ecal.core.service import Client
 
 def client_resp_callback(service_info, response):
+    response = response.decode("utf-8") 
     print(service_info)
     print(response)
 

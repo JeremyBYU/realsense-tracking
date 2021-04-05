@@ -78,8 +78,8 @@ active = true
 
   # Just Depth
   [publish.depth]
-  active = true
-  rate = 30
+  active = false
+  rate = 10
 
   # Just Color
   [publish.color]
@@ -89,7 +89,7 @@ active = true
   # Color and Depth combined in one frame
   [publish.rgbd]
   active = true
-  rate = 3
+  rate = 30
 
   # 6DOF Pose
   [publish.pose]

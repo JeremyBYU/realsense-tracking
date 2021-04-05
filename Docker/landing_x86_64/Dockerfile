@@ -16,7 +16,7 @@ RUN pip install toml pyyaml
 RUN pip install scipy==1.4.1
 
 # Clone Polylidar3D
-RUN git clone --recursive https://github.com/JeremyBYU/polylidar.git /opt/polylidar && \
+RUN git clone -b 'landing' --single-branch --recursive https://github.com/JeremyBYU/polylidar.git /opt/polylidar && \
     cd /opt/polylidar && mkdir cmake-build && cd cmake-build && \
     cmake .. -DCMAKE_BUILD_TYPE=Release -DFETCHCONTENT_QUIET=OFF && \
     make -j${N_CPUS} && \

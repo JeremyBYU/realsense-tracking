@@ -21,7 +21,7 @@ from landing.helper.helper_polylidar import extract_polygons_from_points, get_3D
 from landing.helper.helper_utility import create_projection_matrix, create_transform
 from landing.helper.o3d_util import create_o3d_pc, create_linemesh_from_shapely, get_segments
 from landing.helper.helper_meshes import create_open_3d_mesh_from_tri_mesh
-
+from landing.helper.helper_vis import plot_polygons
 
 
 IDENTITY = np.identity(3)
@@ -34,12 +34,13 @@ class LandingService(object):
         self.config = config
         # A simple frame counter
         self.frame_count = 0
+        self.active_single_scan = True
 
-        self.manager = Manager() # manages shared data between processes
+        self.manager = Manager()  # manages shared data between polylidar process
         # These will contain the results of all single scan touchdowns points
-        self.single_scan_touchdowns = self.manager.list() # Lock is implicit when accessing between processes
+        self.single_scan_touchdowns = self.manager.list()  # Lock is implicit when accessing between processes
         # These will contain the results of all integrated touchdown points
-        self.integrated_touchdowns = self.manager.list() # Lock is implicit when accessing between processes
+        self.integrated_touchdowns = self.manager.list()  # Lock is implicit when accessing between processes
 
         # Will set up all frames and fixed transformations
         self.setup_frames()
@@ -67,7 +68,7 @@ class LandingService(object):
             ned_rot = R.from_matrix(H_body_w_ned[:3, :3]).as_euler('xyz', degrees=True)
             logger.info(
                 f"Pose of Body in NED World Frame: translation: {np_to_str(H_body_w_ned[:3, 3])}; rotation (deg): {np_to_str(ned_rot)}")
-            # TODO - Write data to Matt?? 
+            # TODO - Write data to Matt??
         except Exception as e:
             logger.exception("Error!")
             # auto H_t265_W = make_transform(rotation, translation);
@@ -76,21 +77,47 @@ class LandingService(object):
 
     def callback_depth(self, topic_name, image: ImageMessage, time_):
         try:
-            self.landing_queue.put(image)
             self.frame_count += 1
+            if self.active_single_scan:
+                self.landing_queue.put(image)
         except Exception as e:
             logger.exception("Error in callback depth")
 
     # define the server method "find_touchdown" function
-    def callback_find_touchdown(self, method_name, req_type, resp_type, request):
+    def callback_activate_single_scan_touchdown(self, method_name, req_type, resp_type, request):
         logger.info("'LandingService' method %s called with %s", method_name, request)
-        time.sleep(.3)
-        return 0, bytes("thank you for calling touchdown :-)", "ascii")
+        # decodes bytes into utf-8 string
+        request = request.decode('utf-8')
+        self.active_single_scan =  request == 'active'
+        return 0, bytes("success", "ascii")
+
+    def initiate_single_scan_landing(self):
+        last_touchdown = self.single_scan_touchdowns[-1]
+        tp = last_touchdown['touchdown_point']
+        point = tp['point']
+        dist = tp['dist']
+        logger.info("Initiating landing at %s with %.2f radial clearance", point, dist)
+        # TODO send command to beaglebone
+
+    def initiate_integrated_landing(self):
+        pass
 
     # define the server method "initiate_landing" function
     def callback_initiate_landing(self, method_name, req_type, resp_type, request):
         logger.info("'LandingService' method '%s' called with %s", method_name, request)
-        return 0, bytes("thank you for calling initiate landing :-)", "ascii")
+        request = request.decode('utf-8')
+        rtn_value = 0
+        rtn_msg = "success"
+        if request == 'single_scan' and self.active_single_scan and len(self.single_scan_touchdowns) > 0:
+            self.initiate_single_scan_landing()
+            pass
+        elif request == 'integrated' and self.integrated_complete:
+            self.initiate_integrated_landing()
+        else:
+            rtn_value = 1
+            rtn_msg = "invalid request. must have active single scan or completed integration"
+
+        return rtn_value, bytes(rtn_msg, "ascii")
 
     def setup_frames(self):
 
@@ -126,7 +153,8 @@ class LandingService(object):
         # create server "LandingServer"
         self.server = ecal_service.Server("LandingService")
         # Will be lots of parameters inside of the request type
-        self.server.add_method_callback("FindTouchdown", "string", "string", self.callback_find_touchdown)
+        self.server.add_method_callback("ActivateSingleScanTouchdown", "string", "string",
+                                        self.callback_activate_single_scan_touchdown)
         self.server.add_method_callback("InitiateLanding", "string", "string", self.callback_initiate_landing)
 
         # create subscriber for pose information and connect callback
@@ -134,11 +162,12 @@ class LandingService(object):
         self.sub_pose.set_callback(self.callback_pose)
 
         # create subscriber for depth information and connect callback
-        self.sub_depth = ProtoSubscriber("DepthMessage", ImageMessage)
+        self.sub_depth = ProtoSubscriber("RGBDMessage", ImageMessage)
         self.sub_depth.set_callback(self.callback_depth)
 
         self.landing_queue = Queue()
-        self.landing_process = Process(target=process_image, args=(self, self.landing_queue, self.single_scan_touchdowns))
+        self.landing_process = Process(target=process_image, args=(
+            self, self.landing_queue, self.single_scan_touchdowns))
         self.landing_process.daemon = True
         self.landing_process.start()        # Launch reader_proc() as a separate python proc
 
@@ -172,10 +201,10 @@ def process_image(landing_service: LandingService, queue: Queue, single_scan_tou
         image = queue.get()
         # logger.info("Frame Number: %s", image.frame_number)
         t1 = time.perf_counter()
-        # Get numpy array from image
-        image_np = np.frombuffer(image.image_data, dtype=np.uint16).reshape((image.height, image.width))
+        # Get numpy array from depth image
+        image_depth_np = np.frombuffer(image.image_data_second, dtype=np.uint16).reshape((image.height, image.width))
         # Convert to float depth map
-        image_np = np.multiply(image_np, landing_service.config['depth_scale'], dtype=np.float32)
+        image_depth_np = np.multiply(image_depth_np, landing_service.config['depth_scale'], dtype=np.float32)
         # Get intrinsics
         intrinsics = MatrixDouble(create_projection_matrix(image.fx, image.fy, image.cx, image.cy))
         # Get extrinsics for t265, in world t265 frame
@@ -189,8 +218,8 @@ def process_image(landing_service: LandingService, queue: Queue, single_scan_tou
         # Put in frame chosen by user
         extrinsics = extrinsics_body_frame_ if config['single_scan']['command_frame'] == 'body' else extrinsics_world_ned_
         # Create OPC
-        points = extract_point_cloud_from_float_depth(MatrixFloat(image_np), intrinsics, extrinsics, stride=stride)
-        new_shape = (int(image_np.shape[0] / stride), int(image_np.shape[1] / stride), 3)
+        points = extract_point_cloud_from_float_depth(MatrixFloat(image_depth_np), intrinsics, extrinsics, stride=stride)
+        new_shape = (int(image_depth_np.shape[0] / stride), int(image_depth_np.shape[1] / stride), 3)
         opc = np.asarray(points).reshape(new_shape)  # organized point cloud (will have NaNs!)
         t3 = time.perf_counter()
         chosen_plane, alg_timings, tri_mesh, avg_peaks, _ = extract_polygons_from_points(opc, pl, ga, ico, config)
@@ -202,18 +231,27 @@ def process_image(landing_service: LandingService, queue: Queue, single_scan_tou
             # o3d_mesh = create_open_3d_mesh_from_tri_mesh(tri_mesh)
             # o3d.visualization.draw_geometries([o3d_mesh, tp, *get_segments(line_meshes), o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.5)])
 
+            # image_color_np = np.frombuffer(image.image_data, dtype=np.uint8).reshape((image.height, image.width, 3))
+            # plot_polygons(chosen_plane, create_projection_matrix(image.fx, image.fy, image.cx, image.cy), np.linalg.inv(np.array(extrinsics)), image_color_np)
+            # plt.imshow(image_color_np)
+            # plt.show()
+
         else:
             touchdown_point = None
         t4 = time.perf_counter()
 
-        touchdown_results = dict(polygon=chosen_plane, alg_timings=alg_timings, avg_peaks=avg_peaks, touchdown_point=touchdown_point)
+        touchdown_results = dict(polygon=chosen_plane, alg_timings=alg_timings,
+                                 avg_peaks=avg_peaks, touchdown_point=touchdown_point)
         single_scan_touchdowns.append(touchdown_results)
 
-        # d1 = (t2-t1) * 1000
-        # d2 = (t3-t2) * 1000
-        # d3 = (t4-t3) * 1000
-        # logger.info("D1: %.2f, D2: %.2f, D3: %.2f, timings: %s", d1, d2, d3, alg_timings)
-        # print(f"Process thread: {len(single_scan_touchdowns)}")
+
+
+
+        d1 = (t2-t1) * 1000
+        d2 = (t3-t2) * 1000
+        d3 = (t4-t3) * 1000
+        logger.info("D1: %.2f, D2: %.2f, D3: %.2f, timings: %s", d1, d2, d3, alg_timings)
+        print(f"Process thread: {len(single_scan_touchdowns)}")
 
 
 def vec3_to_str(vec):
