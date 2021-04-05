@@ -39,6 +39,22 @@ def create_proto_vec(vec):
     return proto_vec
 
 
+def get_mesh_data(resp):
+    mesh = resp.mesh
+    n_triangles = mesh.n_triangles
+    n_vertices = mesh.n_vertices
+    triangles = np.frombuffer(
+        mesh.triangles, dtype=np.int32).reshape((n_triangles, 3))
+    vertices = np.frombuffer(
+        mesh.vertices, dtype=np.float64).reshape((n_vertices, 3))
+    vertices_colors = np.frombuffer(
+        mesh.vertices_colors, dtype=np.float64).reshape((n_vertices, 3))
+    halfedges = np.frombuffer(mesh.halfedges, dtype=np.uint64)
+    return np.copy(vertices), np.copy(triangles), np.copy(halfedges), np.copy(vertices_colors)
+
+
+
+
 # Eigen::Matrix4d make_transform(rspub_pb::Vec4 &rotation, rspub_pb::Vec3 &trans)
 # {
 # 	Eigen::Matrix3d mat3 = Eigen::Quaterniond(rotation.w(), rotation.x(), rotation.y(), rotation.z()).toRotationMatrix();

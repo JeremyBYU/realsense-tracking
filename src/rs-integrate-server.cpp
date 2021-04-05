@@ -115,8 +115,8 @@ public:
 		// Depth parameters
 		depth_trunc = toml::find_or<double>(tcf, "depth_trunc", 3.0);
 		depth_scale = toml::find_or<double>(tcf, "depth_scale", 1000.0);
-		auto intrinsic_fpath = toml::find_or<std::string>(tcf, "path_intrinsic", "");
-		open3d::io::ReadIJsonConvertible(intrinsic_fpath, camera_intrinsic);
+		// auto intrinsic_fpath = toml::find_or<std::string>(tcf, "path_intrinsic", "");
+		// open3d::io::ReadIJsonConvertible(intrinsic_fpath, camera_intrinsic);
 
 		// std::cout << camera_intrinsic.GetPrincipalPoint().first << std::endl;
 		// std::cout << "No crash yet" << std::endl;
@@ -412,6 +412,7 @@ public:
 				continue;
 			VLOG(2) << "Integrating " << scene_name;
 			double now0 = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
+			o3d::camera::PinholeCameraIntrinsic camera_intrinsic(w, h, im_msg.fx(), im_msg.fy(), im_msg.cx(), im_msg.cy());
 			scene.volume->Integrate(*rgbd_image, camera_intrinsic, extrinsic);
 			double now1 = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
 			LOG(INFO) << std::setprecision(3) << std::fixed << "Volume Integration took: " << now1 - now0 << " milliseconds";
@@ -433,7 +434,7 @@ protected:
 	bool auto_start;
 	bool color_vertices;
 	std::string save_dir;
-	o3d::camera::PinholeCameraIntrinsic camera_intrinsic;
+	// o3d::camera::PinholeCameraIntrinsic camera_intrinsic;
 };
 
 } // namespace rspub

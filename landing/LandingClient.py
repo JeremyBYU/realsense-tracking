@@ -39,8 +39,8 @@ class Window(QWidget):
         self.completed_integration = False
         self.pose_translation_ned = [0.0, 0.0, 0.0]
         self.pose_rotation_ned = [0.0, 0.0, 0.0, 1.0]
-        self.pose_touchdown_point = [0.0, 0.0, 0.0]
-        self.pose_touchdown_dist = 0.0
+        self.single_touchdown_point = [0.0, 0.0, 0.0]
+        self.single_touchdown_dist = 0.0
         # Set up ECAL
         self.setup_ecal()
 
@@ -84,6 +84,12 @@ class Window(QWidget):
         request_string = bytes(request_string, "ascii")
         _ = self.landing_client.call_method("ActivateSingleScanTouchdown", request_string)
 
+
+    def integration_request(self, request_type='start'):
+        logger.info("Attempting to make integration request of %s", request_type)
+        request_string = bytes(request_type, "ascii")
+        _ = self.landing_client.call_method("IntegrationServiceForward", request_string)
+
     def setup_gui(self):
         self.setWindowTitle("QGridLayout Example")
         # self.setFixedSize(800, 640)
@@ -103,6 +109,7 @@ class Window(QWidget):
 
         ##### BEGIN TOP LEFT #######
         layout_top_left = QVBoxLayout()
+        layout_top_left.setSpacing(5)
         # Set Top Left Label Header
         top_left_heading = QLabel("Commands")
         font = QFont()
@@ -128,16 +135,38 @@ class Window(QWidget):
         layout_top_left_integrated = QHBoxLayout()
         layout_top_left_integrated.setAlignment(Qt.AlignTop)
         self.integrated_start_button = QPushButton("Start")
+        self.integrated_start_button.clicked.connect(partial(self.integration_request, request_type='start'))
         self.integrated_label = QLabel("Intregrated")
         self.integrated_stop_button = QPushButton("Stop")
+        self.integrated_stop_button.clicked.connect(partial(self.integration_request, request_type='stop'))
+
 
         layout_top_left_integrated.addWidget(self.integrated_start_button)
         layout_top_left_integrated.addWidget(self.integrated_label)
         layout_top_left_integrated.addWidget(self.integrated_stop_button)
 
+
+        # Add Mesh Extraction
+        layout_top_left_mesh_extraction = QHBoxLayout()
+        layout_top_left_mesh_extraction.setAlignment(Qt.AlignTop)
+        self.extract_mesh_button = QPushButton("Extract Mesh from Integration")
+        self.extract_mesh_button.clicked.connect(partial(self.integration_request, request_type='extract'))
+        self.extract_mesh_button.setEnabled(False)
+        self.touchdown_mesh_button = QPushButton("Find TP from Integrated Mesh")
+        self.touchdown_mesh_button.clicked.connect(partial(self.integration_request, request_type='touchdown_point'))
+        self.touchdown_mesh_button.setEnabled(False)
+
+
+        layout_top_left_mesh_extraction.addWidget(self.extract_mesh_button)
+        layout_top_left_mesh_extraction.addWidget(self.touchdown_mesh_button)
+
+
         layout_top_left.addWidget(top_left_heading)
         layout_top_left.addLayout(layout_top_left_single)
         layout_top_left.addLayout(layout_top_left_integrated)
+        layout_top_left.addLayout(layout_top_left_mesh_extraction)
+
+        layout_top_left.addStretch()
         ##### END TOP LEFT #######
 
         ##### BEGIN TOP RIGHT #######
@@ -152,6 +181,7 @@ class Window(QWidget):
         # Add Single Scan Status
         layout_top_right_single = QHBoxLayout()
         layout_top_right_single.setAlignment(Qt.AlignTop)
+        layout_top_right.setSpacing(10)
         self.single_right_label = QLabel("Single Scan Active")
         self.single_right_status = QLabel("N/A")
 
@@ -170,6 +200,8 @@ class Window(QWidget):
         layout_top_right.addWidget(top_right_heading)
         layout_top_right.addLayout(layout_top_right_single)
         layout_top_right.addLayout(layout_top_right_integrated)
+        layout_top_right.addStretch()
+        
         ##### END TOP LEFT #######
 
         # Add Top Left (0,0)
@@ -214,6 +246,7 @@ class Window(QWidget):
 
         self.pose_translation_ned = [pose_ned.x, pose_ned.y, pose_ned.z]
         self.single_touchdown_point = [sig_tp.x, sig_tp.y, sig_tp.z]
+        self.sing
 
         # self.image_queue.put(('labels', None))
 

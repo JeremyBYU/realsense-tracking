@@ -140,6 +140,29 @@ COLOR_PALETTE = list(
 ############ MESH VISUALIZATION HELPERS ################
 ########################################################
 
+def create_o3d_mesh_from_data(vertices, triangles, halfedges, vertices_colors=None):
+    """Combines numpy arrays into a Open3D triangular Mesh
+    
+    Arguments:
+        vertices {ndarray} -- vertices NX3
+        triangles {ndarray} -- triangles NX3
+        halfedges {ndarray} -- NX1
+    
+    Returns:
+        o3d.geometry.TriangleMesh -- TriangleMesh
+    """
+    import open3d as o3d
+    vertices_o3d = o3d.utility.Vector3dVector(vertices)
+    triangles_o3d = o3d.utility.Vector3iVector(triangles)
+    mesh = o3d.geometry.TriangleMesh(vertices_o3d, triangles_o3d)
+    if vertices_colors is not None:
+        vertices_colors[:,[0, 2]] = vertices_colors[:,[2, 0]]
+        vertices_colors = np.ascontiguousarray(vertices_colors)
+        mesh.vertex_colors = o3d.utility.Vector3dVector(vertices_colors)
+    mesh.compute_vertex_normals()
+    mesh.compute_triangle_normals()
+    return mesh
+
 
 def create_open_3d_mesh_from_tri_mesh(tri_mesh):
     """Create an Open3D Mesh given a Polylidar TriMesh"""

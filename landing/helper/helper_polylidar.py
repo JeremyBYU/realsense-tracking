@@ -193,7 +193,7 @@ def extract_polygons_from_points(opc, pl, ga, ico, config,
         polygons
     """
 
-    logger.info("Extracting polygon from organized point cloud with shape: %s", opc.shape)
+    logger.debug("Extracting polygon from organized point cloud with shape: %s", opc.shape)
     # TODO if necessary
     if dynamic_decimation:
         pass
@@ -211,7 +211,7 @@ def extract_polygons_from_points(opc, pl, ga, ico, config,
     # only looking for most dominant plane of the rooftop
     avg_peaks = choose_dominant_plane_normal(avg_peaks, gravity_vector)
     alg_timings.update(timings)
-    logger.info("FastGA found peaks: %s", avg_peaks)
+    logger.debug("FastGA found peaks: %s", avg_peaks)
     # 3. Extract Planes and Polygons, Filter, Simplify
     planes, triangle_sets, timings = extract_planes_and_polygons_from_mesh(tri_mesh, avg_peaks, pl_=pl,
                                                                            postprocess=config['polygon']['postprocess'], **kwargs)

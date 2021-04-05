@@ -7,9 +7,9 @@ min_rotation_change= 10.0 # degrees
 depth_scale = 4000.0 # Z16 conversion to meters. 1 int is .25 millimeter.
 depth_trunc = 3.0 # Truncate depth image after 3 meters
 # path_intrinsic = "config/l515/camera_intrinsic_rgb_640.json" # Intriniscs of the RGBD Frames
-path_intrinsic = "config/l515/camera_intrinsic_depth_320.json" # Intriniscs of the RGBD Frames
+# path_intrinsic = "config/l515/camera_intrinsic_depth_320.json" # Intriniscs of the RGBD Frames
 
-auto_start = true # Create a "Default" scene and begin integrating right away
+auto_start = false # Create a "Default" scene and begin integrating right away
 save_dir="data"  # Directory to save data
 
 # Paramerters for the TSDF Volume Integration
