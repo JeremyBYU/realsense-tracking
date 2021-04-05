@@ -30,7 +30,7 @@ from landing.helper.helper_meshes import create_open_3d_mesh_from_tri_mesh
 from landing.helper.helper_vis import plot_polygons
 
 
-BLUE = (0, 0, 255)
+BLUE = (255, 0, 0)
 class LandingService(object):
     def __init__(self, config):
         # This is our configuration variable, holds all parameters
@@ -282,6 +282,7 @@ def process_image(landing_service: LandingService, pull_queue: Queue, push_queue
 
         else:
             touchdown_point = None
+            logger.warn("Could not find a touchdown point")
         t5 = time.perf_counter()
 
         # Put modified image on queue to publish message

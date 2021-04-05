@@ -16,4 +16,6 @@ message LandingMessage {
     Vec3 pose_translation_t265 = 8;
     Vec4 pose_rotation_t265 = 9;
 
+    bool completed_integration = 10;
+
 }

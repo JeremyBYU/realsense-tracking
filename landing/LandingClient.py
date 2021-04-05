@@ -17,7 +17,6 @@ from ecal.core.service import Client
 from ecal.core.subscriber import ProtoSubscriber
 
 
-
 THIS_FILE = Path(__file__)
 THIS_DIR = THIS_FILE.parent
 
@@ -28,70 +27,6 @@ from ImageMessage_pb2 import ImageMessage
 from LandingMessage_pb2 import LandingMessage
 
 
-
-
-# class WorkerSignals(QObject):
-#     '''
-#     Defines the signals available from a running worker thread.
-
-#     Supported signals are:
-
-#     finished
-#         No data
-
-#     error
-#         tuple (exctype, value, traceback.format_exc() )
-
-#     result
-#         object data returned from processing, anything
-
-#     progress
-#         int indicating % progress
-
-#     '''
-#     finished = pyqtSignal()
-#     progress = pyqtSignal(int)
-
-
-# class Worker(QRunnable):
-#     '''
-#     Worker thread
-
-#     Inherits from QRunnable to handler worker thread setup, signals and wrap-up.
-
-#     :param callback: The function callback to run on this worker thread. Supplied args and
-#                      kwargs will be passed through to the runner.
-#     :type callback: function
-#     :param args: Arguments to pass to the callback function
-#     :param kwargs: Keywords to pass to the callback function
-
-#     '''
-
-#     def __init__(self, fn, *args, **kwargs):
-#         super(Worker, self).__init__()
-
-#         # Store constructor arguments (re-used for processing)
-#         self.fn = fn
-#         self.args = args
-#         self.kwargs = kwargs
-#         self.signals = WorkerSignals()
-
-#         # Add the callback to our kwargs
-#         self.kwargs['progress_callback'] = self.signals.progress
-
-#     @pyqtSlot()
-#     def run(self):
-#         '''
-#         Initialise the runner function with passed args, kwargs.
-#         '''
-
-#         # Retrieve args/kwargs here; and fire processing using them
-#         try:
-#             result = self.fn(*self.args, **self.kwargs)
-#             self.signals.finished.emit()  # Done
-#         except:
-#             logger.exception("Error")
-
 class Window(QWidget):
 
     def __init__(self):
@@ -99,51 +34,55 @@ class Window(QWidget):
         super().__init__()
 
         self.setup_gui()
-        self.active_single_scan = False
+        self.active_single_scan = True
+        self.active_integration = False
+        self.completed_integration = False
+        self.pose_translation_ned = [0.0, 0.0, 0.0]
+        self.pose_rotation_ned = [0.0, 0.0, 0.0, 1.0]
+        self.pose_touchdown_point = [0.0, 0.0, 0.0]
+        self.pose_touchdown_dist = 0.0
         # Set up ECAL
         self.setup_ecal()
 
         self.image_queue = queue.Queue()
-        self.timer=QTimer()
-        self.timer.timeout.connect(self.check_for_image)
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.update_gui_state)
         self.timer.start(100)
-        
-        # worker = Worker(self.execute_this_fn, self.image_queue) # Any other args, kwargs are passed to the run function
-        # worker.signals.result.connect(self.print_output)
-        # worker.signals.finished.connect(self.thread_complete)
-        # worker.signals.progress.connect(self.progress_fn)
 
-        # Execute
-        # self.threadpool.start(worker)
-    def check_for_image(self):
+
+    def update_status_label(self, status_label, active=True):
+        status_label.setText("True" if active else "False")
+        if active:
+            status_label.setStyleSheet("background-color: lightgreen")
+        else:
+            status_label.setStyleSheet("background-color: lightcoral")
+
+    def update_gui_state(self):
         try:
-            im = self.image_queue.get(block=False)
-            q_im = QImage(im.data, im.shape[1], im.shape[0], im.shape[1] * 3, QImage.Format_RGB888)
-            pix = QPixmap(q_im)
-            self.image_holder.setPixmap(pix)
+            update_type, data = self.image_queue.get(block=False)
+            if update_type == 'image':
+                im = data
+                q_im = QImage(im.data, im.shape[1], im.shape[0], im.shape[1] * 3, QImage.Format_RGB888)
+                pix = QPixmap(q_im)
+                self.image_holder.setPixmap(pix)
         except queue.Empty:
             pass
         except Exception:
             logger.exception("Error reading image")
-
-    # def progress_fn(self, n):
-    #     logger.info("Progress %d", n)
-
-    # def execute_this_fn(self, queue, progress_callback):
-    #     print(queue)
-    #     print(progress_callback)
-    #     for n in range(0, 5):
-    #         time.sleep(1)
-    #         progress_callback.emit(n)
-
-    #     return "Done."
+        # This should be safe to update at all times
+        self.update_status_label(self.single_right_status, self.active_single_scan)
+        self.update_status_label(self.integrated_right_status, self.active_integration)
+        # self.single_right_status.setText("True" if self.active_single_scan else "False")
+        # if self.active_single_scan:
+        #     self.single_right_status.setStyleSheet("background-color: lightgreen")
+        # else:
+        #     self.single_right_status.setStyleSheet("background-color: lightcoral")
 
     def toggle_single(self, on=False):
         logger.info("Attempting to set single scanning to %s", on)
         request_string = "active" if on else "inactive"
         request_string = bytes(request_string, "ascii")
         _ = self.landing_client.call_method("ActivateSingleScanTouchdown", request_string)
-        
 
     def setup_gui(self):
         self.setWindowTitle("QGridLayout Example")
@@ -171,7 +110,7 @@ class Window(QWidget):
         top_left_heading.setFont(font)
         top_left_heading.setAlignment(Qt.AlignCenter)
 
-        ## Add Single Scan
+        # Add Single Scan
         layout_top_left_single = QHBoxLayout()
         layout_top_left_single.setAlignment(Qt.AlignTop)
         self.single_start_button = QPushButton("Start")
@@ -185,7 +124,7 @@ class Window(QWidget):
         layout_top_left_single.addWidget(self.single_label)
         layout_top_left_single.addWidget(self.single_stop_button)
 
-         ## Add Integrated
+        # Add Integrated
         layout_top_left_integrated = QHBoxLayout()
         layout_top_left_integrated.setAlignment(Qt.AlignTop)
         self.integrated_start_button = QPushButton("Start")
@@ -201,7 +140,6 @@ class Window(QWidget):
         layout_top_left.addLayout(layout_top_left_integrated)
         ##### END TOP LEFT #######
 
-
         ##### BEGIN TOP RIGHT #######
         layout_top_right = QVBoxLayout()
         # Set Top Left Label Header
@@ -211,7 +149,7 @@ class Window(QWidget):
         top_right_heading.setFont(font)
         top_right_heading.setAlignment(Qt.AlignCenter)
 
-        ## Add Single Scan Status
+        # Add Single Scan Status
         layout_top_right_single = QHBoxLayout()
         layout_top_right_single.setAlignment(Qt.AlignTop)
         self.single_right_label = QLabel("Single Scan Active")
@@ -220,7 +158,7 @@ class Window(QWidget):
         layout_top_right_single.addWidget(self.single_right_label)
         layout_top_right_single.addWidget(self.single_right_status)
 
-         ## Add Integrated Status
+        # Add Integrated Status
         layout_top_right_integrated = QHBoxLayout()
         layout_top_right_integrated.setAlignment(Qt.AlignTop)
         self.integrated_right_label = QLabel("Integrated Active")
@@ -237,7 +175,7 @@ class Window(QWidget):
         # Add Top Left (0,0)
 
         ##### BEGIN BOTTOM LEFT #######
-        self.image_holder = QLabel() # this is an image, but we can set the pixels of the label
+        self.image_holder = QLabel()  # this is an image, but we can set the pixels of the label
         self.image_holder.resize(self.im_h, self.im_w)
         im = np.ones((self.im_h, self.im_w, 3), dtype=np.uint8)
         im.fill(255)
@@ -246,8 +184,7 @@ class Window(QWidget):
         self.image_holder.setPixmap(pix)
         ##### END BOTTOM LEFT #######
 
-
-        ## Fill the grid
+        # Fill the grid
         layout.addLayout(layout_top_left, 0, 0)
         layout.addLayout(layout_top_right, 0, 1)
         layout.addWidget(self.image_holder, 1, 0)
@@ -258,7 +195,7 @@ class Window(QWidget):
     def callback_pose(self, topic_name, pose: PoseMessage, time_):
         pass
         # print(pose.translation)
- 
+
     def callback_landing_image(self, topic_name, image: ImageMessage, time_):
         logger.info("New Landing Image, active single scan: %s", self.active_single_scan)
         try:
@@ -268,32 +205,29 @@ class Window(QWidget):
             logger.exception("Error with landing image")
 
     def callback_landing_message(self, topic_name, landing_message: LandingMessage, time_):
+        # Add queues message
         self.active_single_scan = landing_message.active_single_scan
-        self.single_right_status.setText("True" if self.active_single_scan else "False")
-        if self.active_single_scan:
-            self.single_right_status.setStyleSheet("background-color: lightgreen")
-        else:
-            self.single_right_status.setStyleSheet("background-color: lightcoral")
+        self.active_integration = landing_message.active_integration
+        pose_ned = landing_message.pose_translation_ned
+        sig_tp = landing_message.single_touchdown_point
+        sig_dist = landing_message.single_touchdown_dist
 
+        self.pose_translation_ned = [pose_ned.x, pose_ned.y, pose_ned.z]
+        self.single_touchdown_point = [sig_tp.x, sig_tp.y, sig_tp.z]
+
+        # self.image_queue.put(('labels', None))
 
     def callback_rgbd_image(self, topic_name, image: ImageMessage, time_):
         if not self.active_single_scan:
             self.update_image(image)
-    
+
     def update_image(self, image: ImageMessage):
         im = np.frombuffer(image.image_data, dtype=np.uint8).reshape((image.height, image.width, 3))
-        im = im[...,::-1].copy()
-        
-
-        self.image_queue.put(im)
-        # pix = QPixmap(q_im)
-        # self.image_holder.setPixmap(pix)
-
-        logger.info("Did it work...")
-
+        im = im[..., ::-1].copy()
+        self.image_queue.put(('image', im))
 
     def landing_client_resp_callback(self, service_info, response):
-        response = response.decode("utf-8") 
+        response = response.decode("utf-8")
         print(service_info)
         print(response)
 
