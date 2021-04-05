@@ -1,6 +1,9 @@
 import sys
 import time
 from multiprocessing import Process, Lock, Queue, Manager
+import multiprocessing
+import queue
+# from multiprocessing.managers import SyncManager, MakeProxyType, public_methods, BaseProxy
 import numpy as np
 import matplotlib.pyplot as plt
 from landing.helper.helper_logging import logger
@@ -10,24 +13,24 @@ from scipy.spatial.transform import Rotation as R
 import ecal.core.core as ecal_core
 import ecal.core.service as ecal_service
 from ecal.core.subscriber import ProtoSubscriber
+from ecal.core.publisher import ProtoPublisher
 
 from PoseMessage_pb2 import PoseMessage
 from ImageMessage_pb2 import ImageMessage
+from LandingMessage_pb2 import LandingMessage
+
 
 
 from polylidar import Polylidar3D, MatrixDouble, MatrixFloat, extract_point_cloud_from_float_depth
 from fastga import GaussianAccumulatorS2Beta, IcoCharts
 from landing.helper.helper_polylidar import extract_polygons_from_points, get_3D_touchdown_point
-from landing.helper.helper_utility import create_projection_matrix, create_transform
+from landing.helper.helper_utility import create_projection_matrix, create_transform, create_proto_vec
 from landing.helper.o3d_util import create_o3d_pc, create_linemesh_from_shapely, get_segments
 from landing.helper.helper_meshes import create_open_3d_mesh_from_tri_mesh
 from landing.helper.helper_vis import plot_polygons
 
 
-IDENTITY = np.identity(3)
-IDENTITY_MAT = MatrixDouble(IDENTITY)
-
-
+BLUE = (0, 0, 255)
 class LandingService(object):
     def __init__(self, config):
         # This is our configuration variable, holds all parameters
@@ -35,6 +38,12 @@ class LandingService(object):
         # A simple frame counter
         self.frame_count = 0
         self.active_single_scan = True
+        self.active_integration = False
+        self.completed_integration = False
+        self.pose_translation_ned = [0,0,0]
+        self.pose_rotation_ned = [0,0,0,1]
+        self.pose_touchdown_point = [0, 0, 0]
+        self.pose_touchdown_dist = 0
 
         self.manager = Manager()  # manages shared data between polylidar process
         # These will contain the results of all single scan touchdowns points
@@ -68,6 +77,9 @@ class LandingService(object):
             ned_rot = R.from_matrix(H_body_w_ned[:3, :3]).as_euler('xyz', degrees=True)
             logger.info(
                 f"Pose of Body in NED World Frame: translation: {np_to_str(H_body_w_ned[:3, 3])}; rotation (deg): {np_to_str(ned_rot)}")
+            
+            self.pose_translation_ned = H_body_w_ned[:3, 3].flatten().tolist()
+
             # TODO - Write data to Matt??
         except Exception as e:
             logger.exception("Error!")
@@ -80,6 +92,7 @@ class LandingService(object):
             self.frame_count += 1
             if self.active_single_scan:
                 self.landing_queue.put(image)
+            # self.pub_image.send(image)
         except Exception as e:
             logger.exception("Error in callback depth")
 
@@ -88,7 +101,7 @@ class LandingService(object):
         logger.info("'LandingService' method %s called with %s", method_name, request)
         # decodes bytes into utf-8 string
         request = request.decode('utf-8')
-        self.active_single_scan =  request == 'active'
+        self.active_single_scan = request == 'active'
         return 0, bytes("success", "ascii")
 
     def initiate_single_scan_landing(self):
@@ -132,11 +145,11 @@ class LandingService(object):
         self.t265_axes = create_transform(t265_axes['translation'], t265_axes['rotation'])
         self.t265_to_drone_body = self.t265_mount @ self.t265_axes
 
-        print(self.t265_mount)
+        # print(self.t265_mount)
         self.body_frame_transform_in_t265_frame = np.linalg.inv(self.t265_axes) @ self.t265_mount @ self.t265_axes
         self.body_frame_transform_in_t265_frame[:3, 3] = -self.body_frame_transform_in_t265_frame[:3, 3]
-        print()
-        print(self.body_frame_transform_in_t265_frame)
+        # print()
+        # print(self.body_frame_transform_in_t265_frame)
         # rotates world frame of t265 slam to world frame of drone axes
         self.t265_world_to_ned_world = self.t265_axes
 
@@ -165,9 +178,14 @@ class LandingService(object):
         self.sub_depth = ProtoSubscriber("RGBDMessage", ImageMessage)
         self.sub_depth.set_callback(self.callback_depth)
 
+        # create publisher for depth information and connect callback
+        self.pub_image = ProtoPublisher("RGBDLandingMessage", ImageMessage)
+        self.pub_landing = ProtoPublisher("LandingMessage", LandingMessage)
+
         self.landing_queue = Queue()
+        self.pub_image_queue = Queue()
         self.landing_process = Process(target=process_image, args=(
-            self, self.landing_queue, self.single_scan_touchdowns))
+            self, self.landing_queue, self.pub_image_queue, self.single_scan_touchdowns))
         self.landing_process.daemon = True
         self.landing_process.start()        # Launch reader_proc() as a separate python proc
 
@@ -180,14 +198,35 @@ class LandingService(object):
             if (time.perf_counter() - frame_start) > 10:
                 frame_start = time.perf_counter()
                 self.frame_count = 0
-            time.sleep(1.0)
-            print(f"Main thread: {len(self.single_scan_touchdowns)}")
+            time.sleep(0.1)
+            ## Publish Image Data
+            try:
+                image = self.pub_image_queue.get_nowait()
+                self.pub_image.send(image)
+            except queue.Empty:
+                pass
+            except:
+                logger.exception("Error sending...")
+
+            lm = LandingMessage()
+            lm.active_single_scan = self.active_single_scan
+            lm.active_integration = self.active_integration
+            lm.pose_translation_ned.CopyFrom(create_proto_vec(self.pose_translation_ned))
+            if len(self.single_scan_touchdowns) > 0:
+                touchdown = self.single_scan_touchdowns[-1]
+                if touchdown['touchdown_point'] is not None:
+                    lm.single_touchdown_point.CopyFrom(create_proto_vec(touchdown['touchdown_point']['point'].tolist()))
+            self.pub_landing.send(lm)
+            
+
+            # print(f"Main thread: {len(self.single_scan_touchdowns)}")
 
         # finalize eCAL API
         ecal_core.finalize()
 
 
-def process_image(landing_service: LandingService, queue: Queue, single_scan_touchdowns):
+
+def process_image(landing_service: LandingService, pull_queue: Queue, push_queue: Queue, single_scan_touchdowns):
     config = landing_service.config
     stride = config['mesh']['stride']
 
@@ -198,7 +237,7 @@ def process_image(landing_service: LandingService, queue: Queue, single_scan_tou
 
     while True:
 
-        image = queue.get()
+        image = pull_queue.get()
         # logger.info("Frame Number: %s", image.frame_number)
         t1 = time.perf_counter()
         # Get numpy array from depth image
@@ -218,40 +257,46 @@ def process_image(landing_service: LandingService, queue: Queue, single_scan_tou
         # Put in frame chosen by user
         extrinsics = extrinsics_body_frame_ if config['single_scan']['command_frame'] == 'body' else extrinsics_world_ned_
         # Create OPC
-        points = extract_point_cloud_from_float_depth(MatrixFloat(image_depth_np), intrinsics, extrinsics, stride=stride)
+        points = extract_point_cloud_from_float_depth(MatrixFloat(
+            image_depth_np), intrinsics, extrinsics, stride=stride)
         new_shape = (int(image_depth_np.shape[0] / stride), int(image_depth_np.shape[1] / stride), 3)
         opc = np.asarray(points).reshape(new_shape)  # organized point cloud (will have NaNs!)
         t3 = time.perf_counter()
         chosen_plane, alg_timings, tri_mesh, avg_peaks, _ = extract_polygons_from_points(opc, pl, ga, ico, config)
+
+        t4 = time.perf_counter()
+        image_color_np = np.frombuffer(image.image_data, dtype=np.uint8).reshape((image.height, image.width, 3))
         if chosen_plane is not None:
+            plot_polygons(chosen_plane, create_projection_matrix(image.fx, image.fy, image.cx,
+                                                                 image.cy), np.linalg.inv(np.array(extrinsics)), image_color_np)
             touchdown_point = get_3D_touchdown_point(chosen_plane, config['polylabel']['precision'])
+            plot_polygons((touchdown_point['circle_poly'], None), create_projection_matrix(image.fx, image.fy, image.cx, image.cy),
+                          np.linalg.inv(np.array(extrinsics)), image_color_np, shell_color=BLUE)
             # VISUALIZATION
             # line_meshes = create_linemesh_from_shapely(chosen_plane[0])
             # tp = o3d.geometry.TriangleMesh.create_icosahedron(0.05).translate(touchdown_point['point'] )
             # o3d_mesh = create_open_3d_mesh_from_tri_mesh(tri_mesh)
             # o3d.visualization.draw_geometries([o3d_mesh, tp, *get_segments(line_meshes), o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.5)])
-
-            # image_color_np = np.frombuffer(image.image_data, dtype=np.uint8).reshape((image.height, image.width, 3))
-            # plot_polygons(chosen_plane, create_projection_matrix(image.fx, image.fy, image.cx, image.cy), np.linalg.inv(np.array(extrinsics)), image_color_np)
             # plt.imshow(image_color_np)
             # plt.show()
 
         else:
             touchdown_point = None
-        t4 = time.perf_counter()
+        t5 = time.perf_counter()
 
+        # Put modified image on queue to publish message
+        image.image_data = np.ndarray.tobytes(image_color_np)
+        push_queue.put(image)
         touchdown_results = dict(polygon=chosen_plane, alg_timings=alg_timings,
                                  avg_peaks=avg_peaks, touchdown_point=touchdown_point)
         single_scan_touchdowns.append(touchdown_results)
 
-
-
-
-        d1 = (t2-t1) * 1000
-        d2 = (t3-t2) * 1000
-        d3 = (t4-t3) * 1000
-        logger.info("D1: %.2f, D2: %.2f, D3: %.2f, timings: %s", d1, d2, d3, alg_timings)
-        print(f"Process thread: {len(single_scan_touchdowns)}")
+        # d1 = (t2 - t1) * 1000
+        # d2 = (t3 - t2) * 1000
+        # d3 = (t4 - t3) * 1000
+        # d4 = (t5 - t4) * 1000
+        # logger.info("D1: %.2f, D2: %.2f, D3: %.2f,  D4: %.2f, timings: %s", d1, d2, d3, d4, alg_timings)
+        # print(f"Process thread: {len(single_scan_touchdowns)}")
 
 
 def vec3_to_str(vec):

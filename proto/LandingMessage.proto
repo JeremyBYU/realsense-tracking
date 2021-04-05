@@ -1,0 +1,19 @@
+syntax = 'proto3';
+package rspub_pb;
+import "Common.proto";
+
+message LandingMessage {
+    int32 frame_count = 1;
+    bool active_single_scan = 2;
+    bool active_integration = 3;
+
+    Vec3 pose_translation_ned = 4;
+    Vec4 pose_rotation_ned = 5;
+
+    Vec3 single_touchdown_point = 6;
+    float single_touchdown_dist = 7;
+
+    Vec3 pose_translation_t265 = 8;
+    Vec4 pose_rotation_t265 = 9;
+
+}

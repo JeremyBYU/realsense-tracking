@@ -63,7 +63,7 @@ def plot_opencv_linear_rings(linear_rings, color_image, proj_mat, rot_mat, color
         cv2.polylines(color_image, [pix_coords], True, color, thickness=thickness)
 
 
-def plot_polygons(plane_data, proj_mat, rot_mat, color_image, thickness=2):
+def plot_polygons(plane_data, proj_mat, rot_mat, color_image, thickness=2, shell_color=(0, 255, 0), hole_color=ORANGE):
     """Plots the planes and obstacles (3D polygons) into the color image
     Arguments:
         planes {list(Polygons)} -- List of Shapely Polygon with height tuples
@@ -72,11 +72,11 @@ def plot_polygons(plane_data, proj_mat, rot_mat, color_image, thickness=2):
         color_image {ndarray} -- Color Image
         config {dict} -- Configuration
     """
-    print(proj_mat)
-    print(rot_mat)
+    # print(proj_mat)
+    # print(rot_mat)
     plane, meta = plane_data
     plot_opencv_linear_rings(
-        [plane.exterior], color_image, proj_mat, rot_mat, color=(0, 255, 0), thickness=thickness)
+        [plane.exterior], color_image, proj_mat, rot_mat, color=shell_color, thickness=thickness)
 
     plot_opencv_linear_rings(
-        plane.interiors, color_image, proj_mat, rot_mat, color=ORANGE,  thickness=thickness)
+        plane.interiors, color_image, proj_mat, rot_mat, color=hole_color,  thickness=thickness)

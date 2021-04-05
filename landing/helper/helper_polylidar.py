@@ -2,6 +2,7 @@ import time
 import numpy as np
 from scipy.spatial.transform import Rotation as R
 import open3d as o3d
+from shapely.geometry import asPolygon, Point, Polygon
 
 from polylidar.polylidarutil.plane_filtering import filter_planes
 from polylidar import MatrixDouble, Polylidar3D, MatrixUInt8
@@ -13,6 +14,7 @@ from landing.helper.helper_logging import logger
 from landing.helper.helper_meshes import create_meshes, create_open_3d_mesh_from_tri_mesh
 from landing.helper.o3d_util import create_linemesh_from_shapely, get_segments
 from polylabelfast import polylabelfast
+
 
 def tuple_to_list(tuplelist):
     return [list(row) for row in list(tuplelist)]
@@ -226,15 +228,33 @@ def get_touchdown_point(poly, precision=0.05):
     return result
 
 
+def add_column(array, z_value):
+    ones = np.ones((array.shape[0], 1)) * z_value
+    stacked = np.column_stack((array, ones))
+    return stacked
+
+def get_circle_polygon(circle_dict, rm:R, z_value:float):
+    p1 = Point(circle_dict['point'].tolist())
+    p2 = p1.buffer(circle_dict['dist'], resolution=16)
+    coords = np.array(p2.exterior.coords)
+    coords = add_column(coords, z_value)
+    rotated_coords = rm.apply(coords)
+    circle = Polygon(shell=rotated_coords)
+    return circle
+
+
 def get_3D_touchdown_point(chosen_plane, precision=0.05):
     poly_3D, meta = chosen_plane
     poly_2D = meta['poly_2D']
     rm_inv:R = meta['rm_inv']
     z_value = meta['z_value']
     touchdown_point = get_touchdown_point(poly_2D, precision)
+    touchdown_point['circle_poly'] = get_circle_polygon(touchdown_point, rm_inv, z_value)
+
     point_planar = np.array([*touchdown_point['point'], z_value])
     point3D = rm_inv.apply(point_planar)
     touchdown_point['point'] = point3D
+    
     return touchdown_point
 
 def choose_polygon(planes):

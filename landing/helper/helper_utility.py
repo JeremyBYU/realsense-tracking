@@ -1,6 +1,8 @@
 import numpy as np
 from scipy.spatial.transform import Rotation as R
 
+from Common_pb2 import Vec3, Vec4
+
 def create_projection_matrix(fx, fy, ppx, ppy):
     proj_mat = np.array([[fx, 0, ppx, 0], [0, fy, ppy, 0], [0, 0, 1, 0]])
     return proj_mat
@@ -27,7 +29,14 @@ def create_transform(translate, rotation):
         raise ValueError("Rotation must be an ndarray or a dictionary object with euler angles")
     return transform
 
-
+def create_proto_vec(vec):
+    proto_vec = Vec3() if len(vec) == 3 else Vec4()
+    proto_vec.x = vec[0]
+    proto_vec.y = vec[1]
+    proto_vec.z = vec[2]
+    if len(vec) == 4:
+        proto_vec.w = vec[3]
+    return proto_vec
 
 
 # Eigen::Matrix4d make_transform(rspub_pb::Vec4 &rotation, rspub_pb::Vec3 &trans)

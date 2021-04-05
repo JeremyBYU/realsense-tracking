@@ -44,7 +44,8 @@ find_package(Open3D HINTS ${CMAKE_INSTALL_PREFIX}/lib/CMake REQUIRED)
 set(PROTO_DIR "${PROJECT_SOURCE_DIR}/proto")
 set(PROTO_FILES ${PROTO_DIR}/Common.proto  ${PROTO_DIR}/ImageMessage.proto 
                 ${PROTO_DIR}/PointCloudMessage.proto  ${PROTO_DIR}/IMUMessage.proto 
-                ${PROTO_DIR}/PoseMessage.proto ${PROTO_DIR}/Integrate.proto)
+                ${PROTO_DIR}/PoseMessage.proto ${PROTO_DIR}/Integrate.proto
+                ${PROTO_DIR}/LandingMessage.proto)
 
 PROTOBUF_GENERATE_CPP(PROTO_SRCS PROTO_HDRS ${PROTO_FILES})
 protobuf_generate_python(PY_SOURCES ${PROTO_FILES})

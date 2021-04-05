@@ -10,7 +10,7 @@ mesh:
         loops_laplacian: 1 # how many iterations
         _lambda: 1.0 # weight factor for laplacian update
         kernel_size: 3 # only changes for laplacian
-        loops_bilateral: 1 # how many iterations
+        loops_bilateral: 0 # how many iterations
         sigma_length: 0.3 # std of distance between triangles centroids
         sigma_angle: 0.2 # std of distance between triangles normals
 polylidar: # Parameters we send to polylidar. Determine plane and polygon extraction from point clouds.

@@ -89,7 +89,7 @@ active = true
   # Color and Depth combined in one frame
   [publish.rgbd]
   active = true
-  rate = 30
+  rate = 10
 
   # 6DOF Pose
   [publish.pose]
