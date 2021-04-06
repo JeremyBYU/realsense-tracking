@@ -39,8 +39,7 @@ def create_proto_vec(vec):
     return proto_vec
 
 
-def get_mesh_data(resp):
-    mesh = resp.mesh
+def get_mesh_data_from_message(mesh):
     n_triangles = mesh.n_triangles
     n_vertices = mesh.n_vertices
     triangles = np.frombuffer(

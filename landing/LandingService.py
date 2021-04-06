@@ -19,13 +19,13 @@ from ecal.core.publisher import ProtoPublisher
 from PoseMessage_pb2 import PoseMessage
 from ImageMessage_pb2 import ImageMessage
 from LandingMessage_pb2 import LandingMessage
-from Integrate_pb2 import IntegrateRequest, IntegrateResponse, ExtractResponse, ExtractRequest, START, STOP, MESH
+from Integrate_pb2 import IntegrateRequest, IntegrateResponse, ExtractResponse, ExtractRequest, START, STOP, MESH, Mesh
 
 
 from polylidar import Polylidar3D, MatrixDouble, MatrixFloat, extract_point_cloud_from_float_depth
 from fastga import GaussianAccumulatorS2Beta, IcoCharts
 from landing.helper.helper_polylidar import extract_polygons_from_points, get_3D_touchdown_point
-from landing.helper.helper_utility import create_projection_matrix, create_transform, create_proto_vec, get_mesh_data
+from landing.helper.helper_utility import create_projection_matrix, create_transform, create_proto_vec, get_mesh_data_from_message
 from landing.helper.o3d_util import create_o3d_pc, create_linemesh_from_shapely, get_segments
 from landing.helper.helper_meshes import create_open_3d_mesh_from_tri_mesh, create_o3d_mesh_from_data
 from landing.helper.helper_vis import plot_polygons
@@ -122,15 +122,27 @@ class LandingService(object):
         logger.info("Initiating landing at %s with %.2f radial clearance", point, dist)
         # TODO send command to beaglebone
 
+    def initiate_integrated_landing(self):
+        pass
+
     def callback_integration_service_forward(self, method_name, req_type, resp_type, this_request):
         this_request = this_request.decode('utf-8')
         request = IntegrateRequest()
         logger.info("'LandingService' method %s called with %s", method_name, this_request)
+
+        # TODO update these
+        rtn_value = 0
+        rtn_msg = "success"
+
+        request.pre_multiply.data[:] = (self.integrate_pre.flatten().tolist())  # Appends an entire list
+        request.post_multiply.data[:] = (self.integrate_post.flatten().tolist())  # Appends an entire list
+
         if this_request == "integrated_start":
             if self.active_integration:
                 logger.warn("Trying to start when already active...")
             else:
                 request.type = START
+                request.scene = "Default"
                 request_string = request.SerializeToString()
                 _ = self.integration_client.call_method("IntegrateScene", request_string)
                 logger.info("Starting volume integration")
@@ -138,6 +150,7 @@ class LandingService(object):
         elif this_request == "integrated_stop":
             if self.active_integration:
                 request.type = STOP
+                request.scene = "Default"
                 request_string = request.SerializeToString()
                 _ = self.integration_client.call_method("IntegrateScene", request_string)
                 logger.info("Stopping volume integration")
@@ -158,44 +171,31 @@ class LandingService(object):
         elif this_request == "integrated_touchdown_point":
             if self.extracted_trimesh is not None:
                 logger.info("Finding touchdown point from integrated mesh")
+                # TODO find touchdown point in mesh
             else:
                 logger.warn("Cant find touchdown point in integrated scene because no mesh has been extracted")
-        elif this_request == "land_single":
-            if len(self.single_scan_touchdowns) > 0 and self.active_single_scan:
-                logger.info("Sending touchdown request for single scans")
-                # TODO send landing command
-            else:
-                logger.warn("Single scanning must be activated and have succeeded recently")
-        elif this_request == "land_integrated":
-            if self.integrated_touchdown_point is not None:
-                logger.info("Sending touchdown request for integrated mesh")
-                # TODO send landing command in NED frame
-            else:
-                logger.warn("No touchdown point has been found")
-
         else:
             logger.warn("Do not undersand this request: %s", this_request)
+
+        return rtn_value, bytes(rtn_msg, "ascii")
 
     def integration_client_resp_callback(self, service_info, response):
         logger.info("Service: %s; Method: %s", service_info['service_name'], service_info['method_name'])
         m_name = service_info['method_name']
-        global counter
         if (m_name == 'IntegrateScene'):
             pass
         elif m_name == 'ExtractScene':
             resp = ExtractResponse()
             resp.ParseFromString(response)
-            raw_data = get_mesh_data(resp)
-            tri_mesh = create_o3d_mesh_from_data(*raw_data)
-            logger.info("Triangle Size: %d", len(tri_mesh.triangles))
-            if len(tri_mesh.triangles) > 0:
-                o3d.visualization.draw_geometries([tri_mesh])
-                resp_user = input("Save Mesh (Y/N):")
-                if resp_user in ['y', 'Y', 'yes']:
-                    o3d.io.write_triangle_mesh('data/meshes/integrate_mesh.ply', tri_mesh)
+            self.extracted_mesh_message = resp
+            self.pub_mesh.send(resp.mesh)
+            raw_data = get_mesh_data_from_message(resp.mesh)
+            # TODO convert to tri_mesh, smooth, and get half-edges
+            # tri_mesh = create_o3d_mesh_from_data(*raw_data)
+            # logger.info("Triangle Size: %d", len(tri_mesh.triangles))
+            # if len(tri_mesh.triangles) > 0:
+            #     o3d.visualization.draw_geometries([tri_mesh])
 
-    def initiate_integrated_landing(self):
-        pass
 
     # define the server method "initiate_landing" function
     def callback_initiate_landing(self, method_name, req_type, resp_type, request):
@@ -203,14 +203,29 @@ class LandingService(object):
         request = request.decode('utf-8')
         rtn_value = 0
         rtn_msg = "success"
-        if request == 'single_scan' and self.active_single_scan and len(self.single_scan_touchdowns) > 0:
-            self.initiate_single_scan_landing()
-            pass
-        elif request == 'integrated' and self.integrated_complete:
-            self.initiate_integrated_landing()
+
+        if request == "land_single":
+            if len(self.single_scan_touchdowns) > 0 and self.active_single_scan:
+                logger.info("Sending touchdown request for single scans")
+                # TODO send landing command
+                self.initiate_single_scan_landing()
+            else:
+                rtn_value = 1
+                rtn_msg = "Single scanning must be activated and have succeeded recently"
+                logger.warn("Single scanning must be activated and have succeeded recently")
+        elif request == "land_integrated":
+            if self.integrated_touchdown_point is not None:
+                logger.info("Sending touchdown request for integrated mesh")
+                # TODO send landing command in NED frame
+                self.initiate_integrated_landing()
+            else:
+                rtn_value = 1
+                rtn_msg = "No touchdown point has been found"
+                logger.warn("No touchdown point has been found")
         else:
             rtn_value = 1
-            rtn_msg = "invalid request. must have active single scan or completed integration"
+            rtn_msg = "Do not undersand this request"
+            logger.warn("Do not undersand this request: %s", request)
 
         return rtn_value, bytes(rtn_msg, "ascii")
 
@@ -236,6 +251,10 @@ class LandingService(object):
         self.t265_world_to_ned_world = self.t265_axes
 
         self.l515_to_t265_frame = np.linalg.inv(self.t265_to_drone_body) @ self.l515_to_drone_body
+
+
+        self.integrate_pre = self.t265_world_to_ned_world
+        self.integrate_post = self.body_frame_transform_in_t265_frame @ np.linalg.inv(self.t265_world_to_ned_world)  @ self.l515_to_drone_body
 
         # p_l515 = np.array([0, 0, 1, 1])
         # import ipdb;ipdb.set_trace()
@@ -265,6 +284,7 @@ class LandingService(object):
         # create publisher for depth information and connect callback
         self.pub_image = ProtoPublisher("RGBDLandingMessage", ImageMessage)
         self.pub_landing = ProtoPublisher("LandingMessage", LandingMessage)
+        self.pub_mesh = ProtoPublisher("MeshMessage", Mesh)
 
         # Create a client for a service for integration
         self.integration_client = Client("rspub_pb.IntegrateService")
@@ -319,7 +339,7 @@ class LandingService(object):
         # lm.pose_rotation_t265.CopyFrom(create_proto_vec(self.pose_rotation_t265))
         lm.completed_integration = self.completed_integration
         if self.extracted_mesh_message is not None:
-            lm.extracted_mesh_vertices = self.extracted_mesh_message.n_vertices
+            lm.extracted_mesh_vertices = self.extracted_mesh_message.mesh.n_vertices
 
         if self.integrated_touchdown_point is not None:
             lm.integrated_touchdown_point.CopyFrom(create_proto_vec(self.integrated_touchdown_point))

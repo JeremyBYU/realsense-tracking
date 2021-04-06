@@ -5,6 +5,7 @@ import queue
 from functools import partial
 import time
 from landing.helper.helper_logging import logger
+import open3d as o3d
 
 from PyQt5.QtWidgets import (QApplication, QGridLayout, QPushButton, QVBoxLayout,
                              QWidget, QFormLayout, QHBoxLayout, QLabel,
@@ -25,6 +26,11 @@ sys.path.insert(1, str(build_dir))
 from PoseMessage_pb2 import PoseMessage
 from ImageMessage_pb2 import ImageMessage
 from LandingMessage_pb2 import LandingMessage
+from Integrate_pb2 import Mesh
+
+from landing.helper.helper_utility import get_mesh_data_from_message
+from landing.helper.helper_meshes import create_o3d_mesh_from_data
+
 
 
 class Window(QWidget):
@@ -41,13 +47,14 @@ class Window(QWidget):
         self.active_single_scan = True
         self.single_touchdown_point = None
         self.single_touchdown_dist = None
-        
+
         # Integration Variables
         self.active_integration = False
         self.completed_integration = False
         self.extracted_mesh_vertices = 0
         self.integrated_touchdown_point = None
         self.integrated_touchdown_dist = None
+        self.o3d_mesh = None
 
         # Set up ECAL
         self.setup_ecal()
@@ -57,14 +64,12 @@ class Window(QWidget):
         self.timer.timeout.connect(self.update_gui_state)
         self.timer.start(100)
 
-
     def update_status_label(self, status_label, active=True):
         status_label.setText("True" if active else "False")
         if active:
             status_label.setStyleSheet("background-color: lightgreen")
         else:
             status_label.setStyleSheet("background-color: lightcoral")
-
 
     def update_value_label(self, value_label, value, suffix=None):
         value_str = "N/A"
@@ -99,22 +104,20 @@ class Window(QWidget):
 
         self.update_value_label(self.pose_ned_status, self.pose_translation_ned)
         self.update_value_label(self.single_tp_status, self.single_touchdown_point, suffix=self.single_touchdown_dist)
-        self.update_value_label(self.integrated_tp_status, self.integrated_touchdown_point, suffix=self.integrated_touchdown_dist)
+        self.update_value_label(self.integrated_tp_status, self.integrated_touchdown_point,
+                                suffix=self.integrated_touchdown_dist)
         self.update_value_label(self.mesh_vertices_status, self.extracted_mesh_vertices)
-
 
         # Enable/Disable buttons based on state
         if self.completed_integration:
             self.extract_mesh_button.setEnabled(True)
         else:
             self.extract_mesh_button.setEnabled(False)
-        
+
         if self.extracted_mesh_vertices > 0:
             self.touchdown_mesh_button.setEnabled(True)
         else:
             self.touchdown_mesh_button.setEnabled(False)
-
-
 
         # self.single_right_status.setText("True" if self.active_single_scan else "False")
         # if self.active_single_scan:
@@ -128,11 +131,14 @@ class Window(QWidget):
         request_string = bytes(request_string, "ascii")
         _ = self.landing_client.call_method("ActivateSingleScanTouchdown", request_string)
 
-
     def integration_request(self, request_type='start'):
         logger.info("Attempting to make integration request of %s", request_type)
         request_string = bytes(request_type, "ascii")
         _ = self.landing_client.call_method("IntegrationServiceForward", request_string)
+
+    def show_mesh(self):
+        if len(self.o3d_mesh.triangles) > 0:
+            o3d.visualization.draw_geometries([self.o3d_mesh])
 
     def setup_gui(self):
         self.setWindowTitle("QGridLayout Example")
@@ -184,11 +190,9 @@ class Window(QWidget):
         self.integrated_stop_button = QPushButton("Stop")
         self.integrated_stop_button.clicked.connect(partial(self.integration_request, request_type='integrated_stop'))
 
-
         layout_top_left_integrated.addWidget(self.integrated_start_button)
         layout_top_left_integrated.addWidget(self.integrated_label)
         layout_top_left_integrated.addWidget(self.integrated_stop_button)
-
 
         # Add Mesh Extraction
         layout_top_left_mesh_extraction = QHBoxLayout()
@@ -197,9 +201,9 @@ class Window(QWidget):
         self.extract_mesh_button.clicked.connect(partial(self.integration_request, request_type='integrated_extract'))
         self.extract_mesh_button.setEnabled(False)
         self.touchdown_mesh_button = QPushButton("Find TP from Integrated Mesh")
-        self.touchdown_mesh_button.clicked.connect(partial(self.integration_request, request_type='integrated_touchdown_point'))
+        self.touchdown_mesh_button.clicked.connect(
+            partial(self.integration_request, request_type='integrated_touchdown_point'))
         self.touchdown_mesh_button.setEnabled(False)
-
 
         layout_top_left_mesh_extraction.addWidget(self.extract_mesh_button)
         layout_top_left_mesh_extraction.addWidget(self.touchdown_mesh_button)
@@ -214,10 +218,8 @@ class Window(QWidget):
         self.land_integrated_button.clicked.connect(partial(self.integration_request, request_type='land_integrated'))
         self.land_integrated_button.setEnabled(False)
 
-
         layout_top_left_landing_commands.addWidget(self.land_single_button)
         layout_top_left_landing_commands.addWidget(self.land_integrated_button)
-
 
         layout_top_left.addWidget(top_left_heading)
         layout_top_left.addLayout(layout_top_left_single)
@@ -237,7 +239,8 @@ class Window(QWidget):
         # Add Integrated Status
         layout_top_right_integrated = self.simple_status_widgets('integrated_right', 'Integration Active', 'N/A')
         # Add Integrated Complete
-        layout_top_right_integrated_complete = self.simple_status_widgets('integrated_right_complete', 'Integration Complete', 'N/A')
+        layout_top_right_integrated_complete = self.simple_status_widgets(
+            'integrated_right_complete', 'Integration Complete', 'N/A')
 
         # Top Middle
         mid_right_heading = self.create_header(text="Live Status")
@@ -245,16 +248,13 @@ class Window(QWidget):
         layout_top_right_single_tp = self.simple_status_widgets('single_tp', 'Single TP', 'N/A')
         layout_top_right_integrated_tp = self.simple_status_widgets('integrated_tp', 'Integrated TP', 'N/A')
 
-
         # Right Bottom (Mesh Information)
         bottom_right_heading = self.create_header(text="Integrated Mesh Data")
         # Add Extracted Vertices
         layout_bottom_right_mesh_vertices = self.simple_status_widgets('mesh_vertices', '# Mesh Vertices', 'N/A')
         self.receive_mesh_button = QPushButton("Show Mesh from Integration")
-        self.receive_mesh_button.clicked.connect(partial(self.integration_request, request_type='show'))
+        self.receive_mesh_button.clicked.connect(self.show_mesh)
         self.receive_mesh_button.setEnabled(False)
-        
-
 
         layout_top_right.addWidget(top_right_heading)
         layout_top_right.addLayout(layout_top_right_single)
@@ -270,8 +270,7 @@ class Window(QWidget):
 
         layout_top_right.addWidget(bottom_right_heading)
         layout_top_right.addLayout(layout_bottom_right_mesh_vertices)
-        layout_top_right.addWidget(self.receive_mesh_button )
-
+        layout_top_right.addWidget(self.receive_mesh_button)
 
         ##### END TOP RIGHT #######
 
@@ -316,6 +315,19 @@ class Window(QWidget):
     def callback_pose(self, topic_name, pose: PoseMessage, time_):
         pass
         # print(pose.translation)
+
+    def callback_mesh_message(self, topic_name, mesh: Mesh, time_):
+        logger.info("New Landing Image, active single scan: %s", self.active_single_scan)
+        try:
+            raw_data = get_mesh_data_from_message(mesh)
+            self.o3d_mesh = create_o3d_mesh_from_data(*raw_data)
+            
+            # o3d_mesh = create_o3d_mesh_from_data(*raw_data)
+            # logger.info("Triangle Size: %d", len(o3d_mesh.triangles))
+            # if len(o3d_mesh.triangles) > 0:
+            #     o3d.visualization.draw_geometries([o3d_mesh])
+        except Exception:
+            logger.exception("Error with mesh message")
 
     def callback_landing_image(self, topic_name, image: ImageMessage, time_):
         logger.info("New Landing Image, active single scan: %s", self.active_single_scan)
@@ -384,9 +396,13 @@ class Window(QWidget):
         self.sub_landing_image = ProtoSubscriber("RGBDLandingMessage", ImageMessage)
         self.sub_landing_image.set_callback(self.callback_landing_image)
 
-        # create subscriber for depth information and connect callback
+        # create subscriber for Landing Message information and connect callback
         self.sub_landing_message = ProtoSubscriber("LandingMessage", LandingMessage)
         self.sub_landing_message.set_callback(self.callback_landing_message)
+
+        # create subscriber for Mesh Message and connect callback
+        self.sub_mesh_message = ProtoSubscriber("MeshMessage", LandingMessage)
+        self.sub_mesh_message.set_callback(self.callback_mesh_message)
 
 
 if __name__ == "__main__":

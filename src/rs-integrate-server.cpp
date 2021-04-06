@@ -57,6 +57,20 @@ static Eigen::Matrix4d H_t265_d400 = (Eigen::Matrix4d() << 1.0, 0, 0, 0,
 									  0, 0, 0, 1)
 										 .finished();
 
+static Eigen::Matrix4d pre_multiply = (Eigen::Matrix4d() << 
+									  1.0, 0, 0, 0,
+									  0, 1.0, 0, 0,
+									  0, 0, 1.0, 0,
+									  0, 0, 0, 1.0)
+										 .finished();
+
+static Eigen::Matrix4d post_multiply = (Eigen::Matrix4d() << 
+									  1.0, 0, 0, 0,
+									  0, 1.0, 0, 0,
+									  0, 0, 1.0, 0,
+									  0, 0, 0, 1)
+										 .finished();
+
 // Keep track of previous pose changes.
 
 ///////////////////////
@@ -253,7 +267,53 @@ public:
 		default:
 			break;
 		}
+
+		UpdatePreAndPostMatrices(request_);
 	}
+
+	void UpdatePreAndPostMatrices(const rspub_pb::IntegrateRequest *request_)
+	{
+		// auto pre_multiply_rf = request_->pre_multiply();
+		if (request_->pre_multiply().data_size() > 0)
+		{
+			LOG(INFO) << "Updating Pre Multiply Matrix";
+			auto pre_multiply_message = request_->pre_multiply();
+			set_matrix(pre_multiply, pre_multiply_message);
+		}
+		if (request_->post_multiply().data_size() > 0)
+		{
+			LOG(INFO) << "Updating Post Multiply Matrix";
+			auto post_multiply_message = request_->post_multiply();
+			set_matrix(post_multiply, post_multiply_message);
+		}
+
+		LOG(INFO) << "Premultiply matrix: " << pre_multiply;
+		LOG(INFO) << "PostMultiply matrix: " << post_multiply;
+	}
+
+	void set_matrix(Eigen::Matrix4d &eigen_matrix, rspub_pb::DoubleMatrix &matrix_message)
+	{
+			eigen_matrix(0, 0) = matrix_message.data(0);
+			eigen_matrix(0, 1) = matrix_message.data(1);
+			eigen_matrix(0, 2) = matrix_message.data(2);
+			eigen_matrix(0, 3) = matrix_message.data(3);
+
+			eigen_matrix(1, 0) = matrix_message.data(4);
+			eigen_matrix(1, 1) = matrix_message.data(5);
+			eigen_matrix(1, 2) = matrix_message.data(6);
+			eigen_matrix(1, 3) = matrix_message.data(7);
+
+			eigen_matrix(2, 0) = matrix_message.data(8);
+			eigen_matrix(2, 1) = matrix_message.data(9);
+			eigen_matrix(2, 2) = matrix_message.data(10);
+			eigen_matrix(2, 3) = matrix_message.data(11);
+
+			eigen_matrix(3, 0) = matrix_message.data(12);
+			eigen_matrix(3, 1) = matrix_message.data(13);
+			eigen_matrix(3, 2) = matrix_message.data(14);
+			eigen_matrix(3, 3) = matrix_message.data(15);
+	}
+
 
 	bool SaveMesh(std::string scene_name)
 	{
@@ -383,12 +443,20 @@ public:
 
 		bool poseChanged = checkPoseChange(rotation, translation);
 
-		if (!poseChanged)
+		bool one_scene_active = false;
+		for (auto &scene_name : scene_names)
+		{
+			auto &scene = scene_map[scene_name];
+			one_scene_active = one_scene_active || scene.state == State::START;
+		}
+
+		if (!poseChanged || !one_scene_active)
 			return;
 
 		VLOG(1) << "Pose Changed";
 		auto H_t265_W = make_transform(rotation, translation);
-		Eigen::Matrix4d extrinsic = (H_t265_d400.inverse() * H_t265_W * H_t265_d400).inverse();
+		// Eigen::Matrix4d extrinsic = (H_t265_d400.inverse() * H_t265_W * H_t265_d400).inverse();
+		Eigen::Matrix4d extrinsic = (pre_multiply * H_t265_W * post_multiply).inverse();
 
 		// std::cout << "About to Create Image" << std::endl;
 		// Unfortunately these are making copies

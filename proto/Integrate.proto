@@ -10,6 +10,12 @@ enum SceneRequestType {
   STOP = 3;
 }
 
+message DoubleMatrix {
+  uint32 rows = 1;
+  uint32 cols = 2;
+  repeated double data = 3 [packed=true];
+}
+
 enum DataType {
   MESH = 0;
   POINTCLOUD = 1;
@@ -29,6 +35,8 @@ message IntegrateRequest
 {
   string scene = 1;
   SceneRequestType type = 2;
+  DoubleMatrix pre_multiply = 3;
+  DoubleMatrix post_multiply = 4;
   
 }
 
