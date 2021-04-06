@@ -52,7 +52,7 @@ class LandingService(object):
         self.extracted_mesh_message = None
         self.extracted_trimesh = None
         self.integrated_touchdown_point = None
-        self.integrated_touchdown_dist = 0
+        self.integrated_touchdown_dist = None
 
         # All single scans will be recorded (appended to list) from a separate process
         self.manager = Manager()  # manages shared data between polylidar process
@@ -321,7 +321,7 @@ class LandingService(object):
 
         if self.integrated_touchdown_point is not None:
             lm.integrated_touchdown_point.CopyFrom(create_proto_vec(self.integrated_touchdown_point))
-            lm.single_touchdown_dist = self.integrated_touchdown_dist
+            lm.integrated_touchdown_dist = self.integrated_touchdown_dist
 
         return lm
 

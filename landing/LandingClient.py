@@ -34,20 +34,20 @@ class Window(QWidget):
         super().__init__()
 
         self.setup_gui()
-        self.pose_translation_ned = [0.0, 0.0, 0.0]
-        self.pose_rotation_ned = [0.0, 0.0, 0.0, 1.0]
+        self.pose_translation_ned = None
+        self.pose_rotation_ned = None
 
         # Single Scan Variables
         self.active_single_scan = True
         self.single_touchdown_point = None
-        self.single_touchdown_dist = 0.0
+        self.single_touchdown_dist = None
         
         # Integration Variables
         self.active_integration = False
         self.completed_integration = False
         self.extracted_mesh_vertices = 0
         self.integrated_touchdown_point = None
-        self.integrated_touchdown_dist = 0.0
+        self.integrated_touchdown_dist = None
 
         # Set up ECAL
         self.setup_ecal()
@@ -66,6 +66,20 @@ class Window(QWidget):
             status_label.setStyleSheet("background-color: lightcoral")
 
 
+    def update_value_label(self, value_label, value, suffix=None):
+        value_str = "N/A"
+        if value is None:
+            value_str = "N/A"
+        elif isinstance(value, float):
+            value_str = f"{value:.2f}"
+        elif isinstance(value, list):
+            value_str = " ".join([f"{i:.2f}" for i in value])
+
+        if suffix != None:
+            value_str += f"; {suffix:.1f}"
+
+        value_label.setText(value_str)
+
     def update_gui_state(self):
         try:
             update_type, data = self.image_queue.get(block=False)
@@ -82,6 +96,12 @@ class Window(QWidget):
         self.update_status_label(self.single_right_status, self.active_single_scan)
         self.update_status_label(self.integrated_right_status, self.active_integration)
         self.update_status_label(self.integrated_right_complete_status, self.completed_integration)
+
+        self.update_value_label(self.pose_ned_status, self.pose_translation_ned)
+        self.update_value_label(self.single_tp_status, self.single_touchdown_point, suffix=self.single_touchdown_dist)
+        self.update_value_label(self.integrated_tp_status, self.integrated_touchdown_point, suffix=self.integrated_touchdown_dist)
+        self.update_value_label(self.mesh_vertices_status, self.extracted_mesh_vertices)
+
 
         # self.single_right_status.setText("True" if self.active_single_scan else "False")
         # if self.active_single_scan:
