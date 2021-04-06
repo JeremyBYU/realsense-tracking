@@ -125,6 +125,7 @@ class LandingService(object):
     def callback_integration_service_forward(self, method_name, req_type, resp_type, this_request):
         this_request = this_request.decode('utf-8')
         request = IntegrateRequest()
+        logger.info("'LandingService' method %s called with %s", method_name, this_request)
         if this_request == "integrated_start":
             if self.active_integration:
                 logger.warn("Trying to start when already active...")
@@ -151,22 +152,23 @@ class LandingService(object):
                 request.type = MESH
                 request_string = request.SerializeToString()
                 _ = self.integration_client.call_method("ExtractScene", request_string)
+                logger.info("Sending request to integration server to extract mesh")
             else:
                 logger.warn("Cant extract scene because integration has not started or previously been completed")
         elif this_request == "integrated_touchdown_point":
             if self.extracted_trimesh is not None:
-                pass
+                logger.info("Finding touchdown point from integrated mesh")
             else:
                 logger.warn("Cant find touchdown point in integrated scene because no mesh has been extracted")
         elif this_request == "land_single":
             if len(self.single_scan_touchdowns) > 0 and self.active_single_scan:
-                pass
+                logger.info("Sending touchdown request for single scans")
                 # TODO send landing command
             else:
                 logger.warn("Single scanning must be activated and have succeeded recently")
         elif this_request == "land_integrated":
             if self.integrated_touchdown_point is not None:
-                pass
+                logger.info("Sending touchdown request for integrated mesh")
                 # TODO send landing command in NED frame
             else:
                 logger.warn("No touchdown point has been found")

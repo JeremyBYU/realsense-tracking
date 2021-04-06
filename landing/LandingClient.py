@@ -103,6 +103,19 @@ class Window(QWidget):
         self.update_value_label(self.mesh_vertices_status, self.extracted_mesh_vertices)
 
 
+        # Enable/Disable buttons based on state
+        if self.completed_integration:
+            self.extract_mesh_button.setEnabled(True)
+        else:
+            self.extract_mesh_button.setEnabled(False)
+        
+        if self.extracted_mesh_vertices > 0:
+            self.touchdown_mesh_button.setEnabled(True)
+        else:
+            self.touchdown_mesh_button.setEnabled(False)
+
+
+
         # self.single_right_status.setText("True" if self.active_single_scan else "False")
         # if self.active_single_scan:
         #     self.single_right_status.setStyleSheet("background-color: lightgreen")
@@ -348,8 +361,7 @@ class Window(QWidget):
 
     def landing_client_resp_callback(self, service_info, response):
         response = response.decode("utf-8")
-        print(service_info)
-        print(response)
+        logger.info("Received Callback form server: %s, response: %s", service_info, response)
 
     def setup_ecal(self):
         ecal_core.initialize(sys.argv, "Landing_Client")
