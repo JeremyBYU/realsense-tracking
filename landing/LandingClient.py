@@ -34,13 +34,21 @@ class Window(QWidget):
         super().__init__()
 
         self.setup_gui()
-        self.active_single_scan = True
-        self.active_integration = False
-        self.completed_integration = False
         self.pose_translation_ned = [0.0, 0.0, 0.0]
         self.pose_rotation_ned = [0.0, 0.0, 0.0, 1.0]
-        self.single_touchdown_point = [0.0, 0.0, 0.0]
+
+        # Single Scan Variables
+        self.active_single_scan = True
+        self.single_touchdown_point = None
         self.single_touchdown_dist = 0.0
+        
+        # Integration Variables
+        self.active_integration = False
+        self.completed_integration = False
+        self.extracted_mesh_vertices = 0
+        self.integrated_touchdown_point = None
+        self.integrated_touchdown_dist = 0.0
+
         # Set up ECAL
         self.setup_ecal()
 
@@ -57,6 +65,7 @@ class Window(QWidget):
         else:
             status_label.setStyleSheet("background-color: lightcoral")
 
+
     def update_gui_state(self):
         try:
             update_type, data = self.image_queue.get(block=False)
@@ -72,6 +81,8 @@ class Window(QWidget):
         # This should be safe to update at all times
         self.update_status_label(self.single_right_status, self.active_single_scan)
         self.update_status_label(self.integrated_right_status, self.active_integration)
+        self.update_status_label(self.integrated_right_complete_status, self.completed_integration)
+
         # self.single_right_status.setText("True" if self.active_single_scan else "False")
         # if self.active_single_scan:
         #     self.single_right_status.setStyleSheet("background-color: lightgreen")
@@ -100,8 +111,8 @@ class Window(QWidget):
         layout = QGridLayout()
         layout.setColumnMinimumWidth(0, 100)
         layout.setColumnMinimumWidth(1, 300)
-        layout.setRowMinimumHeight(0, 250)
-        layout.setRowMinimumHeight(1, 250)
+        layout.setRowMinimumHeight(0, 100)
+        layout.setRowMinimumHeight(1, 100)
         layout.setColumnStretch(1, 100)
         layout.setHorizontalSpacing(50)
 
@@ -135,10 +146,10 @@ class Window(QWidget):
         layout_top_left_integrated = QHBoxLayout()
         layout_top_left_integrated.setAlignment(Qt.AlignTop)
         self.integrated_start_button = QPushButton("Start")
-        self.integrated_start_button.clicked.connect(partial(self.integration_request, request_type='start'))
+        self.integrated_start_button.clicked.connect(partial(self.integration_request, request_type='integrated_start'))
         self.integrated_label = QLabel("Intregrated")
         self.integrated_stop_button = QPushButton("Stop")
-        self.integrated_stop_button.clicked.connect(partial(self.integration_request, request_type='stop'))
+        self.integrated_stop_button.clicked.connect(partial(self.integration_request, request_type='integrated_stop'))
 
 
         layout_top_left_integrated.addWidget(self.integrated_start_button)
@@ -150,65 +161,93 @@ class Window(QWidget):
         layout_top_left_mesh_extraction = QHBoxLayout()
         layout_top_left_mesh_extraction.setAlignment(Qt.AlignTop)
         self.extract_mesh_button = QPushButton("Extract Mesh from Integration")
-        self.extract_mesh_button.clicked.connect(partial(self.integration_request, request_type='extract'))
+        self.extract_mesh_button.clicked.connect(partial(self.integration_request, request_type='integrated_extract'))
         self.extract_mesh_button.setEnabled(False)
         self.touchdown_mesh_button = QPushButton("Find TP from Integrated Mesh")
-        self.touchdown_mesh_button.clicked.connect(partial(self.integration_request, request_type='touchdown_point'))
+        self.touchdown_mesh_button.clicked.connect(partial(self.integration_request, request_type='integrated_touchdown_point'))
         self.touchdown_mesh_button.setEnabled(False)
 
 
         layout_top_left_mesh_extraction.addWidget(self.extract_mesh_button)
         layout_top_left_mesh_extraction.addWidget(self.touchdown_mesh_button)
 
+        # Add Landing Commands!
+        layout_top_left_landing_commands = QHBoxLayout()
+        layout_top_left_landing_commands.setAlignment(Qt.AlignTop)
+        self.land_single_button = QPushButton("Land on Single Scan TP")
+        self.land_single_button.clicked.connect(partial(self.integration_request, request_type='land_single'))
+        self.land_single_button.setEnabled(False)
+        self.land_integrated_button = QPushButton("Land on Integrated TP")
+        self.land_integrated_button.clicked.connect(partial(self.integration_request, request_type='land_integrated'))
+        self.land_integrated_button.setEnabled(False)
+
+
+        layout_top_left_landing_commands.addWidget(self.land_single_button)
+        layout_top_left_landing_commands.addWidget(self.land_integrated_button)
+
 
         layout_top_left.addWidget(top_left_heading)
         layout_top_left.addLayout(layout_top_left_single)
         layout_top_left.addLayout(layout_top_left_integrated)
         layout_top_left.addLayout(layout_top_left_mesh_extraction)
+        layout_top_left.addLayout(layout_top_left_landing_commands)
 
         layout_top_left.addStretch()
         ##### END TOP LEFT #######
 
         ##### BEGIN TOP RIGHT #######
         layout_top_right = QVBoxLayout()
-        # Set Top Left Label Header
-        top_right_heading = QLabel("Live Stats")
-        font = QFont()
-        font.setBold(True)
-        top_right_heading.setFont(font)
-        top_right_heading.setAlignment(Qt.AlignCenter)
+        top_right_heading = self.create_header(text="Command Status")
 
         # Add Single Scan Status
-        layout_top_right_single = QHBoxLayout()
-        layout_top_right_single.setAlignment(Qt.AlignTop)
-        layout_top_right.setSpacing(10)
-        self.single_right_label = QLabel("Single Scan Active")
-        self.single_right_status = QLabel("N/A")
-
-        layout_top_right_single.addWidget(self.single_right_label)
-        layout_top_right_single.addWidget(self.single_right_status)
-
+        layout_top_right_single = self.simple_status_widgets('single_right', 'Single Scan Active', 'N/A')
         # Add Integrated Status
-        layout_top_right_integrated = QHBoxLayout()
-        layout_top_right_integrated.setAlignment(Qt.AlignTop)
-        self.integrated_right_label = QLabel("Integrated Active")
-        self.integrated_right_status = QLabel("N/A")
+        layout_top_right_integrated = self.simple_status_widgets('integrated_right', 'Integration Active', 'N/A')
+        # Add Integrated Complete
+        layout_top_right_integrated_complete = self.simple_status_widgets('integrated_right_complete', 'Integration Complete', 'N/A')
 
-        layout_top_right_integrated.addWidget(self.integrated_right_label)
-        layout_top_right_integrated.addWidget(self.integrated_right_status)
+        # Top Middle
+        mid_right_heading = self.create_header(text="Live Status")
+        layout_top_right_pose_ned = self.simple_status_widgets('pose_ned', 'Pose (NED)', 'N/A')
+        layout_top_right_single_tp = self.simple_status_widgets('single_tp', 'Single TP', 'N/A')
+        layout_top_right_integrated_tp = self.simple_status_widgets('integrated_tp', 'Integrated TP', 'N/A')
+
+
+        # Right Bottom (Mesh Information)
+        bottom_right_heading = self.create_header(text="Integrated Mesh Data")
+        # Add Extracted Vertices
+        layout_bottom_right_mesh_vertices = self.simple_status_widgets('mesh_vertices', '# Mesh Vertices', 'N/A')
+        self.receive_mesh_button = QPushButton("Show Mesh from Integration")
+        self.receive_mesh_button.clicked.connect(partial(self.integration_request, request_type='show'))
+        self.receive_mesh_button.setEnabled(False)
+        
+
 
         layout_top_right.addWidget(top_right_heading)
         layout_top_right.addLayout(layout_top_right_single)
         layout_top_right.addLayout(layout_top_right_integrated)
-        layout_top_right.addStretch()
-        
-        ##### END TOP LEFT #######
+        layout_top_right.addLayout(layout_top_right_integrated_complete)
+        layout_top_right.addSpacing(20)
+
+        layout_top_right.addWidget(mid_right_heading)
+        layout_top_right.addLayout(layout_top_right_pose_ned)
+        layout_top_right.addLayout(layout_top_right_single_tp)
+        layout_top_right.addLayout(layout_top_right_integrated_tp)
+        layout_top_right.addSpacing(20)
+
+        layout_top_right.addWidget(bottom_right_heading)
+        layout_top_right.addLayout(layout_bottom_right_mesh_vertices)
+        layout_top_right.addWidget(self.receive_mesh_button )
+
+
+        ##### END TOP RIGHT #######
 
         # Add Top Left (0,0)
 
         ##### BEGIN BOTTOM LEFT #######
         self.image_holder = QLabel()  # this is an image, but we can set the pixels of the label
         self.image_holder.resize(self.im_h, self.im_w)
+        self.image_holder.setAlignment(Qt.AlignCenter)
         im = np.ones((self.im_h, self.im_w, 3), dtype=np.uint8)
         im.fill(255)
         q_im = QImage(im.data, im.shape[1], im.shape[0], im.shape[1] * 3, QImage.Format_RGB888)
@@ -218,11 +257,28 @@ class Window(QWidget):
 
         # Fill the grid
         layout.addLayout(layout_top_left, 0, 0)
-        layout.addLayout(layout_top_right, 0, 1)
+        layout.addLayout(layout_top_right, 0, 1, 2, 1)
         layout.addWidget(self.image_holder, 1, 0)
 
         # Set layout ot the grid
         self.setLayout(layout)
+
+    def simple_status_widgets(self, name, label_text, value_text, left_suffix="_label", right_suffix="_status"):
+        layout = QHBoxLayout()
+        layout.setAlignment(Qt.AlignTop)
+        setattr(self, name + left_suffix, QLabel(label_text))
+        setattr(self, name + right_suffix, QLabel(value_text))
+        layout.addWidget(getattr(self, name + left_suffix))
+        layout.addWidget(getattr(self, name + right_suffix))
+        return layout
+
+    def create_header(self, text="Live Stats"):
+        top_right_heading = QLabel(text)
+        font = QFont()
+        font.setBold(True)
+        top_right_heading.setFont(font)
+        top_right_heading.setAlignment(Qt.AlignCenter)
+        return top_right_heading
 
     def callback_pose(self, topic_name, pose: PoseMessage, time_):
         pass
@@ -237,18 +293,29 @@ class Window(QWidget):
             logger.exception("Error with landing image")
 
     def callback_landing_message(self, topic_name, landing_message: LandingMessage, time_):
-        # Add queues message
-        self.active_single_scan = landing_message.active_single_scan
-        self.active_integration = landing_message.active_integration
+        # Pose Updates
         pose_ned = landing_message.pose_translation_ned
-        sig_tp = landing_message.single_touchdown_point
-        sig_dist = landing_message.single_touchdown_dist
-
+        rot_ned = landing_message.pose_rotation_ned
+        pose_t265 = landing_message.pose_translation_t265
+        rot_t265 = landing_message.pose_rotation_ned
         self.pose_translation_ned = [pose_ned.x, pose_ned.y, pose_ned.z]
-        self.single_touchdown_point = [sig_tp.x, sig_tp.y, sig_tp.z]
-        self.sing
+        self.pose_translation_t265 = [pose_t265.x, pose_t265.y, pose_t265.z]
+        self.pose_rotation_ned = [rot_ned.x, rot_ned.y, rot_ned.z, rot_ned.w]
+        self.pose_rotation_t265 = [rot_t265.x, rot_t265.y, rot_t265.z, rot_t265.w]
 
-        # self.image_queue.put(('labels', None))
+        # Single Scan Updates
+        sig_tp = landing_message.single_touchdown_point
+        self.active_single_scan = landing_message.active_single_scan
+        self.single_touchdown_point = [sig_tp.x, sig_tp.y, sig_tp.z]
+        self.single_touchdown_dist = landing_message.single_touchdown_dist
+
+        # Integration Updates
+        int_tp = landing_message.integrated_touchdown_point
+        self.active_integration = landing_message.active_integration
+        self.completed_integration = landing_message.completed_integration
+        self.extracted_mesh_vertices = landing_message.extracted_mesh_vertices
+        self.integrated_touchdown_point = [int_tp.x, int_tp.y, int_tp.z]
+        self.integrated_touchdown_dist = landing_message.integrated_touchdown_dist
 
     def callback_rgbd_image(self, topic_name, image: ImageMessage, time_):
         if not self.active_single_scan:

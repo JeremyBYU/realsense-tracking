@@ -17,5 +17,9 @@ message LandingMessage {
     Vec4 pose_rotation_t265 = 9;
 
     bool completed_integration = 10;
+    int32 extracted_mesh_vertices = 11;
+
+    Vec3 integrated_touchdown_point = 12;
+    float integrated_touchdown_dist = 13;
 
 }
