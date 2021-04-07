@@ -69,7 +69,7 @@ frames:
     # The t265_sensor_mount origin is near center of the 265 camera. It keeps the same NED frame as the body for simplicity.  X-Forward, Y-Right, Z-Down
     t265_sensor_mount:
         #translation [0.5, 0.0, -0.5] # Example: this is saying the t265 is 0.5 meters to the right and 0.5 up from drone origin 
-        translation: [2.0, 0.0, 0] # TODO UPDATE 
+        translation: [0.0, 0.0, 0] # TODO UPDATE 
         rotation: # Theses rotations are defined from the drone frame to the sensor mount frame
             roll: 0.0
             pitch: 0.0  # TODO UPDATE

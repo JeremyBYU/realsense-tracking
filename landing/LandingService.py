@@ -77,6 +77,7 @@ class LandingService(object):
             logger.debug(
                 f"Pose of T265 in T265 World Frame: translation: {vec3_to_str(pose.translation)}; rotation (deg): {np_to_str(t265_rot)}")
 
+            # Transforms T265 frame to the center of drone body. Axis frame is still t265 (as if if you moved the T265 camera)
             H_body_w_t265 = H_t265_w_t265 @ self.body_frame_transform_in_t265_frame
             body_rot = R.from_matrix(H_body_w_t265[:3, :3]).as_euler('xyz', degrees=True)
             logger.debug(
@@ -88,13 +89,13 @@ class LandingService(object):
             logger.debug(
                 f"Pose of Body in NED World Frame: translation: {np_to_str(H_body_w_ned[:3, 3])}; rotation (deg): {np_to_str(ned_rot)}")
 
+            # The ORIGIN of this world NED frame is at center of the T265
+            # The axes are NED, where X axis where the drone was intially pointed at time t=0
+            # These means the drone position at time t=0 will be a few (10?) centimeters off in x-axis
             self.pose_translation_ned = H_body_w_ned[:3, 3].flatten().tolist()
-
             # TODO - Write data to Matt??
         except Exception as e:
             logger.exception("Error!")
-            # auto H_t265_W = make_transform(rotation, translation);
-            # Eigen::Matrix4d extrinsic = (H_t265_d400.inverse() * H_t265_W * H_t265_d400).inverse();
         pass
 
     def callback_depth(self, topic_name, image: ImageMessage, time_):
@@ -123,6 +124,7 @@ class LandingService(object):
         # TODO send command to beaglebone
 
     def initiate_integrated_landing(self):
+        # TODO send command to beaglebone
         pass
 
     def callback_integration_service_forward(self, method_name, req_type, resp_type, this_request):
@@ -130,7 +132,6 @@ class LandingService(object):
         request = IntegrateRequest()
         logger.info("'LandingService' method %s called with %s", method_name, this_request)
 
-        # TODO update these
         rtn_value = 0
         rtn_msg = "success"
 
@@ -140,6 +141,8 @@ class LandingService(object):
         if this_request == "integrated_start":
             if self.active_integration:
                 logger.warn("Trying to start when already active...")
+                rtn_value = 1
+                rtn_msg = "Trying to start when already active..."
             else:
                 request.type = START
                 request.scene = "Default"
@@ -158,6 +161,8 @@ class LandingService(object):
                 self.completed_integration = True
             else:
                 logger.warn("Integration has not started")
+                rtn_value = 1
+                rtn_msg = "Integration has not started"
         elif this_request == "integrated_extract":
             if self.active_integration or self.completed_integration:
                 request = ExtractRequest()
@@ -168,15 +173,23 @@ class LandingService(object):
                 logger.info("Sending request to integration server to extract mesh")
             else:
                 logger.warn("Cant extract scene because integration has not started or previously been completed")
+                rtn_value = 1
+                rtn_msg = "Cant extract scene because integration has not started or previously been completed"
         elif this_request == "integrated_touchdown_point":
             if self.integrated_tri_mesh is not None:
                 logger.info("Finding touchdown point from integrated mesh")
                 success = self.find_touchdown_from_mesh(self.integrated_tri_mesh)
-                # TODO find touchdown point in mesh
+                if not success:
+                    rtn_value = 1
+                    rtn_msg = "Couldn't find the touchdown point in mesh"
             else:
                 logger.warn("Cant find touchdown point in integrated scene because no mesh has been extracted")
+                rtn_value = 1
+                rtn_msg = "Cant find touchdown point in integrated scene because no mesh has been extracted"
         else:
             logger.warn("Do not undersand this request: %s", this_request)
+            rtn_value = 1
+            rtn_msg = "Do not undersand this request: %s", this_request"
 
         return rtn_value, bytes(rtn_msg, "ascii")
 
