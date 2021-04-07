@@ -255,63 +255,30 @@ class LandingService(object):
         # print(self.body_frame_transform_in_t265_frame)
         # rotates world frame of t265 slam to world frame of drone axes
         self.t265_world_to_ned_world = self.t265_axes
-
-        # import ipdb; ipdb.set_trace()
         self.l515_to_t265_frame = np.linalg.inv(self.t265_to_drone_body) @ self.l515_to_drone_body
-
-        # Good, but I think its putting it into the body frame, which is not really what we want
-        # self.integrate_pre = self.t265_world_to_ned_world
-        # self.integrate_post = self.body_frame_transform_in_t265_frame @ np.linalg.inv(self.t265_world_to_ned_world) @ self.l515_to_drone_body
-        # print()
-        # print(self.integrate_pre)
-        # print(self.integrate_post)
 
 
         self.t265_world_to_sensor_world = np.array([
-            [1, 0, 0, 0],
+            [1.0, 0, 0, 0],
             [0, -1, 0, 0],
             [0, 0, -1, 0],
             [0, 0, 0, 1]
         ])
-        l515_to_t265 = np.array([
-            [1, 0, 0, 0],
-            [0, 1, 0, 0],
-            [0, 0, 1, 1],
-            [0, 0, 0, 1]
-        ])
 
-        self.sensor_frame_transform_in_t265_frame = np.linalg.inv(self.l515_axes) @ self.l515_mount @ self.l515_axes
-        self.sensor_frame_transform_in_t265_frame[:3, 3] = -self.sensor_frame_transform_in_t265_frame[:3, 3]
+
+        # l515_to_t265 = np.array([
+        #     [1, 0, 0, 0],
+        #     [0, 1, 0, 0],
+        #     [0, 0, 1, 0],
+        #     [0, 0, 0, 1]
+        # ])
+        l515_to_t265 = np.linalg.inv(self.t265_axes) @ np.linalg.inv(self.t265_mount) @ self.l515_mount @ self.t265_axes
+        # print(l515_to_t265)
         self.integrate_pre = self.t265_world_to_sensor_world
         self.integrate_post = l515_to_t265 @ np.linalg.inv(self.t265_world_to_sensor_world)
         print()
         print(self.integrate_pre)
         print(self.integrate_post)
-
-
-        self.sensor_frame_transform_in_t265_frame = np.linalg.inv(self.l515_to_t265_frame)
-        self.integrate_pre = self.t265_world_to_sensor_world @ np.linalg.inv(self.sensor_frame_transform_in_t265_frame)
-        self.integrate_post = self.sensor_frame_transform_in_t265_frame
-
-        print()
-        print(self.integrate_pre)
-        print(self.integrate_post)
-        print()
-
-
-        # print(self.sensor_frame_transform_in_t265_frame)
-        # import ipdb; ipdb.set_trace()
-        # H_sensor_w_t265 = H_t265_w_t265 @ self.sensor_frame_transform_in_t265_frame
-        # H_sensor_w_ned = self.t265_world_to_ned_world @ H_sensor_w_t265 @ np.linalg.inv(self.t265_world_to_ned_world)
-        # self.t265_world_to_ned_world @ H_t265_w_t265 @ self.sensor_frame_transform_in_t265_frame @ np.linalg.inv(self.t265_world_to_ned_world)
-        # self.integrate_pre = self.t265_world_to_ned_world
-        # self.integrate_post = self.sensor_frame_transform_in_t265_frame @ np.linalg.inv(self.t265_world_to_ned_world)
-
-
-        print(self.integrate_pre)
-        print(self.integrate_post)
-        # p_l515 = np.array([0, 0, 1, 1])
-        # import ipdb;ipdb.set_trace()
 
     def setup_ecal(self):
         ecal_core.initialize(sys.argv, "Landing_Server")
