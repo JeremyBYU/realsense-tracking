@@ -22,12 +22,12 @@ from LandingMessage_pb2 import LandingMessage
 from Integrate_pb2 import IntegrateRequest, IntegrateResponse, ExtractResponse, ExtractRequest, START, STOP, MESH, Mesh
 
 
-from polylidar import Polylidar3D, MatrixDouble, MatrixFloat, extract_point_cloud_from_float_depth
+from polylidar import Polylidar3D, MatrixDouble, MatrixFloat, extract_point_cloud_from_float_depth, bilateral_filter_normals
 from fastga import GaussianAccumulatorS2Beta, IcoCharts
-from landing.helper.helper_polylidar import extract_polygons_from_points, get_3D_touchdown_point
+from landing.helper.helper_polylidar import extract_polygons_from_points, get_3D_touchdown_point, extract_polygons_from_tri_mesh
 from landing.helper.helper_utility import create_projection_matrix, create_transform, create_proto_vec, get_mesh_data_from_message
 from landing.helper.o3d_util import create_o3d_pc, create_linemesh_from_shapely, get_segments
-from landing.helper.helper_meshes import create_open_3d_mesh_from_tri_mesh, create_o3d_mesh_from_data
+from landing.helper.helper_meshes import create_o3d_mesh_from_tri_mesh, create_o3d_mesh_from_data, create_tri_mesh_from_data
 from landing.helper.helper_vis import plot_polygons
 
 
@@ -44,22 +44,22 @@ class LandingService(object):
         self.pose_rotation_ned = [0, 0, 0, 1]
 
         # Single Scan Variables
-        self.active_single_scan = True
+        self.active_single_scan = False
 
         # Integration Variables
         self.active_integration = False
         self.completed_integration = False
         self.extracted_mesh_message = None
-        self.extracted_trimesh = None
         self.integrated_touchdown_point = None
         self.integrated_touchdown_dist = None
+        self.integrated_touchdown_result = None
+        self.integrated_tri_mesh = None
 
         # All single scans will be recorded (appended to list) from a separate process
         self.manager = Manager()  # manages shared data between polylidar process
         # These will contain the results of all single scan touchdowns points
         self.single_scan_touchdowns = self.manager.list()  # Lock is implicit when accessing between processes
         # These will contain the results of all integrated touchdown points
-        self.integrated_touchdowns = self.manager.list()  # Lock is implicit when accessing between processes
 
         # Will set up all frames and fixed transformations
         self.setup_frames()
@@ -169,8 +169,9 @@ class LandingService(object):
             else:
                 logger.warn("Cant extract scene because integration has not started or previously been completed")
         elif this_request == "integrated_touchdown_point":
-            if self.extracted_trimesh is not None:
+            if self.integrated_tri_mesh is not None:
                 logger.info("Finding touchdown point from integrated mesh")
+                success = self.find_touchdown_from_mesh(self.integrated_tri_mesh)
                 # TODO find touchdown point in mesh
             else:
                 logger.warn("Cant find touchdown point in integrated scene because no mesh has been extracted")
@@ -179,26 +180,62 @@ class LandingService(object):
 
         return rtn_value, bytes(rtn_msg, "ascii")
 
+    def find_touchdown_from_mesh(self, tri_mesh):
+        success = False
+        # Create Polylidar Objects
+        config = self.config
+        pl = Polylidar3D(**config['polylidar'])
+        ga = GaussianAccumulatorS2Beta(level=config['fastga']['level'])
+        ico = IcoCharts(level=config['fastga']['level'])
+
+        chosen_plane, alg_timings, tri_mesh, avg_peaks, _ = extract_polygons_from_tri_mesh(
+            tri_mesh, pl, ga, ico, config)
+
+        if chosen_plane is not None:
+            touchdown_point = get_3D_touchdown_point(chosen_plane, config['polylabel']['precision'])
+            self.integrated_touchdown_point = touchdown_point['point'].tolist()
+            self.integrated_touchdown_dist = touchdown_point['dist']
+            success = True
+            # VISUALIZATION
+            # line_meshes = create_linemesh_from_shapely(chosen_plane[0])
+            # tp = o3d.geometry.TriangleMesh.create_icosahedron(0.05).translate(touchdown_point['point'])
+            # # body = o3d.geometry.TriangleMesh.create_icosahedron(0.05).translate(H_body_w_ned[:3, 3])
+            # o3d_mesh = create_o3d_mesh_from_tri_mesh(tri_mesh)
+            # o3d.visualization.draw_geometries([o3d_mesh, tp, *get_segments(line_meshes),
+            #                                    o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.5)])
+        else:
+            touchdown_point = None
+            logger.warn("Could not find a touchdown point")
+
+        touchdown_result = dict(polygon=chosen_plane, alg_timings=alg_timings,
+                                avg_peaks=avg_peaks, touchdown_point=touchdown_point)
+        self.integrated_touchdown_result = touchdown_result
+        return success
+
     def integration_client_resp_callback(self, service_info, response):
         logger.info("Service: %s; Method: %s", service_info['service_name'], service_info['method_name'])
         m_name = service_info['method_name']
         if (m_name == 'IntegrateScene'):
             pass
         elif m_name == 'ExtractScene':
+            logger.info("In callback from client for mesh")
             resp = ExtractResponse()
             resp.ParseFromString(response)
             self.extracted_mesh_message = resp
             self.pub_mesh.send(resp.mesh)
             raw_data = get_mesh_data_from_message(resp.mesh)
-            # print("In callback from client for mesh: ", self.extracted_mesh_message)
-            # TODO convert to tri_mesh, smooth, and get half-edges
-            # tri_mesh = create_o3d_mesh_from_data(*raw_data)
-            # logger.info("Triangle Size: %d", len(tri_mesh.triangles))
-            # if len(tri_mesh.triangles) > 0:
-            #     o3d.visualization.draw_geometries([tri_mesh])
+            tri_mesh = create_tri_mesh_from_data(raw_data[0], raw_data[1])
 
+            t1 = time.perf_counter()
+            # as long as the mesh isnt too big, this is not too expensive (sub 5 ms)
+            mesh_filter = self.config['mesh_integrated']['filter']
+            bilateral_filter_normals(
+                tri_mesh, iterations=mesh_filter['loops_bilateral'], sigma_length=mesh_filter['sigma_length'], sigma_angle=mesh_filter['sigma_angle'])
+            t2 = time.perf_counter()
+            self.integrated_tri_mesh = tri_mesh
 
     # define the server method "initiate_landing" function
+
     def callback_initiate_landing(self, method_name, req_type, resp_type, request):
         logger.info("'LandingService' method '%s' called with %s", method_name, request)
         request = request.decode('utf-8')
@@ -238,7 +275,6 @@ class LandingService(object):
         self.l515_mount = create_transform(np.array(l515_mount['translation']), l515_mount['rotation'])
         self.l515_to_drone_body = self.l515_mount @ self.l515_axes
 
-
         t265_mount = self.config['frames']['t265_sensor_mount']
         self.t265_mount = create_transform(np.array(t265_mount['translation']), t265_mount['rotation'])
         t265_axes = self.config['frames']['t265_sensor_axes']
@@ -249,15 +285,13 @@ class LandingService(object):
         self.body_frame_transform_in_t265_frame = np.linalg.inv(self.t265_axes) @ self.t265_mount @ self.t265_axes
         self.body_frame_transform_in_t265_frame[:3, 3] = -self.body_frame_transform_in_t265_frame[:3, 3]
 
-
-
         # print()
         # print(self.body_frame_transform_in_t265_frame)
         # rotates world frame of t265 slam to world frame of drone axes
         self.t265_world_to_ned_world = self.t265_axes
         self.l515_to_t265_frame = np.linalg.inv(self.t265_to_drone_body) @ self.l515_to_drone_body
 
-
+        # axes flip between t265 and l515 (camera)
         self.t265_world_to_sensor_world = np.array([
             [1.0, 0, 0, 0],
             [0, -1, 0, 0],
@@ -265,22 +299,15 @@ class LandingService(object):
             [0, 0, 0, 1]
         ])
 
-
-        # l515_to_t265 = np.array([
-        #     [1, 0, 0, 0],
-        #     [0, 1, 0, 0],
-        #     [0, 0, 1, -2],
-        #     [0, 0, 0, 1]
-        # ])
-        # print(l515_to_t265)
+        # transfrom from t265 to l515 in respect to l515 frame
         l515_to_t265 = np.linalg.inv(self.t265_axes) @ np.linalg.inv(self.t265_mount) @ self.l515_mount @ self.t265_axes
-        l515_to_t265[:3,3] = -l515_to_t265[:3,3]
+        l515_to_t265[:3, 3] = -l515_to_t265[:3, 3]
         # print(l515_to_t265)
-        self.integrate_pre = l515_to_t265 @ self.t265_world_to_sensor_world
+        self.integrate_pre = self.l515_axes @ l515_to_t265 @ self.t265_world_to_sensor_world
         self.integrate_post = np.linalg.inv(self.t265_world_to_sensor_world)
-        print()
-        print(self.integrate_pre)
-        print(self.integrate_post)
+        # print()
+        # print(self.integrate_pre)
+        # print(self.integrate_post)
 
     def setup_ecal(self):
         ecal_core.initialize(sys.argv, "Landing_Server")
@@ -345,7 +372,6 @@ class LandingService(object):
         # finalize eCAL API
         ecal_core.finalize()
 
-
     def create_landing_message(self):
         lm = LandingMessage()
         lm.frame_count = self.frame_count
@@ -392,20 +418,29 @@ def process_image(landing_service: LandingService, pull_queue: Queue, push_queue
         # Get intrinsics
         intrinsics = MatrixDouble(create_projection_matrix(image.fx, image.fy, image.cx, image.cy))
         # Get extrinsics for t265, in world t265 frame
+        # H_t265_w_t265 represents the homogenous transformation to transform the starting t265 frame (gravity aligned, t=0, see README) to the current
+        # t265 frame at current time.
         H_t265_w_t265 = create_transform([image.translation.x, image.translation.y, image.translation.z],
                                          [image.rotation.x, image.rotation.y, image.rotation.z, image.rotation.w])
         t2 = time.perf_counter()
 
+        # body_frame_transform_in_t265_frame represents the transform (in t265 frame) to move to the drone body position
+        # Its like saying what translation/rotation do I need to take move the T265 camera to be in the center of the drone, IN RESPECT to the t265 frame.
+        # So a positive 2 z translation would indicate that that the drone is 2 meters BEHIND the 265 camera (z axes of t265 frame points behind it)
 
+        # H_body_w_t265 represents the homogenous transformation from the starting t265 frame to the where the t265 would be if in the center of drone (body frame)
         H_body_w_t265 = H_t265_w_t265 @ landing_service.body_frame_transform_in_t265_frame
+
+        # H_body_w_ned is the same transform H_body_w_t265 but in respect to a different axes convention world frame, the NED world frame
+        # Must use a similarity transform here
         # Robot Modelling and Control, Spong, Similarity Transform 2.3.1, Page 41
-        H_body_w_ned = landing_service.t265_world_to_ned_world @ H_body_w_t265 @ np.linalg.inv(landing_service.t265_world_to_ned_world)
-        # Put in world ned frame
+        H_body_w_ned = landing_service.t265_world_to_ned_world @ H_body_w_t265 @ np.linalg.inv(
+            landing_service.t265_world_to_ned_world)
+
+        # Put in point cloud from sensor to drone, from drone (body) to world ned frame
         extrinsics_world_ned = H_body_w_ned @ landing_service.l515_to_drone_body
-        # extrinsics_world_ned = landing_service.t265_mount @ landing_service.t265_world_to_ned_world @ H_t265_w_t265 @ landing_service.l515_to_t265_frame
-        # extrinsics_world_ned = np.linalg.inv(landing_service.l515_to_t265_frame) @ H_t265_w_t265 @ landing_service.l515_to_t265_frame
         extrinsics_world_ned_ = MatrixDouble(extrinsics_world_ned)
-        extrinsics_body_frame_ = MatrixDouble(landing_service.l515_to_drone_body)
+        extrinsics_body_frame_ = MatrixDouble(landing_service.l515_to_drone_body)  # simple body frame
         # Put in frame chosen by user
         extrinsics = extrinsics_body_frame_ if config['single_scan']['command_frame'] == 'body' else extrinsics_world_ned_
         # Create OPC

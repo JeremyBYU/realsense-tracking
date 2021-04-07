@@ -12,7 +12,7 @@ from scipy.spatial import ConvexHull
 
 import organizedpointfilters as opf
 from organizedpointfilters import Matrix3f, Matrix3fRef
-from polylidar import extract_tri_mesh_from_organized_point_cloud, MatrixDouble
+from polylidar import extract_tri_mesh_from_organized_point_cloud, MatrixDouble, MatrixInt, create_tri_mesh_copy
 
 COLOR_PALETTE = list(
     map(colors.to_rgb, plt.rcParams['axes.prop_cycle'].by_key()['color']))
@@ -140,6 +140,16 @@ COLOR_PALETTE = list(
 ############ MESH VISUALIZATION HELPERS ################
 ########################################################
 
+
+def create_tri_mesh_from_data(vertices, triangles):
+    triangles = np.asarray(triangles)
+    vertices = np.asarray(vertices)
+    triangles = np.ascontiguousarray(triangles)
+    vertices_mat = MatrixDouble(vertices, copy=True) # GOD i hate memory leaks, need to force a copy in Polylidar
+    triangles_mat = MatrixInt(triangles)
+    tri_mesh = create_tri_mesh_copy(vertices_mat, triangles_mat)
+    return tri_mesh
+
 def create_o3d_mesh_from_data(vertices, triangles, halfedges, vertices_colors=None):
     """Combines numpy arrays into a Open3D triangular Mesh
     
@@ -164,7 +174,7 @@ def create_o3d_mesh_from_data(vertices, triangles, halfedges, vertices_colors=No
     return mesh
 
 
-def create_open_3d_mesh_from_tri_mesh(tri_mesh):
+def create_o3d_mesh_from_tri_mesh(tri_mesh):
     """Create an Open3D Mesh given a Polylidar TriMesh"""
     triangles = np.asarray(tri_mesh.triangles)
     vertices = np.asarray(tri_mesh.vertices)
@@ -615,6 +625,6 @@ def create_meshes_cuda_with_o3d(opc, **kwargs):
         [tuple(mesh, o3d_mesh)] -- polylidar mesh and o3d mesh reperesentation
     """
     tri_mesh, timings = create_meshes_cuda(opc, **kwargs)
-    tri_mesh_o3d = create_open_3d_mesh_from_tri_mesh(tri_mesh)
+    tri_mesh_o3d = create_o3d_mesh_from_tri_mesh(tri_mesh)
 
     return tri_mesh, tri_mesh_o3d, timings

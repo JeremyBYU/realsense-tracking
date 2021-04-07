@@ -11,7 +11,7 @@ from fastga import GaussianAccumulatorS2, MatX3d, IcoCharts
 from fastga.peak_and_cluster import find_peaks_from_ico_charts
 
 from landing.helper.helper_logging import logger
-from landing.helper.helper_meshes import create_meshes, create_open_3d_mesh_from_tri_mesh
+from landing.helper.helper_meshes import create_meshes, create_o3d_mesh_from_tri_mesh
 from landing.helper.o3d_util import create_linemesh_from_shapely, get_segments
 from polylabelfast import polylabelfast
 
@@ -206,6 +206,42 @@ def extract_polygons_from_points(opc, pl, ga, ico, config,
 
 
     # 2. Get dominant plane normals
+    avg_peaks, timings = extract_all_dominant_plane_normals(
+        tri_mesh, ga_=ga, ico_chart_=ico, **config['fastga'])
+    # only looking for most dominant plane of the rooftop
+    avg_peaks = choose_dominant_plane_normal(avg_peaks, gravity_vector)
+    alg_timings.update(timings)
+    logger.debug("FastGA found peaks: %s", avg_peaks)
+    # 3. Extract Planes and Polygons, Filter, Simplify
+    planes, triangle_sets, timings = extract_planes_and_polygons_from_mesh(tri_mesh, avg_peaks, pl_=pl,
+                                                                           postprocess=config['polygon']['postprocess'], **kwargs)
+    alg_timings.update(timings)
+    chosen_plane = choose_polygon(planes)
+
+    return chosen_plane, alg_timings, tri_mesh, avg_peaks, triangle_sets
+
+
+def extract_polygons_from_tri_mesh(tri_mesh, pl, ga, ico, config,
+                                 gravity_vector=[0, 0, -1], **kwargs):
+    """Will extract a polygon from a mesh. 
+
+    Args:
+        opc (ndarray): Organized Point Cloud of shape (NXMX3)f64
+        pl (polylidar.Polylidar): Polylidar3D Object
+        ga (GassianAccumulator): Gaussian Accumulator (Normal Detection)
+        ico (Icosahedron): Icosahedron (paired with accumulator)
+        config (dict): Configuration object, has algorithm parameters
+        dynamic_decimation (bool, optional): [description]. Defaults to False.
+        gravity_vector (ndarray): A vector that is aligned with gravity
+
+    Returns:
+        polygons
+    """
+
+    logger.info("Extracting polygon from triangle mesh with %d vertices", np.asarray(tri_mesh.vertices).shape[0])
+    alg_timings = dict()
+
+    # 1. Get dominant plane normals
     avg_peaks, timings = extract_all_dominant_plane_normals(
         tri_mesh, ga_=ga, ico_chart_=ico, **config['fastga'])
     # only looking for most dominant plane of the rooftop

@@ -3,6 +3,7 @@ beaglebone:
     serial: "/dev/ttyACM0"
     baudrate: 192000
 depth_scale: 0.00025
+# Mesh creation for ORGANIZED point clouds
 mesh:
     use_cuda: false # use GPU CUDA acceleration for mesh smoothing
     stride: 2 # skip rows/columns
@@ -13,6 +14,12 @@ mesh:
         loops_bilateral: 0 # how many iterations
         sigma_length: 0.3 # std of distance between triangles centroids
         sigma_angle: 0.2 # std of distance between triangles normals
+# mesh smoothing for INTEGRATED meshes
+mesh_integrated:
+    filter:
+        loops_bilateral: 3 # how many iterations
+        sigma_length: 0.2 # std of distance between triangles centroids
+        sigma_angle: 0.2 # std of distance between triangles normals
 polylidar: # Parameters we send to polylidar. Determine plane and polygon extraction from point clouds.
     alpha: 0.0 # must be set to 0.0 if using lmax
     lmax: 0.15 # maximum distance between points in plane for spatial connection
@@ -20,7 +27,7 @@ polylidar: # Parameters we send to polylidar. Determine plane and polygon extrac
     norm_thresh: 0.96 # Not used, set to the same as norm_thresh_min. Will deprecate later.
     norm_thresh_min: 0.96 # triangles must have a minimum amount of planarity.
     min_hole_vertices: 4 # minimum number of vertices in a hole to return
-    min_triangles: 500 # minimum number of triangles needed to make a plane
+    min_triangles: 200 # minimum number of triangles needed to make a plane
 fastga: # Parameters used for dominant plane normal estimation
     level: 4 # refinement level of the gaussian accumulator
     down_sample_fraction: 0.20 # only use X% of triangle normals from mesh for integration, lower the faster
@@ -43,7 +50,7 @@ polygon:
             hole_vertices:
                 min: 4
             plane_area:
-                min: 0.5 # m^2
+                min: 0.1 # m^2
                 max: 400
         # These parameters correspond to Shapely polygon geometry operations
         positive_buffer: 0.02 # m, Positively expand polygon.  Fills in small holes
@@ -62,7 +69,7 @@ frames:
     # The t265_sensor_mount origin is near center of the 265 camera. It keeps the same NED frame as the body for simplicity.  X-Forward, Y-Right, Z-Down
     t265_sensor_mount:
         #translation [0.5, 0.0, -0.5] # Example: this is saying the t265 is 0.5 meters to the right and 0.5 up from drone origin 
-        translation: [0.0, 0.0, 0] # TODO UPDATE 
+        translation: [2.0, 0.0, 0] # TODO UPDATE 
         rotation: # Theses rotations are defined from the drone frame to the sensor mount frame
             roll: 0.0
             pitch: 0.0  # TODO UPDATE
@@ -93,12 +100,6 @@ frames:
         [1, 0, 0],
         [0, 1, 0]
       ]
-    # l515_sensor_mount_in_regard_to_t265:
-    #     translation: [1.0, 0.0, 0] # TODO UPDATE 
-    #     rotation:   # Theses rotations are defined from the drone frame to the sensor mount frame
-    #         roll: 0.0          
-    #         pitch: 0.0  # TODO UPDATE, POSITIVE MEANS THE CAMERA IS POINTING DOWNWARD
-    #         yaw: 0.0
     
 # If the t265 and the l515 are rigidly attached to a backplate then:
 #   1. The sensor mount_rotations will be identical!
