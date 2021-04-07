@@ -269,13 +269,15 @@ class LandingService(object):
         # l515_to_t265 = np.array([
         #     [1, 0, 0, 0],
         #     [0, 1, 0, 0],
-        #     [0, 0, 1, 0],
+        #     [0, 0, 1, -2],
         #     [0, 0, 0, 1]
         # ])
-        l515_to_t265 = np.linalg.inv(self.t265_axes) @ np.linalg.inv(self.t265_mount) @ self.l515_mount @ self.t265_axes
         # print(l515_to_t265)
-        self.integrate_pre = self.t265_world_to_sensor_world
-        self.integrate_post = l515_to_t265 @ np.linalg.inv(self.t265_world_to_sensor_world)
+        l515_to_t265 = np.linalg.inv(self.t265_axes) @ np.linalg.inv(self.t265_mount) @ self.l515_mount @ self.t265_axes
+        l515_to_t265[:3,3] = -l515_to_t265[:3,3]
+        # print(l515_to_t265)
+        self.integrate_pre = l515_to_t265 @ self.t265_world_to_sensor_world
+        self.integrate_post = np.linalg.inv(self.t265_world_to_sensor_world)
         print()
         print(self.integrate_pre)
         print(self.integrate_post)
