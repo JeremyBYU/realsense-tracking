@@ -8,7 +8,7 @@ from landing.helper.helper_logging import logger
 import open3d as o3d
 
 from PyQt5.QtWidgets import (QApplication, QGridLayout, QPushButton, QVBoxLayout,
-                             QWidget, QFormLayout, QHBoxLayout, QLabel,
+                             QWidget, QFormLayout, QHBoxLayout, QLabel, QMessageBox
                              )
 from PyQt5.QtCore import Qt, QObject, QRunnable, pyqtSignal, pyqtSlot, QTimer
 from PyQt5.QtGui import QImage, QPixmap, QFont
@@ -30,7 +30,6 @@ from Integrate_pb2 import Mesh
 
 from landing.helper.helper_utility import get_mesh_data_from_message
 from landing.helper.helper_meshes import create_o3d_mesh_from_data
-
 
 
 class Window(QWidget):
@@ -77,8 +76,12 @@ class Window(QWidget):
             value_str = "N/A"
         elif isinstance(value, float):
             value_str = f"{value:.2f}"
+        elif isinstance(value, int):
+            value_str = f"{value}"
         elif isinstance(value, list):
             value_str = " ".join([f"{i:.2f}" for i in value])
+        else:
+            value_str = f"{value}"
 
         if suffix != None:
             value_str += f"; {suffix:.1f}"
@@ -116,8 +119,10 @@ class Window(QWidget):
 
         if self.extracted_mesh_vertices > 0:
             self.touchdown_mesh_button.setEnabled(True)
+            self.show_mesh_button.setEnabled(True)
         else:
             self.touchdown_mesh_button.setEnabled(False)
+            self.show_mesh_button.setEnabled(False)
 
         # self.single_right_status.setText("True" if self.active_single_scan else "False")
         # if self.active_single_scan:
@@ -137,8 +142,17 @@ class Window(QWidget):
         _ = self.landing_client.call_method("IntegrationServiceForward", request_string)
 
     def show_mesh(self):
-        if len(self.o3d_mesh.triangles) > 0:
-            o3d.visualization.draw_geometries([self.o3d_mesh])
+        if self.o3d_mesh is not None and len(self.o3d_mesh.triangles) > 0 :
+            axis_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(0.2)
+            o3d.visualization.draw_geometries([self.o3d_mesh, axis_frame])
+        else:
+            msg = QMessageBox()
+            msg.setWindowTitle("ERROR!")
+            msg.setIcon(QMessageBox.Critical)
+            msg.setText(
+                "Whooops! I don't have the mesh anymore on the client. However the server still does. Click 'ExtractMesh' Button for me to receive it again.   ")
+            x = msg.exec_()  # this will show our messagebox
+
 
     def setup_gui(self):
         self.setWindowTitle("QGridLayout Example")
@@ -252,9 +266,10 @@ class Window(QWidget):
         bottom_right_heading = self.create_header(text="Integrated Mesh Data")
         # Add Extracted Vertices
         layout_bottom_right_mesh_vertices = self.simple_status_widgets('mesh_vertices', '# Mesh Vertices', 'N/A')
-        self.receive_mesh_button = QPushButton("Show Mesh from Integration")
-        self.receive_mesh_button.clicked.connect(self.show_mesh)
-        self.receive_mesh_button.setEnabled(False)
+        # Add Show Mesh Button
+        self.show_mesh_button = QPushButton("Show Mesh from Integration")
+        self.show_mesh_button.clicked.connect(self.show_mesh)
+        self.show_mesh_button.setEnabled(False)
 
         layout_top_right.addWidget(top_right_heading)
         layout_top_right.addLayout(layout_top_right_single)
@@ -270,7 +285,7 @@ class Window(QWidget):
 
         layout_top_right.addWidget(bottom_right_heading)
         layout_top_right.addLayout(layout_bottom_right_mesh_vertices)
-        layout_top_right.addWidget(self.receive_mesh_button)
+        layout_top_right.addWidget(self.show_mesh_button)
 
         ##### END TOP RIGHT #######
 
@@ -317,11 +332,11 @@ class Window(QWidget):
         # print(pose.translation)
 
     def callback_mesh_message(self, topic_name, mesh: Mesh, time_):
-        logger.info("New Landing Image, active single scan: %s", self.active_single_scan)
+        logger.info("New Mesh Message, vertices %d", mesh.n_vertices)
         try:
             raw_data = get_mesh_data_from_message(mesh)
             self.o3d_mesh = create_o3d_mesh_from_data(*raw_data)
-            
+
             # o3d_mesh = create_o3d_mesh_from_data(*raw_data)
             # logger.info("Triangle Size: %d", len(o3d_mesh.triangles))
             # if len(o3d_mesh.triangles) > 0:
@@ -401,7 +416,7 @@ class Window(QWidget):
         self.sub_landing_message.set_callback(self.callback_landing_message)
 
         # create subscriber for Mesh Message and connect callback
-        self.sub_mesh_message = ProtoSubscriber("MeshMessage", LandingMessage)
+        self.sub_mesh_message = ProtoSubscriber("MeshMessage", Mesh)
         self.sub_mesh_message.set_callback(self.callback_mesh_message)
 
 

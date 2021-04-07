@@ -134,8 +134,8 @@ class LandingService(object):
         rtn_value = 0
         rtn_msg = "success"
 
-        request.pre_multiply.data[:] = (self.integrate_pre.flatten().tolist())  # Appends an entire list
-        request.post_multiply.data[:] = (self.integrate_post.flatten().tolist())  # Appends an entire list
+        request.pre_multiply.data[:] = self.integrate_pre.flatten().tolist()  # Appends an entire list
+        request.post_multiply.data[:] = self.integrate_post.flatten().tolist()  # Appends an entire list
 
         if this_request == "integrated_start":
             if self.active_integration:
@@ -190,6 +190,7 @@ class LandingService(object):
             self.extracted_mesh_message = resp
             self.pub_mesh.send(resp.mesh)
             raw_data = get_mesh_data_from_message(resp.mesh)
+            # print("In callback from client for mesh: ", self.extracted_mesh_message)
             # TODO convert to tri_mesh, smooth, and get half-edges
             # tri_mesh = create_o3d_mesh_from_data(*raw_data)
             # logger.info("Triangle Size: %d", len(tri_mesh.triangles))
@@ -233,8 +234,10 @@ class LandingService(object):
 
         l515_mount = self.config['frames']['l515_sensor_mount']
         l515_axes = self.config['frames']['l515_sensor_axes']
-        self.l515_to_drone_body = create_transform(np.array(l515_mount['translation']), l515_mount['rotation']) \
-            @ create_transform(l515_axes['translation'], l515_axes['rotation'])
+        self.l515_axes = create_transform(l515_axes['translation'], l515_axes['rotation'])
+        self.l515_mount = create_transform(np.array(l515_mount['translation']), l515_mount['rotation'])
+        self.l515_to_drone_body = self.l515_mount @ self.l515_axes
+
 
         t265_mount = self.config['frames']['t265_sensor_mount']
         self.t265_mount = create_transform(np.array(t265_mount['translation']), t265_mount['rotation'])
@@ -245,17 +248,68 @@ class LandingService(object):
         # print(self.t265_mount)
         self.body_frame_transform_in_t265_frame = np.linalg.inv(self.t265_axes) @ self.t265_mount @ self.t265_axes
         self.body_frame_transform_in_t265_frame[:3, 3] = -self.body_frame_transform_in_t265_frame[:3, 3]
+
+
+
         # print()
         # print(self.body_frame_transform_in_t265_frame)
         # rotates world frame of t265 slam to world frame of drone axes
         self.t265_world_to_ned_world = self.t265_axes
 
+        # import ipdb; ipdb.set_trace()
         self.l515_to_t265_frame = np.linalg.inv(self.t265_to_drone_body) @ self.l515_to_drone_body
 
+        # Good, but I think its putting it into the body frame, which is not really what we want
+        # self.integrate_pre = self.t265_world_to_ned_world
+        # self.integrate_post = self.body_frame_transform_in_t265_frame @ np.linalg.inv(self.t265_world_to_ned_world) @ self.l515_to_drone_body
+        # print()
+        # print(self.integrate_pre)
+        # print(self.integrate_post)
 
-        self.integrate_pre = self.t265_world_to_ned_world
-        self.integrate_post = self.body_frame_transform_in_t265_frame @ np.linalg.inv(self.t265_world_to_ned_world)  @ self.l515_to_drone_body
 
+        self.t265_world_to_sensor_world = np.array([
+            [1, 0, 0, 0],
+            [0, -1, 0, 0],
+            [0, 0, -1, 0],
+            [0, 0, 0, 1]
+        ])
+        l515_to_t265 = np.array([
+            [1, 0, 0, 0],
+            [0, 1, 0, 0],
+            [0, 0, 1, 1],
+            [0, 0, 0, 1]
+        ])
+
+        self.sensor_frame_transform_in_t265_frame = np.linalg.inv(self.l515_axes) @ self.l515_mount @ self.l515_axes
+        self.sensor_frame_transform_in_t265_frame[:3, 3] = -self.sensor_frame_transform_in_t265_frame[:3, 3]
+        self.integrate_pre = self.t265_world_to_sensor_world
+        self.integrate_post = l515_to_t265 @ np.linalg.inv(self.t265_world_to_sensor_world)
+        print()
+        print(self.integrate_pre)
+        print(self.integrate_post)
+
+
+        self.sensor_frame_transform_in_t265_frame = np.linalg.inv(self.l515_to_t265_frame)
+        self.integrate_pre = self.t265_world_to_sensor_world @ np.linalg.inv(self.sensor_frame_transform_in_t265_frame)
+        self.integrate_post = self.sensor_frame_transform_in_t265_frame
+
+        print()
+        print(self.integrate_pre)
+        print(self.integrate_post)
+        print()
+
+
+        # print(self.sensor_frame_transform_in_t265_frame)
+        # import ipdb; ipdb.set_trace()
+        # H_sensor_w_t265 = H_t265_w_t265 @ self.sensor_frame_transform_in_t265_frame
+        # H_sensor_w_ned = self.t265_world_to_ned_world @ H_sensor_w_t265 @ np.linalg.inv(self.t265_world_to_ned_world)
+        # self.t265_world_to_ned_world @ H_t265_w_t265 @ self.sensor_frame_transform_in_t265_frame @ np.linalg.inv(self.t265_world_to_ned_world)
+        # self.integrate_pre = self.t265_world_to_ned_world
+        # self.integrate_post = self.sensor_frame_transform_in_t265_frame @ np.linalg.inv(self.t265_world_to_ned_world)
+
+
+        print(self.integrate_pre)
+        print(self.integrate_post)
         # p_l515 = np.array([0, 0, 1, 1])
         # import ipdb;ipdb.set_trace()
 
@@ -372,8 +426,15 @@ def process_image(landing_service: LandingService, pull_queue: Queue, push_queue
         H_t265_w_t265 = create_transform([image.translation.x, image.translation.y, image.translation.z],
                                          [image.rotation.x, image.rotation.y, image.rotation.z, image.rotation.w])
         t2 = time.perf_counter()
+
+
+        H_body_w_t265 = H_t265_w_t265 @ landing_service.body_frame_transform_in_t265_frame
+        # Robot Modelling and Control, Spong, Similarity Transform 2.3.1, Page 41
+        H_body_w_ned = landing_service.t265_world_to_ned_world @ H_body_w_t265 @ np.linalg.inv(landing_service.t265_world_to_ned_world)
         # Put in world ned frame
-        extrinsics_world_ned = landing_service.t265_world_to_ned_world @ H_t265_w_t265 @ landing_service.l515_to_t265_frame
+        extrinsics_world_ned = H_body_w_ned @ landing_service.l515_to_drone_body
+        # extrinsics_world_ned = landing_service.t265_mount @ landing_service.t265_world_to_ned_world @ H_t265_w_t265 @ landing_service.l515_to_t265_frame
+        # extrinsics_world_ned = np.linalg.inv(landing_service.l515_to_t265_frame) @ H_t265_w_t265 @ landing_service.l515_to_t265_frame
         extrinsics_world_ned_ = MatrixDouble(extrinsics_world_ned)
         extrinsics_body_frame_ = MatrixDouble(landing_service.l515_to_drone_body)
         # Put in frame chosen by user
@@ -397,8 +458,9 @@ def process_image(landing_service: LandingService, pull_queue: Queue, push_queue
             # VISUALIZATION
             # line_meshes = create_linemesh_from_shapely(chosen_plane[0])
             # tp = o3d.geometry.TriangleMesh.create_icosahedron(0.05).translate(touchdown_point['point'] )
+            # body = o3d.geometry.TriangleMesh.create_icosahedron(0.05).translate(H_body_w_ned[:3, 3])
             # o3d_mesh = create_open_3d_mesh_from_tri_mesh(tri_mesh)
-            # o3d.visualization.draw_geometries([o3d_mesh, tp, *get_segments(line_meshes), o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.5)])
+            # o3d.visualization.draw_geometries([o3d_mesh, tp, body, *get_segments(line_meshes), o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.5)])
             # plt.imshow(image_color_np)
             # plt.show()
 
