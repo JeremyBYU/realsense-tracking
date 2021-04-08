@@ -29,3 +29,18 @@ services:
     depends_on:
         - rs-pub
     entrypoint: [./scripts/launch/launch_integrate.sh]
+
+  landing-service:
+    container_name: landing-service
+    env_file:
+      - .env
+    image: "jeremybyu/landing:${TAG}"
+    privileged: true
+    network_mode: "host"
+    ipc: "host"
+    user: "1000:1000"
+    volumes:
+      - $PWD:/opt/workspace
+    depends_on:
+        - rs-integrate
+    entrypoint: [./scripts/launch/launch_landing.sh]
