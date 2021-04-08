@@ -4,8 +4,10 @@ from pathlib import Path
 import queue
 from functools import partial
 import time
-from landing.helper.helper_logging import logger
+from landing.helper.helper_logging import setup_logger
+logger = setup_logger(server=False)
 import open3d as o3d
+from scipy.spatial.transform import Rotation as R
 
 from PyQt5.QtWidgets import (QApplication, QGridLayout, QPushButton, QVBoxLayout,
                              QWidget, QFormLayout, QHBoxLayout, QLabel, QMessageBox
@@ -73,21 +75,23 @@ class Window(QWidget):
         else:
             status_label.setStyleSheet("background-color: lightcoral")
 
-    def update_value_label(self, value_label, value, suffix=None):
+    def update_value_label(self, value_label, value, suffix=None, precision=2, prefix=None):
         value_str = "N/A"
         if value is None:
             value_str = "N/A"
         elif isinstance(value, float):
-            value_str = f"{value:.2f}"
+            value_str = f"{value:.{precision}f}"
         elif isinstance(value, int):
             value_str = f"{value}"
         elif isinstance(value, list):
-            value_str = " ".join([f"{i:.2f}" for i in value])
+            value_str = " ".join([f"{i:.{precision}f}" for i in value])
         else:
             value_str = f"{value}"
 
         if suffix != None:
             value_str += f"; {suffix:.1f}"
+        if prefix != None:
+            value_str = f"{prefix}; {value_str}"
 
         value_label.setText(value_str)
 
@@ -109,6 +113,8 @@ class Window(QWidget):
         self.update_status_label(self.integrated_right_complete_status, self.completed_integration)
 
         self.update_value_label(self.pose_ned_status, self.pose_translation_ned)
+        self.update_value_label(self.pose_ned_status, self.pose_rotation_ned, prefix=self.pose_ned_status.text(), precision=1)
+
         self.update_value_label(self.single_tp_status, self.single_touchdown_point, suffix=self.single_touchdown_dist)
         self.update_value_label(self.integrated_tp_status, self.integrated_touchdown_point,
                                 suffix=self.integrated_touchdown_dist)
@@ -148,11 +154,8 @@ class Window(QWidget):
         if self.o3d_mesh is not None and len(self.o3d_mesh.triangles) > 0 :
             axis_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(0.2)
             geoms = []
-            print(self.integrated_polygon)
             if self.integrated_polygon:
-                print("here")
                 line_meshes = create_linemesh_from_shapely(self.integrated_polygon)
-                print(line_meshes)
                 geoms.extend(get_segments(line_meshes))
             
             if self.integrated_touchdown_point:
@@ -177,7 +180,7 @@ class Window(QWidget):
         # Create a QGridLayout instance
         layout = QGridLayout()
         layout.setColumnMinimumWidth(0, 100)
-        layout.setColumnMinimumWidth(1, 300)
+        layout.setColumnMinimumWidth(1, 400)
         layout.setRowMinimumHeight(0, 100)
         layout.setRowMinimumHeight(1, 100)
         layout.setColumnStretch(1, 100)
@@ -272,7 +275,7 @@ class Window(QWidget):
 
         # Top Middle
         mid_right_heading = self.create_header(text="Live Status")
-        layout_top_right_pose_ned = self.simple_status_widgets('pose_ned', 'Pose (NED)', 'N/A')
+        layout_top_right_pose_ned = self.simple_status_widgets('pose_ned', 'Pose NED (XYZRPY)', 'N/A')
         layout_top_right_single_tp = self.simple_status_widgets('single_tp', 'Single TP', 'N/A')
         layout_top_right_integrated_tp = self.simple_status_widgets('integrated_tp', 'Integrated TP', 'N/A')
 
@@ -375,7 +378,9 @@ class Window(QWidget):
         self.pose_translation_ned = [pose_ned.x, pose_ned.y, pose_ned.z]
         self.pose_translation_t265 = [pose_t265.x, pose_t265.y, pose_t265.z]
         self.pose_rotation_ned = [rot_ned.x, rot_ned.y, rot_ned.z, rot_ned.w]
+        self.pose_rotation_ned = R.from_quat(self.pose_rotation_ned).as_euler('xyz', degrees=True).flatten().tolist()
         self.pose_rotation_t265 = [rot_t265.x, rot_t265.y, rot_t265.z, rot_t265.w]
+        self.pose_rotation_t265 = R.from_quat(self.pose_rotation_t265).as_euler('xyz', degrees=True).flatten().tolist()
 
         # Single Scan Updates
         sig_tp = landing_message.single_touchdown_point
@@ -399,7 +404,6 @@ class Window(QWidget):
         if touchdown_message.type == INTEGRATED:
             logger.info("Received Interated Touchdown Message")
             if touchdown_message.landing_site:
-                print("Here")
                 self.integrated_polygon = convert_polygon_message_to_shapely(touchdown_message.landing_site)
             
 

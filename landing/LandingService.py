@@ -6,7 +6,8 @@ import queue
 # from multiprocessing.managers import SyncManager, MakeProxyType, public_methods, BaseProxy
 import numpy as np
 import matplotlib.pyplot as plt
-from landing.helper.helper_logging import logger
+from landing.helper.helper_logging import setup_logger
+logger = setup_logger()
 import open3d as o3d
 from scipy.spatial.transform import Rotation as R
 
@@ -41,8 +42,8 @@ class LandingService(object):
         self.config = config
         # A simple frame counter
         self.frame_count = 0
-        self.pose_translation_ned = [0, 0, 0]
-        self.pose_rotation_ned = [0, 0, 0, 1]
+        self.pose_translation_ned = None
+        self.pose_rotation_ned = None
 
         # Single Scan Variables
         self.active_single_scan = False
@@ -86,6 +87,7 @@ class LandingService(object):
             # Robot Modelling and Control, Spong, Similarity Transform 2.3.1, Page 41
             H_body_w_ned = self.t265_world_to_ned_world @ H_body_w_t265 @ np.linalg.inv(self.t265_world_to_ned_world)
             ned_rot = R.from_matrix(H_body_w_ned[:3, :3]).as_euler('xyz', degrees=True)
+            ned_rot_quat = R.from_matrix(H_body_w_ned[:3, :3]).as_quat().flatten().tolist()
             logger.debug(
                 f"Pose of Body in NED World Frame: translation: {np_to_str(H_body_w_ned[:3, 3])}; rotation (deg): {np_to_str(ned_rot)}")
 
@@ -93,6 +95,8 @@ class LandingService(object):
             # The axes are NED, where X axis where the drone was intially pointed at time t=0
             # These means the drone position at time t=0 will be a few (10?) centimeters off in x-axis
             self.pose_translation_ned = H_body_w_ned[:3, 3].flatten().tolist()
+            self.pose_rotation_ned = ned_rot_quat
+
             # TODO - Write data to Matt??
         except Exception as e:
             logger.exception("Error!")
@@ -397,8 +401,9 @@ class LandingService(object):
         lm.frame_count = self.frame_count
         lm.active_single_scan = self.active_single_scan
         lm.active_integration = self.active_integration
-        lm.pose_translation_ned.CopyFrom(create_proto_vec(self.pose_translation_ned))
-        # lm.pose_rotation_ned.CopyFrom(create_proto_vec(self.pose_rotation_ned))
+        if self.pose_rotation_ned:
+            lm.pose_translation_ned.CopyFrom(create_proto_vec(self.pose_translation_ned))
+            lm.pose_rotation_ned.CopyFrom(create_proto_vec(self.pose_rotation_ned))
         if len(self.single_scan_touchdowns) > 0:
             touchdown = self.single_scan_touchdowns[-1]
             if touchdown['touchdown_point'] is not None:
