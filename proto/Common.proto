@@ -13,3 +13,15 @@ message Vec3 {
 	float y = 2;
 	float z = 3;
 }
+
+message DoubleMatrix {
+	uint32 rows = 1;
+	uint32 cols = 2;
+	repeated double data = 3 [packed=true];
+  }
+
+  message DoubleBytesMatrix {
+	uint32 rows = 1;
+	uint32 cols = 2;
+	bytes data = 3;
+  }

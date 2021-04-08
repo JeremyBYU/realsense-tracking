@@ -1,0 +1,29 @@
+syntax = 'proto3';
+package rspub_pb;
+
+import "Common.proto";
+
+
+enum LandingType {
+    SINGLE = 0;
+    INTEGRATED = 1;
+}
+
+enum Frame {
+    BODY = 0;
+    NED = 1;
+}
+
+message Polygon {
+    DoubleBytesMatrix shell = 1;
+    repeated DoubleBytesMatrix holes = 2; 
+}
+
+message TouchdownMessage
+{
+    Polygon landing_site = 1;
+    Vec3 touchdown_point = 2;
+    float touchdown_dist = 3;
+    LandingType type = 4;
+    Frame frame = 5;
+}

@@ -20,12 +20,13 @@ from PoseMessage_pb2 import PoseMessage
 from ImageMessage_pb2 import ImageMessage
 from LandingMessage_pb2 import LandingMessage
 from Integrate_pb2 import IntegrateRequest, IntegrateResponse, ExtractResponse, ExtractRequest, START, STOP, MESH, Mesh
+from TouchdownMessage_pb2 import TouchdownMessage
 
 
 from polylidar import Polylidar3D, MatrixDouble, MatrixFloat, extract_point_cloud_from_float_depth, bilateral_filter_normals
 from fastga import GaussianAccumulatorS2Beta, IcoCharts
 from landing.helper.helper_polylidar import extract_polygons_from_points, get_3D_touchdown_point, extract_polygons_from_tri_mesh
-from landing.helper.helper_utility import create_projection_matrix, create_transform, create_proto_vec, get_mesh_data_from_message
+from landing.helper.helper_utility import create_projection_matrix, create_transform, create_proto_vec, get_mesh_data_from_message, create_touchdown_message
 from landing.helper.o3d_util import create_o3d_pc, create_linemesh_from_shapely, get_segments
 from landing.helper.helper_meshes import create_o3d_mesh_from_tri_mesh, create_o3d_mesh_from_data, create_tri_mesh_from_data
 from landing.helper.helper_vis import plot_polygons
@@ -45,7 +46,6 @@ class LandingService(object):
 
         # Single Scan Variables
         self.active_single_scan = False
-
         # Integration Variables
         self.active_integration = False
         self.completed_integration = False
@@ -189,7 +189,7 @@ class LandingService(object):
         else:
             logger.warn("Do not undersand this request: %s", this_request)
             rtn_value = 1
-            rtn_msg = "Do not undersand this request: %s", this_request"
+            rtn_msg = f"Do not undersand this request: {this_request}"
 
         return rtn_value, bytes(rtn_msg, "ascii")
 
@@ -209,6 +209,7 @@ class LandingService(object):
             self.integrated_touchdown_point = touchdown_point['point'].tolist()
             self.integrated_touchdown_dist = touchdown_point['dist']
             success = True
+
             # VISUALIZATION
             # line_meshes = create_linemesh_from_shapely(chosen_plane[0])
             # tp = o3d.geometry.TriangleMesh.create_icosahedron(0.05).translate(touchdown_point['point'])
@@ -223,6 +224,10 @@ class LandingService(object):
         touchdown_result = dict(polygon=chosen_plane, alg_timings=alg_timings,
                                 avg_peaks=avg_peaks, touchdown_point=touchdown_point)
         self.integrated_touchdown_result = touchdown_result
+        tm = create_touchdown_message(touchdown_result, command_frame='ned', integrated=True)
+        # TODO lock this publisher resource?
+        self.pub_touchdown.send(tm)
+    
         return success
 
     def integration_client_resp_callback(self, service_info, response):
@@ -348,6 +353,7 @@ class LandingService(object):
         self.pub_image = ProtoPublisher("RGBDLandingMessage", ImageMessage)
         self.pub_landing = ProtoPublisher("LandingMessage", LandingMessage)
         self.pub_mesh = ProtoPublisher("MeshMessage", Mesh)
+        self.pub_touchdown =ProtoPublisher("TouchdownMessage", TouchdownMessage)
 
         # Create a client for a service for integration
         self.integration_client = Client("rspub_pb.IntegrateService")
@@ -372,8 +378,9 @@ class LandingService(object):
             time.sleep(0.1)
             # Publish Image Data
             try:
-                image = self.pub_image_queue.get_nowait()
+                image, touchdown_message = self.pub_image_queue.get_nowait()
                 self.pub_image.send(image)
+                self.pub_touchdown.send(touchdown_message)
             except queue.Empty:
                 pass
             except:
@@ -487,11 +494,13 @@ def process_image(landing_service: LandingService, pull_queue: Queue, push_queue
         t5 = time.perf_counter()
 
         # Put modified image on queue to publish message
-        image.image_data = np.ndarray.tobytes(image_color_np)
-        push_queue.put(image)
         touchdown_results = dict(polygon=chosen_plane, alg_timings=alg_timings,
                                  avg_peaks=avg_peaks, touchdown_point=touchdown_point)
         single_scan_touchdowns.append(touchdown_results)
+
+        image.image_data = np.ndarray.tobytes(image_color_np)
+        tm = create_touchdown_message(touchdown_results, command_frame=config['single_scan']['command_frame'], integrated=False)
+        push_queue.put((image, tm))
 
         # d1 = (t2 - t1) * 1000
         # d2 = (t3 - t2) * 1000

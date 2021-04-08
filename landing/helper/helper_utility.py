@@ -2,6 +2,8 @@ import numpy as np
 from scipy.spatial.transform import Rotation as R
 
 from Common_pb2 import Vec3, Vec4
+from TouchdownMessage_pb2 import TouchdownMessage, BODY, NED, SINGLE, INTEGRATED
+from shapely.geometry import Polygon
 
 def create_projection_matrix(fx, fy, ppx, ppy):
     proj_mat = np.array([[fx, 0, ppx, 0], [0, fy, ppy, 0], [0, 0, 1, 0]])
@@ -51,7 +53,53 @@ def get_mesh_data_from_message(mesh):
     halfedges = np.frombuffer(mesh.halfedges, dtype=np.uint64)
     return np.copy(vertices), np.copy(triangles), np.copy(halfedges), np.copy(vertices_colors)
 
+def set_matrix(matrix_message, ndarray):
+    matrix_message.data = np.ndarray.tobytes(ndarray)
+    matrix_message.rows = ndarray.shape[0]
+    matrix_message.cols = ndarray.shape[1]
 
+
+
+def convert_double_matrix_bytes_to_numpy(dmb):
+    return np.frombuffer(dmb.data, dtype=np.float64).reshape((dmb.rows, dmb.cols))
+
+def convert_polygon_message_to_shapely(pm):
+    shell = convert_double_matrix_bytes_to_numpy(pm.shell)
+    holes = []
+    for hole in pm.holes:
+        hole_np = convert_double_matrix_bytes_to_numpy(hole)
+        holes.append(hole_np)
+
+    return Polygon(shell, holes)
+
+
+def create_touchdown_message(touchdown_result, command_frame='body', integrated=False):
+        # touchdown_results = dict(polygon=chosen_plane, alg_timings=alg_timings,
+        #                          avg_peaks=avg_peaks, touchdown_point=touchdown_point)
+    tm = TouchdownMessage()
+    # short circuit
+    if touchdown_result['polygon'] is None:
+        return tm
+
+    poly, meta = touchdown_result['polygon']
+    tp = touchdown_result['touchdown_point']['point']
+    dist = touchdown_result['touchdown_point']['dist']
+    
+    # Set Polygons
+    set_matrix(tm.landing_site.shell, np.array(poly.exterior))
+    for hole in poly.interiors:
+        hole_message = tm.landing_site.holes.add()
+        set_matrix(hole_message, np.array(hole))
+
+    # Set Touchdown Point
+    tm.touchdown_point.CopyFrom(create_proto_vec(tp))
+    tm.touchdown_dist = dist
+
+    # Set Type and Frame
+    tm.type = INTEGRATED if integrated else SINGLE
+    tm.frame = BODY if command_frame == 'body' else NED
+
+    return tm
 
 
 # Eigen::Matrix4d make_transform(rspub_pb::Vec4 &rotation, rspub_pb::Vec3 &trans)
