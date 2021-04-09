@@ -457,83 +457,85 @@ def process_image(landing_service: LandingService, pull_queue: Queue, push_queue
 
 
     while True:
+        try:
+            image = pull_queue.get()
+            logger.info(f"Process Image START: {time.perf_counter() * 1000:.1f}")
+            # logger.info("Frame Number: %s", image.frame_number)
+            t1 = time.perf_counter()
+            # Get numpy array from depth image
+            image_depth_np = np.frombuffer(image.image_data_second, dtype=np.uint16).reshape((image.height, image.width))
+            # Convert to float depth map
+            image_depth_np = np.multiply(image_depth_np, landing_service.config['depth_scale'], dtype=np.float32)
+            # Get intrinsics
+            intrinsics = MatrixDouble(create_projection_matrix(image.fx, image.fy, image.cx, image.cy))
+            # Get extrinsics for t265, in world t265 frame
+            # H_t265_w_t265 represents the homogenous transformation to transform the starting t265 frame (gravity aligned, t=0, see README) to the current
+            # t265 frame at current time.
+            H_t265_w_t265 = create_transform([image.translation.x, image.translation.y, image.translation.z],
+                                            [image.rotation.x, image.rotation.y, image.rotation.z, image.rotation.w])
+            t2 = time.perf_counter()
 
-        image = pull_queue.get()
-        # logger.info(f"Process Image START: {time.perf_counter() * 1000:.1f}")
-        # logger.info("Frame Number: %s", image.frame_number)
-        t1 = time.perf_counter()
-        # Get numpy array from depth image
-        image_depth_np = np.frombuffer(image.image_data_second, dtype=np.uint16).reshape((image.height, image.width))
-        # Convert to float depth map
-        image_depth_np = np.multiply(image_depth_np, landing_service.config['depth_scale'], dtype=np.float32)
-        # Get intrinsics
-        intrinsics = MatrixDouble(create_projection_matrix(image.fx, image.fy, image.cx, image.cy))
-        # Get extrinsics for t265, in world t265 frame
-        # H_t265_w_t265 represents the homogenous transformation to transform the starting t265 frame (gravity aligned, t=0, see README) to the current
-        # t265 frame at current time.
-        H_t265_w_t265 = create_transform([image.translation.x, image.translation.y, image.translation.z],
-                                         [image.rotation.x, image.rotation.y, image.rotation.z, image.rotation.w])
-        t2 = time.perf_counter()
+            # body_frame_transform_in_t265_frame represents the transform (in t265 frame) to move to the drone body position
+            # Its like saying what translation/rotation do I need to take move the T265 camera to be in the center of the drone, IN RESPECT to the t265 frame.
+            # So a positive 2 z translation would indicate that that the drone is 2 meters BEHIND the 265 camera (z axes of t265 frame points behind it)
 
-        # body_frame_transform_in_t265_frame represents the transform (in t265 frame) to move to the drone body position
-        # Its like saying what translation/rotation do I need to take move the T265 camera to be in the center of the drone, IN RESPECT to the t265 frame.
-        # So a positive 2 z translation would indicate that that the drone is 2 meters BEHIND the 265 camera (z axes of t265 frame points behind it)
+            # H_body_w_t265 represents the homogenous transformation from the starting t265 frame to the where the t265 would be if in the center of drone (body frame)
+            H_body_w_t265 = H_t265_w_t265 @ landing_service.body_frame_transform_in_t265_frame
 
-        # H_body_w_t265 represents the homogenous transformation from the starting t265 frame to the where the t265 would be if in the center of drone (body frame)
-        H_body_w_t265 = H_t265_w_t265 @ landing_service.body_frame_transform_in_t265_frame
+            # H_body_w_ned is the same transform H_body_w_t265 but in respect to a different axes convention world frame, the NED world frame
+            # Must use a similarity transform here
+            # Robot Modelling and Control, Spong, Similarity Transform 2.3.1, Page 41
+            H_body_w_ned = landing_service.t265_world_to_ned_world @ H_body_w_t265 @ np.linalg.inv(
+                landing_service.t265_world_to_ned_world)
 
-        # H_body_w_ned is the same transform H_body_w_t265 but in respect to a different axes convention world frame, the NED world frame
-        # Must use a similarity transform here
-        # Robot Modelling and Control, Spong, Similarity Transform 2.3.1, Page 41
-        H_body_w_ned = landing_service.t265_world_to_ned_world @ H_body_w_t265 @ np.linalg.inv(
-            landing_service.t265_world_to_ned_world)
+            # Put in point cloud from sensor to drone, from drone (body) to world ned frame
+            extrinsics_world_ned = H_body_w_ned @ landing_service.l515_to_drone_body
+            extrinsics_world_ned_ = MatrixDouble(extrinsics_world_ned)
+            extrinsics_body_frame_ = MatrixDouble(landing_service.l515_to_drone_body)  # simple body frame
+            # Put in frame chosen by user
+            extrinsics = extrinsics_body_frame_ if config['single_scan']['command_frame'] == 'body' else extrinsics_world_ned_
+            # Create OPC
+            points = extract_point_cloud_from_float_depth(MatrixFloat(
+                image_depth_np), intrinsics, extrinsics, stride=stride)
+            new_shape = (int(image_depth_np.shape[0] / stride), int(image_depth_np.shape[1] / stride), 3)
+            opc = np.asarray(points).reshape(new_shape)  # organized point cloud (will have NaNs!)
+            t3 = time.perf_counter()
+            chosen_plane, alg_timings, tri_mesh, avg_peaks, _ = extract_polygons_from_points(opc, pl, ga, ico, config)
 
-        # Put in point cloud from sensor to drone, from drone (body) to world ned frame
-        extrinsics_world_ned = H_body_w_ned @ landing_service.l515_to_drone_body
-        extrinsics_world_ned_ = MatrixDouble(extrinsics_world_ned)
-        extrinsics_body_frame_ = MatrixDouble(landing_service.l515_to_drone_body)  # simple body frame
-        # Put in frame chosen by user
-        extrinsics = extrinsics_body_frame_ if config['single_scan']['command_frame'] == 'body' else extrinsics_world_ned_
-        # Create OPC
-        points = extract_point_cloud_from_float_depth(MatrixFloat(
-            image_depth_np), intrinsics, extrinsics, stride=stride)
-        new_shape = (int(image_depth_np.shape[0] / stride), int(image_depth_np.shape[1] / stride), 3)
-        opc = np.asarray(points).reshape(new_shape)  # organized point cloud (will have NaNs!)
-        t3 = time.perf_counter()
-        chosen_plane, alg_timings, tri_mesh, avg_peaks, _ = extract_polygons_from_points(opc, pl, ga, ico, config)
+            t4 = time.perf_counter()
+            image_color_np = np.frombuffer(image.image_data, dtype=np.uint8).reshape((image.height, image.width, 3))
+            if chosen_plane is not None:
+                plot_polygons(chosen_plane, create_projection_matrix(image.fx, image.fy, image.cx,
+                                                                    image.cy), np.linalg.inv(np.array(extrinsics)), image_color_np)
+                touchdown_point = get_3D_touchdown_point(chosen_plane, config['polylabel']['precision'])
+                plot_polygons((touchdown_point['circle_poly'], None), create_projection_matrix(image.fx, image.fy, image.cx, image.cy),
+                            np.linalg.inv(np.array(extrinsics)), image_color_np, shell_color=BLUE)
+                # VISUALIZATION
+                # line_meshes = create_linemesh_from_shapely(chosen_plane[0])
+                # tp = o3d.geometry.TriangleMesh.create_icosahedron(0.05).translate(touchdown_point['point'] )
+                # body = o3d.geometry.TriangleMesh.create_icosahedron(0.05).translate(H_body_w_ned[:3, 3])
+                # o3d_mesh = create_open_3d_mesh_from_tri_mesh(tri_mesh)
+                # o3d.visualization.draw_geometries([o3d_mesh, tp, body, *get_segments(line_meshes), o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.5)])
+                # plt.imshow(image_color_np)
+                # plt.show()
 
-        t4 = time.perf_counter()
-        image_color_np = np.frombuffer(image.image_data, dtype=np.uint8).reshape((image.height, image.width, 3))
-        if chosen_plane is not None:
-            plot_polygons(chosen_plane, create_projection_matrix(image.fx, image.fy, image.cx,
-                                                                 image.cy), np.linalg.inv(np.array(extrinsics)), image_color_np)
-            touchdown_point = get_3D_touchdown_point(chosen_plane, config['polylabel']['precision'])
-            plot_polygons((touchdown_point['circle_poly'], None), create_projection_matrix(image.fx, image.fy, image.cx, image.cy),
-                          np.linalg.inv(np.array(extrinsics)), image_color_np, shell_color=BLUE)
-            # VISUALIZATION
-            # line_meshes = create_linemesh_from_shapely(chosen_plane[0])
-            # tp = o3d.geometry.TriangleMesh.create_icosahedron(0.05).translate(touchdown_point['point'] )
-            # body = o3d.geometry.TriangleMesh.create_icosahedron(0.05).translate(H_body_w_ned[:3, 3])
-            # o3d_mesh = create_open_3d_mesh_from_tri_mesh(tri_mesh)
-            # o3d.visualization.draw_geometries([o3d_mesh, tp, body, *get_segments(line_meshes), o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.5)])
-            # plt.imshow(image_color_np)
-            # plt.show()
+            else:
+                touchdown_point = None
+                logger.warn("Could not find a touchdown point")
+            t5 = time.perf_counter()
 
-        else:
-            touchdown_point = None
-            logger.warn("Could not find a touchdown point")
-        t5 = time.perf_counter()
+            # Put modified image on queue to publish message
+            touchdown_results = dict(polygon=chosen_plane, alg_timings=alg_timings,
+                                    avg_peaks=avg_peaks, touchdown_point=touchdown_point)
+            single_scan_touchdowns.append(touchdown_results)
 
-        # Put modified image on queue to publish message
-        touchdown_results = dict(polygon=chosen_plane, alg_timings=alg_timings,
-                                 avg_peaks=avg_peaks, touchdown_point=touchdown_point)
-        single_scan_touchdowns.append(touchdown_results)
+            image.image_data = np.ndarray.tobytes(image_color_np)
+            tm = create_touchdown_message(touchdown_results, command_frame=config['single_scan']['command_frame'], integrated=False)
+            push_queue.put((image, tm))
 
-        image.image_data = np.ndarray.tobytes(image_color_np)
-        tm = create_touchdown_message(touchdown_results, command_frame=config['single_scan']['command_frame'], integrated=False)
-        push_queue.put((image, tm))
-
-        # logger.info(f"Process Image END: {time.perf_counter() * 1000:.1f}")
+            # logger.info(f"Process Image END: {time.perf_counter() * 1000:.1f}")
+        except:
+            logger.exception("Erorr in polylidar process")
         # d1 = (t2 - t1) * 1000
         # d2 = (t3 - t2) * 1000
         # d3 = (t4 - t3) * 1000

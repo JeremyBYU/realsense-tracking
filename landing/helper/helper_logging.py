@@ -40,5 +40,5 @@ def setup_logger(server=True):
     # Add timestamp
     logger.debug('\n---------\nLog started on %s.\n---------\n' % time.asctime())
 
-    multiprocessing_logging.install_mp_handler(logger)
+    # multiprocessing_logging.install_mp_handler(logger)
     return logger

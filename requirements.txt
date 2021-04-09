@@ -1,3 +1,4 @@
+# USE CONDA TO INSTALL matplotlib, numpy and so forth.
 scipy==1.4.1
 pybind11==2.4.3
 shapely

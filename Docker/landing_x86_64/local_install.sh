@@ -20,7 +20,7 @@ cd lib/python_package && pip install .
 # Clone FastGaussianAccumulator
 git clone -b 's2beta' --single-branch --recursive https://github.com/JeremyBYU/FastGaussianAccumulator.git $INSTALL_DIR/fastga && \
 cd $INSTALL_DIR/fastga && mkdir cmake-build && cd cmake-build && \
-cmake .. -DCMAKE_BUILD_TYPE=Release -DFETCHCONTENT_QUIET=OFF && \
+cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-O3 -DNDEBUG -msse4.2" -DFETCHCONTENT_QUIET=OFF && \
 make -j${N_CPUS} && \
 cmake --build . --target python-package --config Release -j${N_CPUS} && \
 cd lib/python_package && pip install .
@@ -33,7 +33,7 @@ make -j${N_CPUS} && \
 cmake --build . --target python-package --config Release -j${N_CPUS} && \
 cd lib/python_package && pip install .
 
-
+# Polylabel
 git clone --recursive https://github.com/JeremyBYU/polylabelfast.git $INSTALL_DIR/polylabelfast && \
 cd $INSTALL_DIR/polylabelfast && \
 pip install .
