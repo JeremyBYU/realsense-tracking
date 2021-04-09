@@ -89,12 +89,12 @@ active = true
   # Color and Depth combined in one frame
   [publish.rgbd]
   active = true
-  rate = 10
+  rate = 5
 
   # 6DOF Pose
   [publish.pose]
   active = true
-  rate = 6
+  rate = 2
 
   # XYZ Point Cloud. RGB Optional
   [publish.pointcloud]

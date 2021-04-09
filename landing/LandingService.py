@@ -399,7 +399,7 @@ class LandingService(object):
             if (time.perf_counter() - frame_start) > 10:
                 frame_start = time.perf_counter()
                 self.frame_count = 0
-            time.sleep(0.2)
+            time.sleep(0.05)
             # Publish Image Data
             if not self.pub_image_queue.empty():
                 try:
