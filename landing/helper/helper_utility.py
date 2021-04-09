@@ -44,14 +44,17 @@ def create_proto_vec(vec):
 def get_mesh_data_from_message(mesh):
     n_triangles = mesh.n_triangles
     n_vertices = mesh.n_vertices
-    triangles = np.frombuffer(
-        mesh.triangles, dtype=np.int32).reshape((n_triangles, 3))
-    vertices = np.frombuffer(
-        mesh.vertices, dtype=np.float64).reshape((n_vertices, 3))
-    vertices_colors = np.frombuffer(
-        mesh.vertices_colors, dtype=np.float64).reshape((n_vertices, 3))
-    halfedges = np.frombuffer(mesh.halfedges, dtype=np.uint64)
-    return np.copy(vertices), np.copy(triangles), np.copy(halfedges), np.copy(vertices_colors)
+    triangles = np.copy(np.frombuffer(
+        mesh.triangles, dtype=np.int32).reshape((n_triangles, 3)))
+    vertices = np.copy(np.frombuffer(
+        mesh.vertices, dtype=np.float64).reshape((n_vertices, 3)))
+    if mesh.vertices_colors:
+        vertices_colors = np.copy(np.frombuffer(
+            mesh.vertices_colors, dtype=np.float64).reshape((n_vertices, 3)))
+    else:
+        vertices_colors = None
+    halfedges = np.copy(np.frombuffer(mesh.halfedges, dtype=np.uint64))
+    return vertices, triangles, halfedges, vertices_colors
 
 def set_matrix(matrix_message, ndarray):
     matrix_message.data = np.ndarray.tobytes(ndarray)

@@ -103,6 +103,7 @@ class LandingService(object):
         pass
 
     def callback_depth(self, topic_name, image: ImageMessage, time_):
+        logger.info(f"Callback Image START: {time.perf_counter() * 1000:.1f}")
         try:
             self.frame_count += 1
             if self.active_single_scan:
@@ -240,21 +241,25 @@ class LandingService(object):
         if (m_name == 'IntegrateScene'):
             pass
         elif m_name == 'ExtractScene':
-            logger.info("In callback from client for mesh")
-            resp = ExtractResponse()
-            resp.ParseFromString(response)
-            self.extracted_mesh_message = resp
-            self.pub_mesh.send(resp.mesh)
-            raw_data = get_mesh_data_from_message(resp.mesh)
-            tri_mesh = create_tri_mesh_from_data(raw_data[0], raw_data[1])
+            try:
+                logger.info("In callback from client for mesh")
+                resp = ExtractResponse()
+                resp.ParseFromString(response)
+                self.extracted_mesh_message = resp
+                resp.mesh.ClearField('vertices_colors') # save UDP bandwith....
+                self.pub_mesh.send(resp.mesh)
+                raw_data = get_mesh_data_from_message(resp.mesh)
+                tri_mesh = create_tri_mesh_from_data(raw_data[0], raw_data[1])
 
-            t1 = time.perf_counter()
-            # as long as the mesh isnt too big, this is not too expensive (sub 5 ms)
-            mesh_filter = self.config['mesh_integrated']['filter']
-            bilateral_filter_normals(
-                tri_mesh, iterations=mesh_filter['loops_bilateral'], sigma_length=mesh_filter['sigma_length'], sigma_angle=mesh_filter['sigma_angle'])
-            t2 = time.perf_counter()
-            self.integrated_tri_mesh = tri_mesh
+                t1 = time.perf_counter()
+                # as long as the mesh isnt too big, this is not too expensive (sub 5 ms)
+                mesh_filter = self.config['mesh_integrated']['filter']
+                bilateral_filter_normals(
+                    tri_mesh, iterations=mesh_filter['loops_bilateral'], sigma_length=mesh_filter['sigma_length'], sigma_angle=mesh_filter['sigma_angle'])
+                t2 = time.perf_counter()
+                self.integrated_tri_mesh = tri_mesh
+            except:
+                logger.exception("Error extracting mesh")
 
     # define the server method "initiate_landing" function
 
@@ -332,7 +337,10 @@ class LandingService(object):
         # print(self.integrate_post)
 
     def setup_ecal(self):
-        ecal_core.initialize(sys.argv, "Landing_Server")
+        ecal_args = []
+        ecal_args.append("--ecal-ini-file");
+        ecal_args.append("./config/ecal/ecal.ini");
+        ecal_core.initialize(ecal_args, "Landing_Server")
         # set process state
         ecal_core.set_process_state(1, 1, "Healthy")
 
@@ -431,9 +439,11 @@ def process_image(landing_service: LandingService, pull_queue: Queue, push_queue
     ga = GaussianAccumulatorS2Beta(level=config['fastga']['level'])
     ico = IcoCharts(level=config['fastga']['level'])
 
+
     while True:
 
         image = pull_queue.get()
+        # logger.info(f"Process Image START: {time.perf_counter() * 1000:.1f}")
         # logger.info("Frame Number: %s", image.frame_number)
         t1 = time.perf_counter()
         # Get numpy array from depth image
@@ -507,6 +517,7 @@ def process_image(landing_service: LandingService, pull_queue: Queue, push_queue
         tm = create_touchdown_message(touchdown_results, command_frame=config['single_scan']['command_frame'], integrated=False)
         push_queue.put((image, tm))
 
+        # logger.info(f"Process Image END: {time.perf_counter() * 1000:.1f}")
         # d1 = (t2 - t1) * 1000
         # d2 = (t3 - t2) * 1000
         # d3 = (t4 - t3) * 1000

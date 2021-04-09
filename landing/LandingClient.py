@@ -370,31 +370,36 @@ class Window(QWidget):
             logger.exception("Error with landing image")
 
     def callback_landing_message(self, topic_name, landing_message: LandingMessage, time_):
-        # Pose Updates
-        pose_ned = landing_message.pose_translation_ned
-        rot_ned = landing_message.pose_rotation_ned
-        pose_t265 = landing_message.pose_translation_t265
-        rot_t265 = landing_message.pose_rotation_ned
-        self.pose_translation_ned = [pose_ned.x, pose_ned.y, pose_ned.z]
-        self.pose_translation_t265 = [pose_t265.x, pose_t265.y, pose_t265.z]
-        self.pose_rotation_ned = [rot_ned.x, rot_ned.y, rot_ned.z, rot_ned.w]
-        self.pose_rotation_ned = R.from_quat(self.pose_rotation_ned).as_euler('xyz', degrees=True).flatten().tolist()
-        self.pose_rotation_t265 = [rot_t265.x, rot_t265.y, rot_t265.z, rot_t265.w]
-        self.pose_rotation_t265 = R.from_quat(self.pose_rotation_t265).as_euler('xyz', degrees=True).flatten().tolist()
+        try:
+            # Pose Updates
+            pose_ned = landing_message.pose_translation_ned
+            rot_ned = landing_message.pose_rotation_ned
+            pose_t265 = landing_message.pose_translation_t265
+            rot_t265 = landing_message.pose_rotation_ned
+            self.pose_translation_ned = [pose_ned.x, pose_ned.y, pose_ned.z]
+            self.pose_translation_t265 = [pose_t265.x, pose_t265.y, pose_t265.z]
+            if rot_ned.w > 0:
+                self.pose_rotation_ned = [rot_ned.x, rot_ned.y, rot_ned.z, rot_ned.w]
+                self.pose_rotation_ned = R.from_quat(self.pose_rotation_ned).as_euler('xyz', degrees=True).flatten().tolist()
+                self.pose_rotation_t265 = [rot_t265.x, rot_t265.y, rot_t265.z, rot_t265.w]
+                self.pose_rotation_t265 = R.from_quat(self.pose_rotation_t265).as_euler('xyz', degrees=True).flatten().tolist()
 
-        # Single Scan Updates
-        sig_tp = landing_message.single_touchdown_point
-        self.active_single_scan = landing_message.active_single_scan
-        self.single_touchdown_point = [sig_tp.x, sig_tp.y, sig_tp.z]
-        self.single_touchdown_dist = landing_message.single_touchdown_dist
+            # Single Scan Updates
+            sig_tp = landing_message.single_touchdown_point
+            self.active_single_scan = landing_message.active_single_scan
+            self.single_touchdown_point = [sig_tp.x, sig_tp.y, sig_tp.z]
+            self.single_touchdown_dist = landing_message.single_touchdown_dist
 
-        # Integration Updates
-        int_tp = landing_message.integrated_touchdown_point
-        self.active_integration = landing_message.active_integration
-        self.completed_integration = landing_message.completed_integration
-        self.extracted_mesh_vertices = landing_message.extracted_mesh_vertices
-        self.integrated_touchdown_point = [int_tp.x, int_tp.y, int_tp.z]
-        self.integrated_touchdown_dist = landing_message.integrated_touchdown_dist
+            # Integration Updates
+            int_tp = landing_message.integrated_touchdown_point
+            self.active_integration = landing_message.active_integration
+            self.completed_integration = landing_message.completed_integration
+            self.extracted_mesh_vertices = landing_message.extracted_mesh_vertices
+            self.integrated_touchdown_point = [int_tp.x, int_tp.y, int_tp.z]
+            self.integrated_touchdown_dist = landing_message.integrated_touchdown_dist
+        except:
+            logger.exception("Error")
+
 
     def callback_rgbd_image(self, topic_name, image: ImageMessage, time_):
         if not self.active_single_scan:
@@ -446,10 +451,10 @@ class Window(QWidget):
         self.sub_mesh_message = ProtoSubscriber("MeshMessage", Mesh)
         self.sub_mesh_message.set_callback(self.callback_mesh_message)
 
-        # create subscriber for Touchdown Message and connect callback
-        # currently only using this to get plot polygons for integrated meshes
-        self.sub_mesh_message = ProtoSubscriber("TouchdownMessage", TouchdownMessage)
-        self.sub_mesh_message.set_callback(self.callback_touchdown_message)
+        # # create subscriber for Touchdown Message and connect callback
+        # # currently only using this to get plot polygons for integrated meshes
+        self.sub_touchdown_message = ProtoSubscriber("TouchdownMessage", TouchdownMessage)
+        self.sub_touchdown_message.set_callback(self.callback_touchdown_message)
 
 
 if __name__ == "__main__":

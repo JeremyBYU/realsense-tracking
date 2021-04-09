@@ -27,7 +27,7 @@ RUN git clone -b 'landing' --single-branch --recursive https://github.com/Jeremy
 # Clone FastGaussianAccumulator
 RUN git clone -b 's2beta' --single-branch --recursive https://github.com/JeremyBYU/FastGaussianAccumulator.git /opt/fastga && \
     cd /opt/fastga && mkdir cmake-build && cd cmake-build && \
-    cmake .. -DCMAKE_BUILD_TYPE=Release -DFETCHCONTENT_QUIET=OFF && \
+    cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-O3 -DNDEBUG -msse4.2" -DFETCHCONTENT_QUIET=OFF && \
     make -j${N_CPUS} && \
     cmake --build . --target python-package --config Release -j${N_CPUS} && \
     cd lib/python_package && pip install . && \
