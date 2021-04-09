@@ -31,7 +31,7 @@ from PoseMessage_pb2 import PoseMessage
 from ImageMessage_pb2 import ImageMessage
 from LandingMessage_pb2 import LandingMessage
 from Integrate_pb2 import Mesh
-from TouchdownMessage_pb2 import TouchdownMessage, SINGLE, INTEGRATED
+from TouchdownMessage_pb2 import TouchdownMessage, SINGLE, INTEGRATED, MeshAndTouchdownMessage
 
 from landing.helper.helper_utility import get_mesh_data_from_message, convert_polygon_message_to_shapely
 from landing.helper.helper_meshes import create_o3d_mesh_from_data
@@ -163,8 +163,9 @@ class Window(QWidget):
                 line_meshes = create_linemesh_from_shapely(self.integrated_polygon)
                 geoms.extend(get_segments(line_meshes))
             
-            if self.integrated_touchdown_point:
+            if self.integrated_touchdown_point is not None and self.integrated_touchdown_point[0] != 0.0:
                 tp = o3d.geometry.TriangleMesh.create_icosahedron(0.05).translate(self.integrated_touchdown_point)
+                tp.paint_uniform_color([0, 0.0, 1])
                 geoms.append(tp)
             o3d.visualization.draw_geometries([self.o3d_mesh, axis_frame, *geoms], width=800, height=600)
         else:
@@ -177,7 +178,7 @@ class Window(QWidget):
 
 
     def setup_gui(self):
-        self.setWindowTitle("QGridLayout Example")
+        self.setWindowTitle("Landing Client")
         # self.setFixedSize(800, 640)
 
         self.im_w = 320
@@ -377,7 +378,7 @@ class Window(QWidget):
     #         logger.exception("Error with mesh message")
 
     def callback_landing_image(self, topic_name, image: ImageMessage, time_):
-        logger.info("New Landing Image, active single scan: %s", self.active_single_scan)
+        logger.debug("New Landing Image, active single scan: %s", self.active_single_scan)
         try:
             if self.active_single_scan:
                 self.update_image(image)
@@ -420,11 +421,11 @@ class Window(QWidget):
         if not self.active_single_scan:
             self.update_image(image)
 
-    def callback_touchdown_message(self, topic_name, touchdown_message: TouchdownMessage, time_):
-        if touchdown_message.type == INTEGRATED:
-            logger.info("Received Interated Touchdown Message")
-            if touchdown_message.landing_site:
-                self.integrated_polygon = convert_polygon_message_to_shapely(touchdown_message.landing_site)
+    # def callback_touchdown_message(self, topic_name, touchdown_message: TouchdownMessage, time_):
+    #     if touchdown_message.type == INTEGRATED:
+    #         logger.info("Received Interated Touchdown Message")
+    #         if touchdown_message.landing_site:
+    #             self.integrated_polygon = convert_polygon_message_to_shapely(touchdown_message.landing_site)
             
 
 
@@ -435,17 +436,19 @@ class Window(QWidget):
 
     def landing_client_resp_callback(self, service_info, response):
         logger.info("Received Callback form server: %s", service_info)
-        logger.info("Space")
         if service_info['ret_state'] == 0 and service_info['method_name'] == 'SendMesh':
-            mesh = Mesh()
-            mesh.ParseFromString(response)
+            mesh_td = MeshAndTouchdownMessage()
+            mesh_td.ParseFromString(response)
             try:
-                raw_data = get_mesh_data_from_message(mesh)
+                raw_data = get_mesh_data_from_message(mesh_td.mesh)
                 self.o3d_mesh = create_o3d_mesh_from_data(*raw_data)
+                if mesh_td.HasField('touchdown'):
+                    logger.info("Has Touchdown in message, extracting it as well...")
+                    self.integrated_polygon = convert_polygon_message_to_shapely(mesh_td.touchdown.landing_site)
+                
             except Exception:
                 logger.exception("Error with mesh message")
 
-            # print(response)
 
 
     def setup_ecal(self):
@@ -479,10 +482,11 @@ class Window(QWidget):
         # self.sub_mesh_message = ProtoSubscriber("MeshMessage", Mesh)
         # self.sub_mesh_message.set_callback(self.callback_mesh_message)
 
+        # NOT reliable with UDP connection, moved to service
         # # create subscriber for Touchdown Message and connect callback
         # # currently only using this to get plot polygons for integrated meshes
-        self.sub_touchdown_message = ProtoSubscriber("TouchdownMessage", TouchdownMessage)
-        self.sub_touchdown_message.set_callback(self.callback_touchdown_message)
+        # self.sub_touchdown_message = ProtoSubscriber("TouchdownMessage", TouchdownMessage)
+        # self.sub_touchdown_message.set_callback(self.callback_touchdown_message)
 
 
 if __name__ == "__main__":

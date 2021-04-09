@@ -21,7 +21,7 @@ from PoseMessage_pb2 import PoseMessage
 from ImageMessage_pb2 import ImageMessage
 from LandingMessage_pb2 import LandingMessage
 from Integrate_pb2 import IntegrateRequest, IntegrateResponse, ExtractResponse, ExtractRequest, START, STOP, MESH, Mesh
-from TouchdownMessage_pb2 import TouchdownMessage
+from TouchdownMessage_pb2 import TouchdownMessage, MeshAndTouchdownMessage
 
 
 from polylidar import Polylidar3D, MatrixDouble, MatrixFloat, extract_point_cloud_from_float_depth, bilateral_filter_normals
@@ -246,7 +246,7 @@ class LandingService(object):
                 resp = ExtractResponse()
                 resp.ParseFromString(response)
                 self.extracted_mesh_message = resp
-                resp.mesh.ClearField('vertices_colors') # save UDP bandwith....
+                # resp.mesh.ClearField('vertices_colors') # save UDP bandwith....
                 self.pub_mesh.send(resp.mesh)
                 raw_data = get_mesh_data_from_message(resp.mesh)
                 tri_mesh = create_tri_mesh_from_data(raw_data[0], raw_data[1])
@@ -297,9 +297,13 @@ class LandingService(object):
     def callback_send_mesh(self, method_name, req_type, resp_type, this_request):
         this_request = this_request.decode('utf-8')
         logger.info("'LandingService' method %s called with %s", method_name, this_request)
-        empty = Mesh()
+        empty = MeshAndTouchdownMessage()
         if self.extracted_mesh_message:
-            msg = self.extracted_mesh_message.mesh.SerializeToString()
+            empty.mesh.CopyFrom(self.extracted_mesh_message.mesh)
+            if self.integrated_touchdown_result:
+                tm = create_touchdown_message(self.integrated_touchdown_result, command_frame='ned', integrated=True)
+                empty.touchdown.CopyFrom(tm)
+            msg = empty.SerializeToString()
             return 0, msg
         else:
             return 1, empty.SerializeToString()
@@ -335,16 +339,16 @@ class LandingService(object):
             [0, 0, -1, 0],
             [0, 0, 0, 1]
         ])
-
         # transfrom from t265 to l515 in respect to l515 frame
         l515_to_t265 = np.linalg.inv(self.t265_axes) @ np.linalg.inv(self.t265_mount) @ self.l515_mount @ self.t265_axes
         l515_to_t265[:3, 3] = -l515_to_t265[:3, 3]
-        # print(l515_to_t265)
+                             # Sensor to NED  # Move sensor # start similarity transfrom
         self.integrate_pre = self.l515_axes @ l515_to_t265 @ self.t265_world_to_sensor_world
         self.integrate_post = np.linalg.inv(self.t265_world_to_sensor_world)
-        # print()
-        # print(self.integrate_pre)
-        # print(self.integrate_post)
+
+        # Note, its like this: (At the very least you need three terms on the right)
+        ###############                         S I M I L A R I T Y    T R A N S F O R M
+        # H_L515_TO_NED @  H_L515_T265 @  H_t265_to_sensor @ H_t265_w_t265 @ inv(H_t265_to_sensor)
 
     def setup_ecal(self):
         ecal_args = []
@@ -403,17 +407,13 @@ class LandingService(object):
             # Publish Image Data
             if not self.pub_image_queue.empty():
                 try:
-                    # t1 = time.perf_counter()
                     image, touchdown_message = self.pub_image_queue.get_nowait()
-                    # t2 = time.perf_counter()
-                    # logger.info((t2-t1) * 1000)
                     self.pub_image.send(image)
                     self.pub_touchdown.send(touchdown_message)
                 except queue.Empty:
                     pass
                 except:
                     logger.exception("Error sending...")
-
             lm = self.create_landing_message()
             self.pub_landing.send(lm)
 
@@ -433,8 +433,6 @@ class LandingService(object):
             if touchdown['touchdown_point'] is not None:
                 lm.single_touchdown_point.CopyFrom(create_proto_vec(touchdown['touchdown_point']['point'].tolist()))
                 lm.single_touchdown_dist = touchdown['touchdown_point']['dist']
-        # lm.pose_translation_t265.CopyFrom(create_proto_vec(self.pose_translation_t265))
-        # lm.pose_rotation_t265.CopyFrom(create_proto_vec(self.pose_rotation_t265))
         lm.completed_integration = self.completed_integration
         if self.extracted_mesh_message is not None:
             lm.extracted_mesh_vertices = self.extracted_mesh_message.mesh.n_vertices

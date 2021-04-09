@@ -1,7 +1,7 @@
 import numpy as np
 import cv2
 
-ORANGE = [249, 115, 6]
+ORANGE = [6, 115, 249]
 
 def project_points_img(points, proj_mat, width, height):
     """Projects points into image given a projection matrix

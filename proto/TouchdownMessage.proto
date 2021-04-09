@@ -2,7 +2,7 @@ syntax = 'proto3';
 package rspub_pb;
 
 import "Common.proto";
-
+import "Integrate.proto";
 
 enum LandingType {
     SINGLE = 0;
@@ -26,4 +26,11 @@ message TouchdownMessage
     float touchdown_dist = 3;
     LandingType type = 4;
     Frame frame = 5;
+}
+
+
+message MeshAndTouchdownMessage
+{
+    Mesh mesh = 1;
+    TouchdownMessage touchdown = 12;
 }
