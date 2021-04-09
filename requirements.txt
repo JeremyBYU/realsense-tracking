@@ -1,4 +1,9 @@
+scipy==1.4.1
 pybind11==2.4.3
 shapely
 open3d
 pyqt5
+multiprocessing-logging
+matplotlib
+toml
+pyaml

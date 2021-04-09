@@ -25,6 +25,8 @@ THIS_DIR = THIS_FILE.parent
 
 build_dir = THIS_DIR.parent / f"dk-x86_64-build"
 sys.path.insert(1, str(build_dir))
+build_dir = THIS_DIR.parent / f"cmake-build"
+sys.path.insert(1, str(build_dir))
 from PoseMessage_pb2 import PoseMessage
 from ImageMessage_pb2 import ImageMessage
 from LandingMessage_pb2 import LandingMessage
@@ -146,9 +148,12 @@ class Window(QWidget):
         _ = self.landing_client.call_method("ActivateSingleScanTouchdown", request_string)
 
     def integration_request(self, request_type='start'):
-        logger.info("Attempting to make integration request of %s", request_type)
+        logger.info("Attempting to make Landing Server request of %s", request_type)
         request_string = bytes(request_type, "ascii")
-        _ = self.landing_client.call_method("IntegrationServiceForward", request_string)
+        if request_type == "send_mesh":
+            _ = self.landing_client.call_method("SendMesh", request_string)
+        else:
+            _ = self.landing_client.call_method("IntegrationServiceForward", request_string)
 
     def show_mesh(self):
         if self.o3d_mesh is not None and len(self.o3d_mesh.triangles) > 0 :
@@ -283,10 +288,20 @@ class Window(QWidget):
         bottom_right_heading = self.create_header(text="Integrated Mesh Data")
         # Add Extracted Vertices
         layout_bottom_right_mesh_vertices = self.simple_status_widgets('mesh_vertices', '# Mesh Vertices', 'N/A')
+        # Button Layout
+        layout_bottom_right_mesh_display = QHBoxLayout()
+        layout_bottom_right_mesh_display.setAlignment(Qt.AlignTop)
+        # Add Receive Mesh Button
+        self.receive_mesh_button = QPushButton("Receive Mesh from Server")
+        self.receive_mesh_button.clicked.connect(partial(self.integration_request, request_type='send_mesh'))
+        self.receive_mesh_button.setEnabled(True)
         # Add Show Mesh Button
-        self.show_mesh_button = QPushButton("Show Mesh from Integration")
+        self.show_mesh_button = QPushButton("Show Mesh from Server")
         self.show_mesh_button.clicked.connect(self.show_mesh)
         self.show_mesh_button.setEnabled(False)
+        layout_bottom_right_mesh_display.addWidget(self.receive_mesh_button)
+        layout_bottom_right_mesh_display.addWidget(self.show_mesh_button)
+
 
         layout_top_right.addWidget(top_right_heading)
         layout_top_right.addLayout(layout_top_right_single)
@@ -302,7 +317,7 @@ class Window(QWidget):
 
         layout_top_right.addWidget(bottom_right_heading)
         layout_top_right.addLayout(layout_bottom_right_mesh_vertices)
-        layout_top_right.addWidget(self.show_mesh_button)
+        layout_top_right.addLayout(layout_bottom_right_mesh_display)
 
         ##### END TOP RIGHT #######
 
@@ -348,18 +363,18 @@ class Window(QWidget):
         pass
         # print(pose.translation)
 
-    def callback_mesh_message(self, topic_name, mesh: Mesh, time_):
-        logger.info("New Mesh Message, vertices %d", mesh.n_vertices)
-        try:
-            raw_data = get_mesh_data_from_message(mesh)
-            self.o3d_mesh = create_o3d_mesh_from_data(*raw_data)
+    # def callback_mesh_message(self, topic_name, mesh: Mesh, time_):
+    #     logger.info("New Mesh Message, vertices %d", mesh.n_vertices)
+    #     try:
+    #         raw_data = get_mesh_data_from_message(mesh)
+    #         self.o3d_mesh = create_o3d_mesh_from_data(*raw_data)
 
-            # o3d_mesh = create_o3d_mesh_from_data(*raw_data)
-            # logger.info("Triangle Size: %d", len(o3d_mesh.triangles))
-            # if len(o3d_mesh.triangles) > 0:
-            #     o3d.visualization.draw_geometries([o3d_mesh])
-        except Exception:
-            logger.exception("Error with mesh message")
+    #         # o3d_mesh = create_o3d_mesh_from_data(*raw_data)
+    #         # logger.info("Triangle Size: %d", len(o3d_mesh.triangles))
+    #         # if len(o3d_mesh.triangles) > 0:
+    #         #     o3d.visualization.draw_geometries([o3d_mesh])
+    #     except Exception:
+    #         logger.exception("Error with mesh message")
 
     def callback_landing_image(self, topic_name, image: ImageMessage, time_):
         logger.info("New Landing Image, active single scan: %s", self.active_single_scan)
@@ -419,8 +434,19 @@ class Window(QWidget):
         self.image_queue.put(('image', im))
 
     def landing_client_resp_callback(self, service_info, response):
-        response = response.decode("utf-8")
-        logger.info("Received Callback form server: %s, response: %s", service_info, response)
+        logger.info("Received Callback form server: %s", service_info)
+        logger.info("Space")
+        if service_info['ret_state'] == 0 and service_info['method_name'] == 'SendMesh':
+            mesh = Mesh()
+            mesh.ParseFromString(response)
+            try:
+                raw_data = get_mesh_data_from_message(mesh)
+                self.o3d_mesh = create_o3d_mesh_from_data(*raw_data)
+            except Exception:
+                logger.exception("Error with mesh message")
+
+            # print(response)
+
 
     def setup_ecal(self):
         ecal_core.initialize(sys.argv, "Landing_Client")
@@ -447,9 +473,11 @@ class Window(QWidget):
         self.sub_landing_message = ProtoSubscriber("LandingMessage", LandingMessage)
         self.sub_landing_message.set_callback(self.callback_landing_message)
 
+
+        # NOT reliable with UDP connection, moved to service
         # create subscriber for Mesh Message and connect callback
-        self.sub_mesh_message = ProtoSubscriber("MeshMessage", Mesh)
-        self.sub_mesh_message.set_callback(self.callback_mesh_message)
+        # self.sub_mesh_message = ProtoSubscriber("MeshMessage", Mesh)
+        # self.sub_mesh_message.set_callback(self.callback_mesh_message)
 
         # # create subscriber for Touchdown Message and connect callback
         # # currently only using this to get plot polygons for integrated meshes

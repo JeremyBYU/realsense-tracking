@@ -294,6 +294,16 @@ class LandingService(object):
 
         return rtn_value, bytes(rtn_msg, "ascii")
 
+    def callback_send_mesh(self, method_name, req_type, resp_type, this_request):
+        this_request = this_request.decode('utf-8')
+        logger.info("'LandingService' method %s called with %s", method_name, this_request)
+        empty = Mesh()
+        if self.extracted_mesh_message:
+            msg = self.extracted_mesh_message.mesh.SerializeToString()
+            return 0, msg
+        else:
+            return 1, empty.SerializeToString()
+
     def setup_frames(self):
 
         l515_mount = self.config['frames']['l515_sensor_mount']
@@ -352,6 +362,8 @@ class LandingService(object):
         self.server.add_method_callback("InitiateLanding", "string", "string", self.callback_initiate_landing)
         self.server.add_method_callback("IntegrationServiceForward", "string", "string",
                                         self.callback_integration_service_forward)
+        self.server.add_method_callback("SendMesh", "string", "Mesh",
+                                        self.callback_send_mesh)
 
         # create subscriber for pose information and connect callback
         self.sub_pose = ProtoSubscriber("PoseMessage", PoseMessage)
@@ -387,16 +399,20 @@ class LandingService(object):
             if (time.perf_counter() - frame_start) > 10:
                 frame_start = time.perf_counter()
                 self.frame_count = 0
-            time.sleep(0.1)
+            time.sleep(0.2)
             # Publish Image Data
-            try:
-                image, touchdown_message = self.pub_image_queue.get_nowait()
-                self.pub_image.send(image)
-                self.pub_touchdown.send(touchdown_message)
-            except queue.Empty:
-                pass
-            except:
-                logger.exception("Error sending...")
+            if not self.pub_image_queue.empty():
+                try:
+                    # t1 = time.perf_counter()
+                    image, touchdown_message = self.pub_image_queue.get_nowait()
+                    # t2 = time.perf_counter()
+                    # logger.info((t2-t1) * 1000)
+                    self.pub_image.send(image)
+                    self.pub_touchdown.send(touchdown_message)
+                except queue.Empty:
+                    pass
+                except:
+                    logger.exception("Error sending...")
 
             lm = self.create_landing_message()
             self.pub_landing.send(lm)
