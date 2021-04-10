@@ -10,7 +10,7 @@ def main():
         while (True):
             time.sleep(interval)
             print(f"Attempting to read")
-            msg_bytes = ser.readline())
+            msg_bytes = ser.readline()
             msg_received = msg_bytes.decode('utf-8')
             print(f"Received Message: {msg_received}")
         ser.close()             # close port
