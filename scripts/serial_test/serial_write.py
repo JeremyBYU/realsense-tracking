@@ -2,8 +2,8 @@ import serial
 import time
 
 def main():
-    msg = b"Hello"
-    msg_bytes = len(msg)
+    msg = "Hello\n"
+    msg_bytes =  msg.encode('utf-8')
     update_rate = 1
     interval  = 1.0 / update_rate
     with serial.Serial('/dev/ttyUSB0', 19200, timeout=1) as ser:  # open serial port
@@ -11,8 +11,8 @@ def main():
         print("Opening up Serial Port")
         while (True):
             time.sleep(interval)
-            ser.write(msg)
-            print(f"Wrote Message that is {len(msg)} bytes")
+            ser.write(msg_bytes)
+            print(f"Wrote Message that is {len(msg_bytes)} bytes")
         ser.close()             # close port
 
 if __name__ == "__main__":
