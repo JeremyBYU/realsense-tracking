@@ -242,7 +242,7 @@ class LandingService(object):
             pass
         elif m_name == 'ExtractScene':
             try:
-                logger.info("In callback from client for mesh")
+                logger.info("Receiving Mesh from integration server")
                 resp = ExtractResponse()
                 resp.ParseFromString(response)
                 self.extracted_mesh_message = resp
@@ -250,6 +250,7 @@ class LandingService(object):
                 self.pub_mesh.send(resp.mesh)
                 raw_data = get_mesh_data_from_message(resp.mesh)
                 tri_mesh = create_tri_mesh_from_data(raw_data[0], raw_data[1])
+                logger.info("Mesh has %d vertices", np.asarray(tri_mesh.vertices).shape[0])
 
                 t1 = time.perf_counter()
                 # as long as the mesh isnt too big, this is not too expensive (sub 5 ms)
