@@ -3,19 +3,21 @@ import time
 import argparse
 import ctypes
 
-from .common import PoseUpdate, deserialize
+from .common import MessagePoseUpdate
 
 def main(serial_port, baud_rate, freq):
-    pose_update = PoseUpdate()
-    num_bytes_to_read = ctypes.sizeof(pose_update)
+    num_bytes_to_read = ctypes.sizeof(MessagePoseUpdate)
     interval  = 1.0 / freq
     print(f"Opening up Serial Port {serial_port} with baud rate of {baud_rate}")
     with serial.Serial(serial_port, baud_rate, timeout=1) as ser:  # open serial port
         while (True):
             time.sleep(interval)
             msg_serialized = ser.read(num_bytes_to_read)
-            deserialize(pose_update, msg_serialized)
-            print(f"Received Pose: {pose_update}")
+            if len(msg_serialized) == num_bytes_to_read:
+                msg_pose_update = MessagePoseUpdate.from_buffer_copy(msg_serialized)
+                print(f"Received Pose: {msg_pose_update}")
+            else:
+                print("Didnt receive bytes asked for")
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Serial Tester')

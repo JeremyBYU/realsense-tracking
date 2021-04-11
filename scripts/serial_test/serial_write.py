@@ -3,12 +3,12 @@ import time
 import argparse
 import ctypes
 
-from .common import PoseUpdate, serialize, get_us_from_epoch
+from .common import MessagePoseUpdate, PoseUpdate, get_us_from_epoch
 
 
 def main(serial_port, baud_rate, freq):
     now = get_us_from_epoch()
-    pose_update = PoseUpdate(now, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0)
+    msg_pose_update = MessagePoseUpdate(pose_update=(now, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0))
 
     interval  = 1.0 / freq
     print(f"Opening up Serial Port {serial_port} with baud rate of {baud_rate}")
@@ -16,10 +16,10 @@ def main(serial_port, baud_rate, freq):
         while (True):
             time.sleep(interval)
             now = get_us_from_epoch()
-            pose_update.time_us = now
-            msg_serialized = serialize(pose_update)
-            ser.write(msg_serialized.contents.raw)
-            print(f"Wrote Message that is {ctypes.sizeof(pose_update)} bytes")
+            msg_pose_update.time_us = now
+            msg_serialized = msg_pose_update.get_bytes()
+            ser.write(msg_serialized)
+            print(f"Wrote Message that is {ctypes.sizeof(msg_pose_update)} bytes")
         ser.close()             # close port
 
 def parse_args():
