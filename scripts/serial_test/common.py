@@ -127,11 +127,11 @@ def get_us_from_epoch():
     time_us = int(time.time() * 1000 * 1000)
     return time_us
 
-# def serialize(obj_ctype):
-#     # cast the struct to a pointer to a char array
-#     pdata = ctypes.cast(ctypes.byref(obj_ctype), ctypes.POINTER(ctypes.c_char * ctypes.sizeof(obj_ctype)))
-#     # pdata.contents.raw
-#     return pdata
+def serialize(obj_ctype):
+    # cast the struct to a pointer to a char array
+    pdata = ctypes.cast(ctypes.byref(obj_ctype), ctypes.POINTER(ctypes.c_char * ctypes.sizeof(obj_ctype)))
+    # pdata.contents.raw
+    return pdata
 
 # def deserialize(empty_obj_ctype, raw):
 #     ctypes.memmove(ctypes.pointer(empty_obj_ctype),raw, ctypes.sizeof(empty_obj_ctype))
