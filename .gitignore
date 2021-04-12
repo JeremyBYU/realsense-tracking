@@ -6,11 +6,11 @@ cmake-build
 dk-x86_64-build
 dk-aarch64-build
 
-docker_images/*
-!docker_images/README.md
+# docker_images/*
+# !docker_images/README.md
 
-logs
-!logs/.gitignore
+# logs/*
+# !logs/.gitignore
 
 lib
 .vscode/.ropeproject
