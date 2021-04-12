@@ -38,8 +38,6 @@ find_package(glog) # Docker ubuntu can not find when REQUIRED, but logging still
 find_package(Eigen3 REQUIRED )
 find_package(Open3D HINTS ${CMAKE_INSTALL_PREFIX}/lib/CMake REQUIRED)
 
-
-
 # Protobuff Generation
 set(PROTO_DIR "${PROJECT_SOURCE_DIR}/proto")
 set(PROTO_FILES ${PROTO_DIR}/Common.proto  ${PROTO_DIR}/ImageMessage.proto 
@@ -90,6 +88,7 @@ target_link_libraries(rs-integrate-server PUBLIC ${DEPENDENCIES} rs-util)
 set(CMAKE_BUILD_INCLUDE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 set(INCLUDE_DIRS_ALL 
     ${PROJECT_SOURCE_DIR}/src/include
+    ${PROJECT_SOURCE_DIR}/thirdparty/toml11
     /usr/include
     /usr/local/include
     /usr/local/include/opencv2
@@ -98,7 +97,7 @@ set(INCLUDE_DIRS_ALL
     ${PROJECT_SOURCE_DIR}/../librealsense/src
     ${PROTOBUF_INCLUDE_DIRS}
     ${GFLAG_INCLUDE_DIRS}
-    ${toml11_SOURCE_DIR}
+    # ${toml11_SOURCE_DIR}
     ${Open3D_INCLUDE_DIRS}
     ${EIGEN3_INCLUDE_DIR}
 ) 
