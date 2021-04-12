@@ -9,7 +9,7 @@ trap 'echo "\"${last_command}\" command filed with exit code $?."' EXIT
 
 SRC="."
 DST_COMP="jeremy@192.168.0.186"
-DST_FOLDER="/home/jeremy/Documents/UMICH/Research/realsense-tracking-copy"
+DST_FOLDER="/home/jeremy/Documents/UMICH/Research/realsense-tracking"
 DST="$DST_COMP:$DST_FOLDER"
 echo "Attempting to sync $SRC with $DST"
 rsync -avz --include='**.gitignore' --filter='dir-merge,-n /.gitignore' $SRC $DST
