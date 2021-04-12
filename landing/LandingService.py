@@ -150,11 +150,24 @@ class LandingService(object):
         point = tp['point']
         dist = tp['dist']
         logger.info("Initiating landing at %s with %.2f radial clearance", point, dist)
-        # TODO send command to beaglebone
+        # update message
+        self.message_landing_command.landing_command.time_us = get_us_from_epoch()
+        self.message_landing_command.landing_command.x = point[0]
+        self.message_landing_command.landing_command.y = point[1]
+        self.message_landing_command.landing_command.z = point[2]
+        # Send command to beaglebone
+        self.send_serial_msg(self.message_landing_command)
 
     def initiate_integrated_landing(self):
-        # TODO send command to beaglebone
-        pass
+        point = self.integrated_touchdown_point
+        dist = self.integrated_touchdown_dist
+        logger.info("Initiating integrated landing at %s with %.2f radial clearance", point, dist)
+        self.message_landing_command.landing_command.time_us = get_us_from_epoch()
+        self.message_landing_command.landing_command.x = point[0]
+        self.message_landing_command.landing_command.y = point[1]
+        self.message_landing_command.landing_command.z = point[2]
+        # Send command to beaglebone
+        self.send_serial_msg(self.message_landing_command)
 
     def callback_integration_service_forward(self, method_name, req_type, resp_type, this_request):
         this_request = this_request.decode('utf-8')

@@ -135,11 +135,17 @@ class Window(QWidget):
             self.touchdown_mesh_button.setEnabled(False)
             self.show_mesh_button.setEnabled(False)
 
-        # self.single_right_status.setText("True" if self.active_single_scan else "False")
-        # if self.active_single_scan:
-        #     self.single_right_status.setStyleSheet("background-color: lightgreen")
-        # else:
-        #     self.single_right_status.setStyleSheet("background-color: lightcoral")
+
+        if self.single_touchdown_dist > 0.1:
+            self.land_single_button.setEnabled(True)
+        else:
+            self.land_single_button.setEnabled(False)
+
+        if self.integrated_touchdown_dist > 0.1:
+            self.land_integrated_button.setEnabled(True)
+        else:
+            self.land_integrated_button.setEnabled(False)
+
 
     def toggle_single(self, on=False):
         logger.info("Attempting to set single scanning to %s", on)
@@ -154,6 +160,11 @@ class Window(QWidget):
             _ = self.landing_client.call_method("SendMesh", request_string)
         else:
             _ = self.landing_client.call_method("IntegrationServiceForward", request_string)
+
+    def land_request(self, request_type='land_single'):
+        logger.info("Attempting to make Landing Server request of %s", request_type)
+        request_string = bytes(request_type, "ascii")
+         _ = self.landing_client.call_method("InitiateLanding", request_string)
 
     def show_mesh(self):
         if self.o3d_mesh is not None and len(self.o3d_mesh.triangles) > 0 :
@@ -249,10 +260,10 @@ class Window(QWidget):
         layout_top_left_landing_commands = QHBoxLayout()
         layout_top_left_landing_commands.setAlignment(Qt.AlignTop)
         self.land_single_button = QPushButton("Land on Single Scan TP")
-        self.land_single_button.clicked.connect(partial(self.integration_request, request_type='land_single'))
+        self.land_single_button.clicked.connect(partial(self.land_request, request_type='land_single'))
         self.land_single_button.setEnabled(False)
         self.land_integrated_button = QPushButton("Land on Integrated TP")
-        self.land_integrated_button.clicked.connect(partial(self.integration_request, request_type='land_integrated'))
+        self.land_integrated_button.clicked.connect(partial(self.land_request, request_type='land_integrated'))
         self.land_integrated_button.setEnabled(False)
 
         layout_top_left_landing_commands.addWidget(self.land_single_button)
