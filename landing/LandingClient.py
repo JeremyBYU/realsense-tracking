@@ -136,12 +136,12 @@ class Window(QWidget):
             self.show_mesh_button.setEnabled(False)
 
 
-        if self.single_touchdown_dist > 0.1:
+        if self.single_touchdown_dist is not None and self.single_touchdown_dist > 0.1:
             self.land_single_button.setEnabled(True)
         else:
             self.land_single_button.setEnabled(False)
 
-        if self.integrated_touchdown_dist > 0.1:
+        if self.integrated_touchdown_dist is not None and self.integrated_touchdown_dist > 0.1:
             self.land_integrated_button.setEnabled(True)
         else:
             self.land_integrated_button.setEnabled(False)
@@ -164,7 +164,7 @@ class Window(QWidget):
     def land_request(self, request_type='land_single'):
         logger.info("Attempting to make Landing Server request of %s", request_type)
         request_string = bytes(request_type, "ascii")
-         _ = self.landing_client.call_method("InitiateLanding", request_string)
+        _ = self.landing_client.call_method("InitiateLanding", request_string)
 
     def show_mesh(self):
         if self.o3d_mesh is not None and len(self.o3d_mesh.triangles) > 0 :

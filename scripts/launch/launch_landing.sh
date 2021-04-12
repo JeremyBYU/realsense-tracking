@@ -3,6 +3,6 @@
 # https://github.com/continental/ecal/issues/238
 cd /opt/workspace
 export OMP_NUM_THREADS=1
-echo "Delaying startup for 7 seconds"
-sleep 7
+echo "Delaying startup for 1 seconds"
+sleep 1
 python -m landing

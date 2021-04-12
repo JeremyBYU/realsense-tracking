@@ -71,6 +71,10 @@ static Eigen::Matrix4d post_multiply = (Eigen::Matrix4d() <<
 									  0, 0, 0, 1)
 										 .finished();
 
+// these are only for periodic status updates
+static int FRAME_COUNTER = 0;
+static int FRAME_RATE = 6;
+
 // Keep track of previous pose changes.
 
 ///////////////////////
@@ -427,6 +431,7 @@ public:
 	void OnRGBDMessage(const char *topic_name_, const rspub_pb::ImageMessage &im_msg, const long long time_, const long long clock_)
 	{
 		// std::cout << "OnRGBDMessage" << std::endl;
+		FRAME_COUNTER += 1;
 		double now = std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
 		VLOG(2) << std::setprecision(0) << std::fixed << "Received RGBDMessage; now: " << now << "; send_ts: " << time_ / 1000 << "; hardware_ts: " << im_msg.hardware_ts() << std::endl;
 
@@ -448,6 +453,12 @@ public:
 		{
 			auto &scene = scene_map[scene_name];
 			one_scene_active = one_scene_active || scene.state == State::START;
+		}
+
+
+		if (FRAME_COUNTER % FRAME_RATE == 0)
+		{
+			std::cout << "Frame Count: " << FRAME_COUNTER << "; Active Scene: " << one_scene_active << std::endl;
 		}
 
 		if (!poseChanged || !one_scene_active)
