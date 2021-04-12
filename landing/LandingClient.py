@@ -197,7 +197,7 @@ class Window(QWidget):
         # Create a QGridLayout instance
         layout = QGridLayout()
         layout.setColumnMinimumWidth(0, 100)
-        layout.setColumnMinimumWidth(1, 400)
+        layout.setColumnMinimumWidth(1, 450)
         layout.setRowMinimumHeight(0, 100)
         layout.setRowMinimumHeight(1, 100)
         layout.setColumnStretch(1, 100)
