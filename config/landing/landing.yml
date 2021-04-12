@@ -1,7 +1,8 @@
 arch: "x86_64"
-beaglebone:
-    serial: "/dev/ttyACM0"
+serial:
+    port: "/dev/ttyS4"
     baudrate: 192000
+    timeout: 1 # seconds
 depth_scale: 0.00025
 # Mesh creation for ORGANIZED point clouds
 mesh:

@@ -10,6 +10,7 @@ from landing.helper.helper_logging import setup_logger
 logger = setup_logger()
 import open3d as o3d
 from scipy.spatial.transform import Rotation as R
+import serial
 
 import ecal.core.core as ecal_core
 import ecal.core.service as ecal_service
@@ -31,6 +32,7 @@ from landing.helper.helper_utility import create_projection_matrix, create_trans
 from landing.helper.o3d_util import create_o3d_pc, create_linemesh_from_shapely, get_segments
 from landing.helper.helper_meshes import create_o3d_mesh_from_tri_mesh, create_o3d_mesh_from_data, create_tri_mesh_from_data
 from landing.helper.helper_vis import plot_polygons
+from landing.serial.common import serialize, MessagePoseUpdate, MessageLandingCommand, get_us_from_epoch
 
 
 BLUE = (255, 0, 0)
@@ -62,6 +64,12 @@ class LandingService(object):
         self.single_scan_touchdowns = self.manager.list()  # Lock is implicit when accessing between processes
         # These will contain the results of all integrated touchdown points
 
+        # Will set up serial communications
+        cfg = self.config['serial']
+        self.serial = serial.Serial(cfg['port'], cfg['baudrate'], timeout=cfg['timeout'])
+        self.serial_lock = Lock()
+        self.message_pose_update = MessagePoseUpdate()
+        self.message_landing_command = MessageLandingCommand()
         # Will set up all frames and fixed transformations
         self.setup_frames()
         # Wil set up ECAL communication
@@ -97,10 +105,26 @@ class LandingService(object):
             self.pose_translation_ned = H_body_w_ned[:3, 3].flatten().tolist()
             self.pose_rotation_ned = ned_rot_quat
 
-            # TODO - Write data to Matt??
+            # Update raw ctype struct for message to be sent over serial
+            self.message_pose_update.pose_update.time_us = get_us_from_epoch()
+            self.message_pose_update.pose_update.x = self.pose_translation_ned[0]
+            self.message_pose_update.pose_update.y = self.pose_translation_ned[1]
+            self.message_pose_update.pose_update.z = self.pose_translation_ned[2]
+            self.message_pose_update.pose_update.roll = ned_rot[0]
+            self.message_pose_update.pose_update.pitch = ned_rot[1]
+            self.message_pose_update.pose_update.yaw = ned_rot[2]
+
+            self.send_serial_msg(self.message_pose_update)
+
         except Exception as e:
             logger.exception("Error!")
         pass
+
+    def send_serial_msg(self, msg):
+        msg_serialized = serialize(msg).contents.raw # This makes no copy, preferred
+        self.serial_lock.acquire()
+        self.serial.write(msg_serialized)
+        self.serial_lock.release()
 
     def callback_depth(self, topic_name, image: ImageMessage, time_):
         logger.info(f"Callback Image START: {time.perf_counter() * 1000:.1f}")

@@ -8,3 +8,4 @@ multiprocessing-logging
 matplotlib
 toml
 pyaml
+pyserial
