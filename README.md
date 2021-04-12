@@ -172,6 +172,15 @@ A couple of caveats when running binaries in your envrionment: If you are using 
 Just tested this on ARM and it actually worked! The only thing that was missing was `libecaltime-localtime.so`.
 
 
+### Save Docker Images (no DokcerHub needed)
+
+You can save a docker image to a file as so:
+docker save -o <path for generated tar file> <image name>
+docker save -o docker_images/roboenv.tar jeremybyu/realsense:latest
+
+You can load a docker image as so:
+docker load -i roboenv.tar
+
 ### RPI SSH
 
 #### Copy Saved Mesh File
