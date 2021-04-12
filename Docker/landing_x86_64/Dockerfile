@@ -42,7 +42,7 @@ RUN git clone --recursive https://github.com/JeremyBYU/OrganizedPointFilters.git
     cd lib/python_package && pip install . && \
     rm -rf /opt/opf
 
-RUN pip install multiprocessing-logging
+RUN pip install multiprocessing-logging pyserial
 # Polylabel Fast
 RUN git clone --recursive https://github.com/JeremyBYU/polylabelfast.git /opt/polylabelfast && \
     cd /opt/polylabelfast && pip install . && \

@@ -46,3 +46,10 @@ RUN git clone -b 'rpi4' --single-branch --recursive https://github.com/JeremyBYU
     cmake --build . --target python-package --config Release -j${N_CPUS} && \
     cd lib/python_package && pip install . && \
     rm -rf /opt/opf
+
+RUN pip install multiprocessing-logging pyserial
+
+# Polylabel Fast
+RUN git clone --recursive https://github.com/JeremyBYU/polylabelfast.git /opt/polylabelfast && \
+    cd /opt/polylabelfast && pip install . && \
+    rm -rf /opt/polylabelfast
