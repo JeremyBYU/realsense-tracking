@@ -1,5 +1,6 @@
 Docker/**/cmake_bin/archive
 Docker/debug
+lib
 bin
 build
 cmake-build
@@ -12,7 +13,6 @@ dk-aarch64-build
 # logs/*
 # !logs/.gitignore
 
-lib
 .vscode/.ropeproject
 *.pyc
 *.ply

@@ -12,7 +12,7 @@ DST_COMP="jeremy@192.168.0.186"
 DST_FOLDER="/home/jeremy/Documents/UMICH/Research/realsense-tracking-copy"
 DST="$DST_COMP:$DST_FOLDER"
 echo "Attempting to sync $SRC with $DST"
-rsync --filter='dir-merge,-n /.gitignore' $SRC $DST
+rsync -avz --include='**.gitignore' --filter='dir-merge,-n /.gitignore' $SRC $DST
 # rsync -avz --filter=':- .gitignore' $SRC $DST
 
 
