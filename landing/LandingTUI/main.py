@@ -6,7 +6,7 @@ from pathlib import Path
 
 THIS_FILE = Path(__file__)
 THIS_DIR = THIS_FILE.parent
-CONFIG_DIR = THIS_DIR.parent / "config" / "landing"
+CONFIG_DIR = THIS_DIR.parent.parent / "config" / "landing"
 LANDING_CONFIG_FILE = CONFIG_DIR / "landing.yml"
 
 
@@ -17,12 +17,14 @@ def start(config_file):
         config = yaml.safe_load(file)
 
     # protobuf files are generated dynamically in an architecture specific build directory
-    build_dir = THIS_DIR.parent / f"dk-{config['arch']}-build"
+    build_dir = THIS_DIR.parent.parent / f"dk-{config['arch']}-build"
     sys.path.insert(1, str(build_dir))
 
-    from landing.LandingService import LandingService
-    ls = LandingService(config)
-    ls.run()
+    # from landing.LandingTUI.LandingServiceMinimal import LandingService
+    # ls = LandingService(config)
+
+    from landing.LandingTUI.LandingTUI import main
+    main(config)
 
 
 def parse_args():

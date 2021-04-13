@@ -1,5 +1,6 @@
 arch: "x86_64"
 serial:
+    active: false
     port: "/dev/ttyS4"
     baudrate: 192000
     timeout: 1 # seconds
