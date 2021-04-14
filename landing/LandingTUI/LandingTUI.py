@@ -116,9 +116,14 @@ class App:
         if len(self.ls.single_scan_touchdowns) > 0:
             last_touchdown = self.ls.single_scan_touchdowns[-1]
             tp = last_touchdown['touchdown_point']
-            single_touchdown_point = tp['point']
-            single_touchdown_dist = tp['dist']
-            single_touchdown_point_body = apply_transform([single_touchdown_point], np.linalg.inv(last_touchdown['H_body_w_ned']))[0, :3]
+            if tp is not None:
+                single_touchdown_point = tp['point']
+                single_touchdown_dist = tp['dist']
+                single_touchdown_point_body = apply_transform([single_touchdown_point], np.linalg.inv(last_touchdown['H_body_w_ned']))[0, :3]
+            else:
+                single_touchdown_point = None
+                single_touchdown_dist = None
+                single_touchdown_point_body = None
         else:
             single_touchdown_point = None
             single_touchdown_dist = None
