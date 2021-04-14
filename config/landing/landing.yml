@@ -102,6 +102,19 @@ frames:
         [1, 0, 0],
         [0, 1, 0]
       ]
+
+publish:
+    landing_message:
+        active: true
+        rate: 1
+    single_scan: # rgbd_landing_message and touchdown message
+        active: true
+        rate: 6
+    mesh_and_touchdown_message: # rgbd_landing_message and touchdown message
+        active: true
+    
+    
+    
     
 # If the t265 and the l515 are rigidly attached to a backplate then:
 #   1. The sensor mount_rotations will be identical!

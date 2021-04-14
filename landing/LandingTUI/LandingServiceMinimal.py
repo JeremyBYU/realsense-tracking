@@ -1,3 +1,4 @@
+import logging
 import sys
 import time
 from multiprocessing import Process, Lock, Queue, Manager
@@ -130,7 +131,7 @@ class LandingService(object):
             self.serial_lock.release()
 
     def callback_depth(self, topic_name, image: ImageMessage, time_):
-        logger.info(f"Callback Image START: {time.perf_counter() * 1000:.1f}")
+        logger.debug(f"Callback Image START: {time.perf_counter() * 1000:.1f}")
         try:
             self.frame_count += 1
             if self.active_single_scan:
@@ -308,8 +309,6 @@ class LandingService(object):
                 # TODO send landing command
                 self.initiate_single_scan_landing()
             else:
-                rtn_value = 1
-                rtn_msg = "Single scanning must be activated and have succeeded recently"
                 logger.warn("Single scanning must be activated and have succeeded recently")
         elif request == "land_integrated":
             if self.integrated_touchdown_point is not None:
@@ -317,13 +316,17 @@ class LandingService(object):
                 # TODO send landing command in NED frame
                 self.initiate_integrated_landing()
             else:
-                rtn_value = 1
-                rtn_msg = "No touchdown point has been found"
                 logger.warn("No touchdown point has been found")
         else:
-            rtn_value = 1
-            rtn_msg = "Do not undersand this request"
             logger.warn("Do not undersand this request: %s", request)
+
+
+    def send_mesh(self):
+        logger.info("Sending Mesh and Touchdown if available")
+        mesh_and_touchdown = self.create_mesh_and_touchdown()
+        if mesh_and_touchdown is not None:
+            self.pub_mesh.send(mesh_and_touchdown)
+
 
     # def callback_send_mesh(self, method_name, req_type, resp_type, this_request):
     #     this_request = this_request.decode('utf-8')
@@ -338,6 +341,21 @@ class LandingService(object):
     #         return 0, msg
     #     else:
     #         return 1, empty.SerializeToString()
+
+    def create_mesh_and_touchdown(self):
+        empty = MeshAndTouchdownMessage()
+        if self.extracted_mesh_message:
+            empty.mesh.CopyFrom(self.extracted_mesh_message.mesh)
+            if self.integrated_touchdown_result:
+                tm = create_touchdown_message(self.integrated_touchdown_result, command_frame='ned', integrated=True)
+                empty.touchdown.CopyFrom(tm)
+            else:
+                logger.warn("Not Touchdown has been calculated for the extracted mesh")
+        else:
+            logger.warn("No Mesh Extracted!")
+            empty = None
+        return empty
+
 
     def setup_frames(self):
 
@@ -409,10 +427,10 @@ class LandingService(object):
         self.sub_depth.set_callback(self.callback_depth)
 
         # create publisher for depth information and connect callback
-        # self.pub_image = ProtoPublisher("RGBDLandingMessage", ImageMessage)
-        # self.pub_landing = ProtoPublisher("LandingMessage", LandingMessage)
-        # self.pub_mesh = ProtoPublisher("MeshMessage", Mesh)
-        # self.pub_touchdown =ProtoPublisher("TouchdownMessage", TouchdownMessage)
+        self.pub_image = ProtoPublisher("RGBDLandingMessage", ImageMessage)
+        self.pub_landing = ProtoPublisher("LandingMessage", LandingMessage)
+        self.pub_mesh = ProtoPublisher("MeshAndTouchdownMessage", MeshAndTouchdownMessage)
+        self.pub_touchdown = ProtoPublisher("TouchdownMessage", TouchdownMessage)
 
         # Create a client for a service for integration
         self.integration_client = Client("rspub_pb.IntegrateService")
@@ -446,28 +464,43 @@ class LandingService(object):
         # finalize eCAL API
         ecal_core.finalize()
 
-    # def create_landing_message(self):
-    #     lm = LandingMessage()
-    #     lm.frame_count = self.frame_count
-    #     lm.active_single_scan = self.active_single_scan
-    #     lm.active_integration = self.active_integration
-    #     if self.pose_rotation_ned:
-    #         lm.pose_translation_ned.CopyFrom(create_proto_vec(self.pose_translation_ned))
-    #         lm.pose_rotation_ned.CopyFrom(create_proto_vec(self.pose_rotation_ned))
-    #     if len(self.single_scan_touchdowns) > 0:
-    #         touchdown = self.single_scan_touchdowns[-1]
-    #         if touchdown['touchdown_point'] is not None:
-    #             lm.single_touchdown_point.CopyFrom(create_proto_vec(touchdown['touchdown_point']['point'].tolist()))
-    #             lm.single_touchdown_dist = touchdown['touchdown_point']['dist']
-    #     lm.completed_integration = self.completed_integration
-    #     if self.extracted_mesh_message is not None:
-    #         lm.extracted_mesh_vertices = self.extracted_mesh_message.mesh.n_vertices
+    def pub_data(self):
+        # Publish Image Data
+        if not self.pub_image_queue.empty():
+            try:
+                image, touchdown_message = self.pub_image_queue.get_nowait()
+                self.pub_image.send(image)
+                self.pub_touchdown.send(touchdown_message)
+            except queue.Empty:
+                pass
+            except:
+                logger.exception("Error sending...")
+        if self.config['publish']['landing_message']['active']:
+            lm = self.create_landing_message()
+            self.pub_landing.send(lm)
 
-    #     if self.integrated_touchdown_point is not None:
-    #         lm.integrated_touchdown_point.CopyFrom(create_proto_vec(self.integrated_touchdown_point))
-    #         lm.integrated_touchdown_dist = self.integrated_touchdown_dist
+    def create_landing_message(self):
+        lm = LandingMessage()
+        lm.frame_count = self.frame_count
+        lm.active_single_scan = self.active_single_scan
+        lm.active_integration = self.active_integration
+        if self.pose_rotation_ned:
+            lm.pose_translation_ned.CopyFrom(create_proto_vec(self.pose_translation_ned))
+            lm.pose_rotation_ned.CopyFrom(create_proto_vec(self.pose_rotation_ned))
+        if len(self.single_scan_touchdowns) > 0:
+            touchdown = self.single_scan_touchdowns[-1]
+            if touchdown['touchdown_point'] is not None:
+                lm.single_touchdown_point.CopyFrom(create_proto_vec(touchdown['touchdown_point']['point'].tolist()))
+                lm.single_touchdown_dist = touchdown['touchdown_point']['dist']
+        lm.completed_integration = self.completed_integration
+        if self.extracted_mesh_message is not None:
+            lm.extracted_mesh_vertices = self.extracted_mesh_message.mesh.n_vertices
 
-    #     return lm
+        if self.integrated_touchdown_point is not None:
+            lm.integrated_touchdown_point.CopyFrom(create_proto_vec(self.integrated_touchdown_point))
+            lm.integrated_touchdown_dist = self.integrated_touchdown_dist
+
+        return lm
 
 
 def process_image(landing_service: LandingService, pull_queue: Queue, push_queue: Queue, single_scan_touchdowns):
@@ -479,11 +512,12 @@ def process_image(landing_service: LandingService, pull_queue: Queue, push_queue
     ga = GaussianAccumulatorS2Beta(level=config['fastga']['level'])
     ico = IcoCharts(level=config['fastga']['level'])
 
+    counter = 0
 
     while True:
         try:
             image = pull_queue.get()
-            logger.info(f"Process Image START: {time.perf_counter() * 1000:.1f}")
+            logger.debug(f"Process Image START: {time.perf_counter() * 1000:.1f}")
             # logger.info("Frame Number: %s", image.frame_number)
             t1 = time.perf_counter()
             # Get numpy array from depth image
@@ -553,10 +587,13 @@ def process_image(landing_service: LandingService, pull_queue: Queue, push_queue
                                     avg_peaks=avg_peaks, touchdown_point=touchdown_point)
             single_scan_touchdowns.append(touchdown_results)
 
-            # image.image_data = np.ndarray.tobytes(image_color_np)
-            # tm = create_touchdown_message(touchdown_results, command_frame=config['single_scan']['command_frame'], integrated=False)
-            # push_queue.put((image, tm))
+            if config['publish']['single_scan']['active'] and counter % config['publish']['single_scan']['rate'] == 0:
+                image.image_data = np.ndarray.tobytes(image_color_np)
+                tm = create_touchdown_message(touchdown_results, command_frame=config['single_scan']['command_frame'], integrated=False)
+                push_queue.put((image, tm))
 
+
+            counter += 1
             # logger.info(f"Process Image END: {time.perf_counter() * 1000:.1f}")
         except:
             logger.exception("Error in polylidar process")
@@ -564,7 +601,7 @@ def process_image(landing_service: LandingService, pull_queue: Queue, push_queue
         # d2 = (t3 - t2) * 1000
         # d3 = (t4 - t3) * 1000
         # d4 = (t5 - t4) * 1000
-        # logger.info("D1: %.2f, D2: %.2f, D3: %.2f,  D4: %.2f, timings: %s", d1, d2, d3, d4, alg_timings)
+        # logger.debug("D1: %.2f, D2: %.2f, D3: %.2f,  D4: %.2f, timings: %s", d1, d2, d3, d4, alg_timings)
         # print(f"Process thread: {len(single_scan_touchdowns)}")
 
 

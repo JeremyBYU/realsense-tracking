@@ -54,9 +54,11 @@ class App:
             "Stop", 1, 2, column_span=1, command=partial(self.request_integrated, request='integrated_stop'))
 
         self.extract_mesh_btn = self.root.add_button(
-            "Extract mesh", 2, 1, column_span=1, command=partial(self.request_integrated, request='integrated_extract'))
+            "Extract mesh", 2, 0, column_span=1, command=partial(self.request_integrated, request='integrated_extract'))
         self.find_td_btn = self.root.add_button(
-            "Find TP from Integrated Mesh", 2, 2, column_span=1, command=partial(self.request_integrated, request='integrated_touchdown_point'))
+            "Find TP from Integrated Mesh", 2, 1, column_span=1, command=partial(self.request_integrated, request='integrated_touchdown_point'))
+        self.send_mesh_td_btn = self.root.add_button(
+            "Save Mesh", 2, 2, column_span=1, command=self.send_mesh)
 
         self.root.add_label("", 3, 0, column_span=3)
         self.landing_label = self.root.add_label("Landing", 4, 0, column_span=1)
@@ -79,18 +81,17 @@ class App:
         self.ls = LandingService(config)
         # setups
         self.root.set_on_draw_update_func(self.update_gui)
-        logger.info("Test")
 
     def toggle_single(self, on=True):
-        logger.info("Toggling Single %s", on)
         self.ls.activate_single_scan_touchdown(on)
 
     def request_integrated(self, request='integrated_start'):
-        logger.info("Requesting Integration: %s", request)
         self.ls.integration_service_forward(request)
 
+    def send_mesh(self):
+        self.ls.send_mesh()
+
     def request_land(self, request='integrated_start'):
-        logger.info("Requesting Landing: %s", request)
         self.ls.initiate_landing(request)
 
     def update_gui(self):
@@ -98,7 +99,8 @@ class App:
         self.update_command_status()
         self.update_live_status()
         self.update_misc_status()
-        # logger.info(f"Yo {self.counter}")
+
+        self.ls.pub_data()
 
     def update_command_status(self):
         label_str = f"""
@@ -140,14 +142,13 @@ class App:
         self.misc_status.set_text(label_str)
 
 
+
 def main(config):
     root = py_cui.PyCUI(10, 6)
     root.set_title("Landing TUI")
-    root.set_refresh_timeout(0.5)
+    root.set_refresh_timeout(0.1)
     s = App(root, config)
     root.start()
-
-    # from landing.LandingTUI.LandingServiceMinimal import LandingService
 
 
 if __name__ == '__main__':

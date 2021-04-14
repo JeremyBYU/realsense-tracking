@@ -16,11 +16,8 @@ Date: $HOST{TIME %F %R}
     <preBufferLengthSecs>0.000000</preBufferLengthSecs>
     <useBuiltInRecorder>true</useBuiltInRecorder>
     <topicList type="whitelist">
-        <topic>ColorMessage</topic>
-        <topic>DepthMessage</topic>
+        <topic>MeshAndTouchdownMessage</topic>      
         <topic>LandingMessage</topic>
-        <topic>MeshMessage</topic>
-        <topic>PointCloudMessage</topic>
         <topic>PoseMessage</topic>
         <topic>RGBDLandingMessage</topic>
         <topic>RGBDMessage</topic>

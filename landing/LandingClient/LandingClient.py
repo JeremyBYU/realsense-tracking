@@ -23,9 +23,9 @@ from ecal.core.subscriber import ProtoSubscriber
 THIS_FILE = Path(__file__)
 THIS_DIR = THIS_FILE.parent
 
-build_dir = THIS_DIR.parent / f"dk-x86_64-build"
+build_dir = THIS_DIR.parent.parent / f"dk-x86_64-build"
 sys.path.insert(1, str(build_dir))
-build_dir = THIS_DIR.parent / f"cmake-build"
+build_dir = THIS_DIR.parent.parent / f"cmake-build"
 sys.path.insert(1, str(build_dir))
 from PoseMessage_pb2 import PoseMessage
 from ImageMessage_pb2 import ImageMessage
@@ -375,18 +375,16 @@ class Window(QWidget):
         pass
         # print(pose.translation)
 
-    # def callback_mesh_message(self, topic_name, mesh: Mesh, time_):
-    #     logger.info("New Mesh Message, vertices %d", mesh.n_vertices)
-    #     try:
-    #         raw_data = get_mesh_data_from_message(mesh)
-    #         self.o3d_mesh = create_o3d_mesh_from_data(*raw_data)
-
-    #         # o3d_mesh = create_o3d_mesh_from_data(*raw_data)
-    #         # logger.info("Triangle Size: %d", len(o3d_mesh.triangles))
-    #         # if len(o3d_mesh.triangles) > 0:
-    #         #     o3d.visualization.draw_geometries([o3d_mesh])
-    #     except Exception:
-    #         logger.exception("Error with mesh message")
+    def callback_mesh_message(self, topic_name, mesh_td: MeshAndTouchdownMessage, time_):
+        logger.info("New Mesh Message, vertices %d", mesh_td.mesh.n_vertices)
+        try:
+            raw_data = get_mesh_data_from_message(mesh_td.mesh)
+            self.o3d_mesh = create_o3d_mesh_from_data(*raw_data)
+            if mesh_td.HasField('touchdown'):
+                logger.info("Has Touchdown in message, extracting it as well...")
+                self.integrated_polygon = convert_polygon_message_to_shapely(mesh_td.touchdown.landing_site)
+        except Exception:
+            logger.exception("Error with mesh message")
 
     def callback_landing_image(self, topic_name, image: ImageMessage, time_):
         logger.debug("New Landing Image, active single scan: %s", self.active_single_scan)
@@ -490,8 +488,8 @@ class Window(QWidget):
 
         # NOT reliable with UDP connection, moved to service
         # create subscriber for Mesh Message and connect callback
-        # self.sub_mesh_message = ProtoSubscriber("MeshMessage", Mesh)
-        # self.sub_mesh_message.set_callback(self.callback_mesh_message)
+        self.sub_mesh_message = ProtoSubscriber("MeshAndTouchdownMessage", MeshAndTouchdownMessage)
+        self.sub_mesh_message.set_callback(self.callback_mesh_message)
 
         # NOT reliable with UDP connection, moved to service
         # # create subscriber for Touchdown Message and connect callback
