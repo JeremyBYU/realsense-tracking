@@ -47,15 +47,18 @@ class LandingService(object):
         self.pose_translation_ned = None
         self.pose_rotation_ned = None
         self.pose_rotation_ned_euler = None
+        self.H_body_w_ned = None
 
+        # self.command_frame = config['commands']['frame']
         # Single Scan Variables
         self.active_single_scan = False
+
         # Integration Variables
         self.active_integration = False
         self.completed_integration = False
         self.extracted_mesh_message = None
-        self.integrated_touchdown_point = None
-        self.integrated_touchdown_dist = None
+        self.integrated_touchdown_point_ned = None
+        self.integrated_touchdown_dist_ned = None
         self.integrated_touchdown_result = None
         self.integrated_tri_mesh = None
 
@@ -68,7 +71,8 @@ class LandingService(object):
         # Will set up serial communications
         self.serial_cfg = self.config['serial']
         if self.serial_cfg['active']:
-            self.serial = serial.Serial(self.serial_cfg['port'], self.serial_cfg['baudrate'], timeout=self.serial_cfg['timeout'])
+            self.serial = serial.Serial(self.serial_cfg['port'],
+                                        self.serial_cfg['baudrate'], timeout=self.serial_cfg['timeout'])
             self.serial_lock = Lock()
         self.message_pose_update = MessagePoseUpdate()
         self.message_landing_command = MessageLandingCommand()
@@ -96,6 +100,7 @@ class LandingService(object):
             # convert t265 axis world frame to ned world frame
             # Robot Modelling and Control, Spong, Similarity Transform 2.3.1, Page 41
             H_body_w_ned = self.t265_world_to_ned_world @ H_body_w_t265 @ np.linalg.inv(self.t265_world_to_ned_world)
+            self.H_body_w_ned = H_body_w_ned
             ned_rot = R.from_matrix(H_body_w_ned[:3, :3]).as_euler('xyz', degrees=True)
             ned_rot_quat = R.from_matrix(H_body_w_ned[:3, :3]).as_quat().flatten().tolist()
             logger.debug(
@@ -125,7 +130,7 @@ class LandingService(object):
 
     def send_serial_msg(self, msg):
         if self.serial_cfg['active']:
-            msg_serialized = serialize(msg).contents.raw # This makes no copy, preferred
+            msg_serialized = serialize(msg).contents.raw  # This makes no copy, preferred
             self.serial_lock.acquire()
             self.serial.write(msg_serialized)
             self.serial_lock.release()
@@ -160,8 +165,8 @@ class LandingService(object):
         self.send_serial_msg(self.message_landing_command)
 
     def initiate_integrated_landing(self):
-        point = self.integrated_touchdown_point
-        dist = self.integrated_touchdown_dist
+        point = self.integrated_touchdown_point_ned
+        dist = self.integrated_touchdown_dist_ned
         logger.info("Initiating integrated landing at %s with %.2f radial clearance", point, dist)
         self.message_landing_command.landing_command.time_us = get_us_from_epoch()
         self.message_landing_command.landing_command.x = point[0]
@@ -233,7 +238,6 @@ class LandingService(object):
             rtn_value = 1
             rtn_msg = f"Do not undersand this request: {this_request}"
 
-
     def find_touchdown_from_mesh(self, tri_mesh):
         success = False
         # Create Polylidar Objects
@@ -247,8 +251,8 @@ class LandingService(object):
 
         if chosen_plane is not None:
             touchdown_point = get_3D_touchdown_point(chosen_plane, config['polylabel']['precision'])
-            self.integrated_touchdown_point = touchdown_point['point'].tolist()
-            self.integrated_touchdown_dist = touchdown_point['dist']
+            self.integrated_touchdown_point_ned = touchdown_point['point'].tolist()
+            self.integrated_touchdown_dist_ned = touchdown_point['dist']
             success = True
 
             # VISUALIZATION
@@ -268,7 +272,7 @@ class LandingService(object):
         # tm = create_touchdown_message(touchdown_result, command_frame='ned', integrated=True)
         # # TODO lock this publisher resource?
         # self.pub_touchdown.send(tm)
-    
+
         return success
 
     def integration_client_resp_callback(self, service_info, response):
@@ -311,7 +315,7 @@ class LandingService(object):
             else:
                 logger.warn("Single scanning must be activated and have succeeded recently")
         elif request == "land_integrated":
-            if self.integrated_touchdown_point is not None:
+            if self.integrated_touchdown_point_ned is not None:
                 logger.info("Sending touchdown request for integrated mesh")
                 # TODO send landing command in NED frame
                 self.initiate_integrated_landing()
@@ -320,13 +324,11 @@ class LandingService(object):
         else:
             logger.warn("Do not undersand this request: %s", request)
 
-
     def send_mesh(self):
         logger.info("Sending Mesh and Touchdown if available")
         mesh_and_touchdown = self.create_mesh_and_touchdown()
         if mesh_and_touchdown is not None:
             self.pub_mesh.send(mesh_and_touchdown)
-
 
     # def callback_send_mesh(self, method_name, req_type, resp_type, this_request):
     #     this_request = this_request.decode('utf-8')
@@ -355,7 +357,6 @@ class LandingService(object):
             logger.warn("No Mesh Extracted!")
             empty = None
         return empty
-
 
     def setup_frames(self):
 
@@ -391,18 +392,18 @@ class LandingService(object):
         # transfrom from t265 to l515 in respect to l515 frame
         l515_to_t265 = np.linalg.inv(self.t265_axes) @ np.linalg.inv(self.t265_mount) @ self.l515_mount @ self.t265_axes
         l515_to_t265[:3, 3] = -l515_to_t265[:3, 3]
-                             # Sensor to NED  # Move sensor # start similarity transfrom
+        # Sensor to NED  # Move sensor # start similarity transfrom
         self.integrate_pre = self.l515_axes @ l515_to_t265 @ self.t265_world_to_sensor_world
         self.integrate_post = np.linalg.inv(self.t265_world_to_sensor_world)
 
         # Note, its like this: (At the very least you need three terms on the right)
-        ###############                         S I M I L A R I T Y    T R A N S F O R M
+        # S I M I L A R I T Y    T R A N S F O R M
         # H_L515_TO_NED @  H_L515_T265 @  H_t265_to_sensor @ H_t265_w_t265 @ inv(H_t265_to_sensor)
 
     def setup_ecal(self):
         ecal_args = []
-        ecal_args.append("--ecal-ini-file");
-        ecal_args.append("./config/ecal/ecal.ini");
+        ecal_args.append("--ecal-ini-file")
+        ecal_args.append("./config/ecal/ecal.ini")
         ecal_core.initialize(ecal_args, "Landing_Server")
         # set process state
         ecal_core.set_process_state(1, 1, "Healthy")
@@ -496,9 +497,9 @@ class LandingService(object):
         if self.extracted_mesh_message is not None:
             lm.extracted_mesh_vertices = self.extracted_mesh_message.mesh.n_vertices
 
-        if self.integrated_touchdown_point is not None:
-            lm.integrated_touchdown_point.CopyFrom(create_proto_vec(self.integrated_touchdown_point))
-            lm.integrated_touchdown_dist = self.integrated_touchdown_dist
+        if self.integrated_touchdown_point_ned is not None:
+            lm.integrated_touchdown_point.CopyFrom(create_proto_vec(self.integrated_touchdown_point_ned))
+            lm.integrated_touchdown_dist = self.integrated_touchdown_dist_ned
 
         return lm
 
@@ -521,7 +522,8 @@ def process_image(landing_service: LandingService, pull_queue: Queue, push_queue
             # logger.info("Frame Number: %s", image.frame_number)
             t1 = time.perf_counter()
             # Get numpy array from depth image
-            image_depth_np = np.frombuffer(image.image_data_second, dtype=np.uint16).reshape((image.height, image.width))
+            image_depth_np = np.frombuffer(image.image_data_second,
+                                           dtype=np.uint16).reshape((image.height, image.width))
             # Convert to float depth map
             image_depth_np = np.multiply(image_depth_np, landing_service.config['depth_scale'], dtype=np.float32)
             # Get intrinsics
@@ -530,7 +532,7 @@ def process_image(landing_service: LandingService, pull_queue: Queue, push_queue
             # H_t265_w_t265 represents the homogenous transformation to transform the starting t265 frame (gravity aligned, t=0, see README) to the current
             # t265 frame at current time.
             H_t265_w_t265 = create_transform([image.translation.x, image.translation.y, image.translation.z],
-                                            [image.rotation.x, image.rotation.y, image.rotation.z, image.rotation.w])
+                                             [image.rotation.x, image.rotation.y, image.rotation.z, image.rotation.w])
             t2 = time.perf_counter()
 
             # body_frame_transform_in_t265_frame represents the transform (in t265 frame) to move to the drone body position
@@ -564,10 +566,10 @@ def process_image(landing_service: LandingService, pull_queue: Queue, push_queue
             image_color_np = np.frombuffer(image.image_data, dtype=np.uint8).reshape((image.height, image.width, 3))
             if chosen_plane is not None:
                 plot_polygons(chosen_plane, create_projection_matrix(image.fx, image.fy, image.cx,
-                                                                    image.cy), np.linalg.inv(np.array(extrinsics)), image_color_np)
+                                                                     image.cy), np.linalg.inv(np.array(extrinsics)), image_color_np)
                 touchdown_point = get_3D_touchdown_point(chosen_plane, config['polylabel']['precision'])
                 plot_polygons((touchdown_point['circle_poly'], None), create_projection_matrix(image.fx, image.fy, image.cx, image.cy),
-                            np.linalg.inv(np.array(extrinsics)), image_color_np, shell_color=BLUE)
+                              np.linalg.inv(np.array(extrinsics)), image_color_np, shell_color=BLUE)
                 # VISUALIZATION
                 # line_meshes = create_linemesh_from_shapely(chosen_plane[0])
                 # tp = o3d.geometry.TriangleMesh.create_icosahedron(0.05).translate(touchdown_point['point'] )
@@ -584,14 +586,15 @@ def process_image(landing_service: LandingService, pull_queue: Queue, push_queue
 
             # Put modified image on queue to publish message
             touchdown_results = dict(polygon=chosen_plane, alg_timings=alg_timings,
-                                    avg_peaks=avg_peaks, touchdown_point=touchdown_point)
+                                     avg_peaks=avg_peaks, touchdown_point=touchdown_point,
+                                     frame=config['single_scan']['command_frame'], H_body_w_ned=H_body_w_ned)
             single_scan_touchdowns.append(touchdown_results)
 
             if config['publish']['single_scan']['active'] and counter % config['publish']['single_scan']['rate'] == 0:
                 image.image_data = np.ndarray.tobytes(image_color_np)
-                tm = create_touchdown_message(touchdown_results, command_frame=config['single_scan']['command_frame'], integrated=False)
+                tm = create_touchdown_message(
+                    touchdown_results, command_frame=config['single_scan']['command_frame'], integrated=False)
                 push_queue.put((image, tm))
-
 
             counter += 1
             # logger.info(f"Process Image END: {time.perf_counter() * 1000:.1f}")

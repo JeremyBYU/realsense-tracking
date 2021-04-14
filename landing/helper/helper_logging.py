@@ -77,3 +77,6 @@ def setup_logger(server=True, add_stream_handler=True):
 
     # multiprocessing_logging.install_mp_handler(logger)
     return logger
+
+def get_logger():
+    return logger

@@ -5,9 +5,17 @@ from Common_pb2 import Vec3, Vec4
 from TouchdownMessage_pb2 import TouchdownMessage, BODY, NED, SINGLE, INTEGRATED
 from shapely.geometry import Polygon
 
+from landing.helper.helper_logging import get_logger
+
 def create_projection_matrix(fx, fy, ppx, ppy):
     proj_mat = np.array([[fx, 0, ppx, 0], [0, fy, ppy, 0], [0, 0, 1, 0]])
     return proj_mat
+
+def apply_transform(points, pre_matrix, post_matrix=None):
+    points = np.array(points)
+    points_ = np.ones(shape=(4, points.shape[0]))
+    points_[:3, :] = points.transpose()
+    return (pre_matrix @ points_).transpose()
 
 
 def create_transform(translate, rotation):

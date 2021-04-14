@@ -7,6 +7,7 @@ import numpy as np
 from logging import Logger
 import py_cui
 from landing.helper.helper_logging import setup_logger, add_tui_handler
+from landing.helper.helper_utility import apply_transform
 
 logger = setup_logger(server=True, add_stream_handler=False)
 
@@ -68,8 +69,8 @@ class App:
             "Land on Integrated TP", 4, 2, column_span=1, row_span=2, command=partial(self.request_land, request='land_integrated'))
 
         self.command_status = self.root.add_text_block("Command Status", 0, 3, row_span=2, column_span=3)
-        self.live_status = self.root.add_text_block("Live Status", 2, 3, row_span=2, column_span=3)
-        self.misc_status = self.root.add_text_block("Misc Data", 4, 3, row_span=2, column_span=3)
+        self.live_status = self.root.add_text_block("Live Status", 2, 3, row_span=4, column_span=3)
+        # self.misc_status = self.root.add_text_block("Misc Data", 5, 3, row_span=1, column_span=3)
 
         # self.root.add_label("Integration Active", 2, 3, column_span=1, pady=100, )
         # self.integrated_status = self.root.add_label("N/A", 2, 4, column_span=2)
@@ -98,7 +99,6 @@ class App:
         self.counter += 1
         self.update_command_status()
         self.update_live_status()
-        self.update_misc_status()
 
         self.ls.pub_data()
 
@@ -118,28 +118,35 @@ class App:
             tp = last_touchdown['touchdown_point']
             single_touchdown_point = tp['point']
             single_touchdown_dist = tp['dist']
+            single_touchdown_point_body = apply_transform([single_touchdown_point], np.linalg.inv(last_touchdown['H_body_w_ned']))[0, :3]
         else:
             single_touchdown_point = None
             single_touchdown_dist = None
+            single_touchdown_point_body = None
 
-        label_str = f"""
-        Pose NED        Frame: ned ; XYZ: {update_value_label(self.ls.pose_translation_ned)}; RPY {update_value_label(self.ls.pose_rotation_ned_euler)}
-        Single TP       Frame: {self.ls.config['single_scan']['command_frame']} ; XYZ: {update_value_label(single_touchdown_point)}; Dist: {update_value_label(single_touchdown_dist)}
-        Integrated TP   Frame: ned ; XYZ: {update_value_label(self.ls.integrated_touchdown_point)}; Dist: {update_value_label(self.ls.integrated_touchdown_dist)}
-        """
-        label_str = cleandoc(label_str)
-        self.live_status.set_text(label_str)
-
-    def update_misc_status(self):
         if self.ls.extracted_mesh_message is not None:
             n_vertices = self.ls.extracted_mesh_message.mesh.n_vertices
         else:
             n_vertices = None
+        
+        if self.ls.integrated_touchdown_point_ned:
+            integrated_touchdown_point_body = apply_transform([self.ls.integrated_touchdown_point_ned], np.linalg.inv(self.ls.H_body_w_ned))[0, :3]
+            # np.array(self.ls.integrated_touchdown_point_ned) - np.array(self.ls.pose_translation_ned)
+        else:
+            integrated_touchdown_point_body = None
+
         label_str = f"""
-        Mesh Vertices:   {update_value_label(n_vertices)}
+        Pose NED        Frame: ned;  XYZ: {update_value_label(self.ls.pose_translation_ned)}; RPY: {update_value_label(self.ls.pose_rotation_ned_euler)}
+        Single TP       Frame: {self.ls.config['single_scan']['command_frame']}; XYZ: {update_value_label(single_touchdown_point)}; Dist: {update_value_label(single_touchdown_dist)}
+                        Frame: body; XYZ: {update_value_label(single_touchdown_point_body)}; Dist: {update_value_label(single_touchdown_dist)}
+        Integrated TP   Frame: ned;  XYZ: {update_value_label(self.ls.integrated_touchdown_point_ned)}; Dist: {update_value_label(self.ls.integrated_touchdown_dist_ned)}
+                        Frame: body; XYZ: {update_value_label(integrated_touchdown_point_body)}; Dist: {update_value_label(self.ls.integrated_touchdown_dist_ned)}
+
+        MISC:
+        Mesh Vertices   {update_value_label(n_vertices)}
         """
         label_str = cleandoc(label_str)
-        self.misc_status.set_text(label_str)
+        self.live_status.set_text(label_str)
 
 
 
