@@ -45,6 +45,7 @@ class LandingService(object):
         self.frame_count = 0
         self.pose_translation_ned = None
         self.pose_rotation_ned = None
+        self.pose_rotation_ned_euler = None
 
         # Single Scan Variables
         self.active_single_scan = False
@@ -104,6 +105,7 @@ class LandingService(object):
             # These means the drone position at time t=0 will be a few (10?) centimeters off in x-axis
             self.pose_translation_ned = H_body_w_ned[:3, 3].flatten().tolist()
             self.pose_rotation_ned = ned_rot_quat
+            self.pose_rotation_ned_euler = ned_rot
 
             # Update raw ctype struct for message to be sent over serial
             self.message_pose_update.pose_update.time_us = get_us_from_epoch()

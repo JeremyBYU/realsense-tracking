@@ -28,7 +28,8 @@ class TUIHandler(StreamHandler):
 
         if start_y < 0:
             self.y_start = self.y_start + lines_added
-            self.text_box._viewport_y_start = self.y_start
+            if not self.text_box._selected:
+                self.text_box._viewport_y_start = self.y_start
 
 def add_tui_handler(tui):
     global logger
