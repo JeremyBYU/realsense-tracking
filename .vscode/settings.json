@@ -80,5 +80,6 @@
         "intrin",
         "traj"
     ],
-    "cmake.configureOnOpen": true
+    "cmake.configureOnOpen": true,
+    "python.pythonPath": "/home/jeremy/miniconda3/envs/realsense/bin/python"
 }
