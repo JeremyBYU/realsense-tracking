@@ -129,11 +129,14 @@ class LandingService(object):
         pass
 
     def send_serial_msg(self, msg):
+        logger.info("Sending Serial Message %s", msg)
         if self.serial_cfg['active']:
             msg_serialized = serialize(msg).contents.raw  # This makes no copy, preferred
             self.serial_lock.acquire()
             self.serial.write(msg_serialized)
             self.serial_lock.release()
+        else:
+            logger.warn("Not sending message! Serial Messages are not activated!")
 
     def callback_depth(self, topic_name, image: ImageMessage, time_):
         logger.debug(f"Callback Image START: {time.perf_counter() * 1000:.1f}")

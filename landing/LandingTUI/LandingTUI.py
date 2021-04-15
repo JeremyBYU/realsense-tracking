@@ -8,6 +8,7 @@ from logging import Logger
 import py_cui
 from landing.helper.helper_logging import setup_logger, add_tui_handler
 from landing.helper.helper_utility import apply_transform
+from landing.serial.common import MessageLandingCommand, MessagePoseUpdate
 
 logger = setup_logger(server=True, add_stream_handler=False)
 
@@ -61,7 +62,10 @@ class App:
         self.send_mesh_td_btn = self.root.add_button(
             "Save Mesh", 2, 2, column_span=1, command=self.send_mesh)
 
-        self.root.add_label("", 3, 0, column_span=3)
+        # Test Serial Commands
+        self.root.add_button("Send Test Command", 3, 0, column_span=3, command=partial(self.root.show_text_box_popup, title="Enter Command, e.g. pose_update;10;0.1;0.2;0.3;1;2;3", command=self.send_serial_command_test))
+
+
         self.landing_label = self.root.add_label("Landing", 4, 0, column_span=1)
         self.land_single_btn = self.root.add_button(
             "Land On Single Scan TP", 4, 1, column_span=1, row_span=2, command=partial(self.request_land, request='land_single'))
@@ -111,8 +115,32 @@ class App:
         label_str = cleandoc(label_str)
         self.command_status.set_text(label_str)
 
+    def send_serial_command_test(self, command:str):
+        logger.info("%s", command)
+        commands = command.split(';')
+        if len(commands) != 8 and len(commands) != 5:
+            logger.error("Incorrect command! Expected 7 or 4 semicolons")
+            return
+        command_str = commands[0]
+        if command_str == "pu":
+            ts = int(commands[1])
+            floats = [float(float_str) for float_str in commands[2:]]
+            msg = MessagePoseUpdate(pose_update=(ts, *floats))
+            self.ls.send_serial_msg(msg)
+        elif command_str == "lc":
+            ts = int(commands[1])
+            floats = [float(float_str) for float_str in commands[2:]]
+            msg = MessageLandingCommand(landing_command=(ts, *floats))
+            self.ls.send_serial_msg(msg)
+        else:
+            logger.error("Incorrect command. Expceted 'pu' or 'lc'")
+
+
     def update_live_status(self):
 
+        single_touchdown_point = None
+        single_touchdown_dist = None
+        single_touchdown_point_body = None
         if len(self.ls.single_scan_touchdowns) > 0:
             last_touchdown = self.ls.single_scan_touchdowns[-1]
             tp = last_touchdown['touchdown_point']
@@ -120,14 +148,6 @@ class App:
                 single_touchdown_point = tp['point']
                 single_touchdown_dist = tp['dist']
                 single_touchdown_point_body = apply_transform([single_touchdown_point], np.linalg.inv(last_touchdown['H_body_w_ned']))[0, :3]
-            else:
-                single_touchdown_point = None
-                single_touchdown_dist = None
-                single_touchdown_point_body = None
-        else:
-            single_touchdown_point = None
-            single_touchdown_dist = None
-            single_touchdown_point_body = None
 
         if self.ls.extracted_mesh_message is not None:
             n_vertices = self.ls.extracted_mesh_message.mesh.n_vertices

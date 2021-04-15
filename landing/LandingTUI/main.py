@@ -19,6 +19,9 @@ def start(config_file):
     # protobuf files are generated dynamically in an architecture specific build directory
     build_dir = THIS_DIR.parent.parent / f"dk-{config['arch']}-build"
     sys.path.insert(1, str(build_dir))
+    build_dir = THIS_DIR.parent.parent / "cmake-build"
+    sys.path.insert(1, str(build_dir))
+    
 
     # from landing.LandingTUI.LandingServiceMinimal import LandingService
     # ls = LandingService(config)
