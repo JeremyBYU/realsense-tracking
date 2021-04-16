@@ -63,7 +63,7 @@ class App:
             "Save Mesh", 2, 2, column_span=1, command=self.send_mesh)
 
         # Test Serial Commands
-        self.root.add_button("Send Test Command", 3, 0, column_span=3, command=partial(self.root.show_text_box_popup, title="Enter Command, e.g. pose_update;10;0.1;0.2;0.3;1;2;3", command=self.send_serial_command_test))
+        self.root.add_button("Send Test Command", 3, 0, column_span=3, command=partial(self.root.show_text_box_popup, title="Enter Command, e.g. pu;10;0.1;0.2;0.3;1;2;3", command=self.send_serial_command_test))
 
 
         self.landing_label = self.root.add_label("Landing", 4, 0, column_span=1)
@@ -72,8 +72,8 @@ class App:
         self.land_integrated_btn = self.root.add_button(
             "Land on Integrated TP", 4, 2, column_span=1, row_span=2, command=partial(self.request_land, request='land_integrated'))
 
-        self.command_status = self.root.add_text_block("Command Status", 0, 3, row_span=2, column_span=3)
-        self.live_status = self.root.add_text_block("Live Status", 2, 3, row_span=4, column_span=3)
+        self.command_status = self.root.add_text_block("Server Status", 0, 3, row_span=2, column_span=3)
+        self.live_status = self.root.add_text_block("Live Data", 2, 3, row_span=4, column_span=3)
         # self.misc_status = self.root.add_text_block("Misc Data", 5, 3, row_span=1, column_span=3)
 
         # self.root.add_label("Integration Active", 2, 3, column_span=1, pady=100, )
@@ -168,7 +168,8 @@ class App:
                         Frame: body; XYZ: {update_value_label(integrated_touchdown_point_body)}; Dist: {update_value_label(self.ls.integrated_touchdown_dist_ned)}
 
         MISC:
-        Mesh Vertices   {update_value_label(n_vertices)}
+        Mesh Vertices:           {update_value_label(n_vertices)}
+        Polylidar Process Alive:  {self.ls.landing_process.is_alive()}
         """
         label_str = cleandoc(label_str)
         self.live_status.set_text(label_str)

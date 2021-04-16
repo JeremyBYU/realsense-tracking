@@ -122,14 +122,14 @@ class LandingService(object):
             self.message_pose_update.pose_update.pitch = ned_rot[1]
             self.message_pose_update.pose_update.yaw = ned_rot[2]
 
-            self.send_serial_msg(self.message_pose_update)
+            if self.serial_cfg['active']:
+                self.send_serial_msg(self.message_pose_update)
 
         except Exception as e:
             logger.exception("Error!")
         pass
 
     def send_serial_msg(self, msg):
-        logger.info("Sending Serial Message %s", msg)
         if self.serial_cfg['active']:
             msg_serialized = serialize(msg).contents.raw  # This makes no copy, preferred
             self.serial_lock.acquire()
@@ -521,7 +521,10 @@ def process_image(landing_service: LandingService, pull_queue: Queue, push_queue
     while True:
         try:
             image = pull_queue.get()
-            logger.debug(f"Process Image START: {time.perf_counter() * 1000:.1f}")
+            if counter % config['publish']['single_scan']['rate'] != 0:
+                counter += 1
+                continue
+            logger.info(f"Process Image START: {time.perf_counter() * 1000:.1f}")
             # logger.info("Frame Number: %s", image.frame_number)
             t1 = time.perf_counter()
             # Get numpy array from depth image
@@ -563,8 +566,10 @@ def process_image(landing_service: LandingService, pull_queue: Queue, push_queue
             new_shape = (int(image_depth_np.shape[0] / stride), int(image_depth_np.shape[1] / stride), 3)
             opc = np.asarray(points).reshape(new_shape)  # organized point cloud (will have NaNs!)
             t3 = time.perf_counter()
+            if np.count_nonzero(~np.isnan(opc)) < 300:
+                logger.warn("Depth data is all NaNs, cant tind landing site.")
+                continue
             chosen_plane, alg_timings, tri_mesh, avg_peaks, _ = extract_polygons_from_points(opc, pl, ga, ico, config)
-
             t4 = time.perf_counter()
             image_color_np = np.frombuffer(image.image_data, dtype=np.uint8).reshape((image.height, image.width, 3))
             if chosen_plane is not None:
@@ -592,12 +597,13 @@ def process_image(landing_service: LandingService, pull_queue: Queue, push_queue
                                      avg_peaks=avg_peaks, touchdown_point=touchdown_point,
                                      frame=config['single_scan']['command_frame'], H_body_w_ned=H_body_w_ned)
             single_scan_touchdowns.append(touchdown_results)
-
-            if config['publish']['single_scan']['active'] and counter % config['publish']['single_scan']['rate'] == 0:
+            if config['publish']['single_scan']['active']:
+                # logger.info("Publishing Data")
                 image.image_data = np.ndarray.tobytes(image_color_np)
                 tm = create_touchdown_message(
                     touchdown_results, command_frame=config['single_scan']['command_frame'], integrated=False)
                 push_queue.put((image, tm))
+                # logger.info("Pushing Data to queue")
 
             counter += 1
             # logger.info(f"Process Image END: {time.perf_counter() * 1000:.1f}")

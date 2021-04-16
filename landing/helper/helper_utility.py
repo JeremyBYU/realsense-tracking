@@ -89,7 +89,7 @@ def create_touchdown_message(touchdown_result, command_frame='body', integrated=
         #                          avg_peaks=avg_peaks, touchdown_point=touchdown_point)
     tm = TouchdownMessage()
     # short circuit
-    if touchdown_result['polygon'] is None:
+    if touchdown_result['polygon'] is None or touchdown_result['touchdown_point'] is None:
         return tm
 
     poly, meta = touchdown_result['polygon']
