@@ -6,6 +6,7 @@ import time
 import logging
 import csv
 import matplotlib.pyplot as plt
+from itertools import product
 
 
 import pandas as pd
@@ -15,6 +16,7 @@ import ecal.core.core as ecal_core
 import yaml
 from ecal.core.subscriber import ProtoSubscriber
 from scipy.spatial.transform import Rotation as R
+from scipy.signal import find_peaks
 
 
 THIS_FILE = Path(__file__)
@@ -65,6 +67,73 @@ def compare(config, compare_dir, gt_labels, fake=False, fname_t265='t265_pose.cs
     print(df_gt_pose)
 
     plot(df_t265_pose, df_gt_pose)
+    time_diff = find_time_matching_timestamps(df_t265_pose, df_gt_pose)
+    df_gt_pose.loc[:, ('hardware_ts')] = df_gt_pose['hardware_ts'] - time_diff
+    logging.info("Aligning the two data streams, time offset is: %d", time_diff)
+    plot(df_t265_pose, df_gt_pose)
+
+def find_time_matching_timestamps(df_t265, df_gt, field='pose_pitch_ned', skip=10,
+                                    find_peaks_kwargs=dict(height=5, threshold=None, distance=10, prominence=9.0, wlen=100),
+                                    gui=False):
+
+    inv_scale = dict(pose_yaw_ned=1, pose_pitch_ned=-1)
+    df_a = df_t265.iloc[::skip, :]
+    df_b = df_gt.iloc[::skip, :]
+
+    a = inv_scale[field] * df_a[field].to_numpy()
+    b = inv_scale[field] * df_b[field].to_numpy()
+    a_time = df_a['hardware_ts'].to_numpy()
+    b_time = df_b['hardware_ts'].to_numpy()
+
+    peaks_a, meta_a = find_peaks(a, **find_peaks_kwargs)
+    peaks_b, meta_b = find_peaks(b, **find_peaks_kwargs)
+
+    if gui:
+        fig, ax = plt.subplots(nrows=1, ncols=2, sharex=False, figsize=(10, 5) )
+        ax[0].plot(a)
+        ax[0].plot(peaks_a, a[peaks_a], "x")
+
+        ax[1].plot(b)
+        ax[1].plot(peaks_b, b[peaks_b], "x")
+
+        print(peaks_a, meta_a)
+        print(peaks_b, meta_b)
+
+        plt.show()
+    
+    time_diff = optimize_peak_linkage(a, peaks_a, meta_a, a_time, b, peaks_b, meta_b, b_time)
+    return time_diff
+
+def optimize_peak_linkage(a, peaks_a, meta_a, a_time,
+                        b, peaks_b, meta_b, b_time, peak_thresh=5):
+    combinations = list(product(peaks_a, peaks_b))
+
+    a_peaks= dict()
+    b_peaks = dict()
+    possible_links = []
+    # logging.info("All Combinations: %s", combinations)
+    for idx_a, idx_b in combinations:
+        val_a = a[idx_a]
+        val_b = b[idx_b]
+        diff = abs(val_b - val_a)
+        if diff < peak_thresh:
+            possible_links.append((idx_a, idx_b))
+            if idx_a in a_peaks:
+                a_peaks[idx_a].append(idx_b)
+            else:
+                a_peaks[idx_a] = [idx_b]
+            if idx_b in b_peaks:
+                b_peaks[idx_b].append(idx_a)
+            else:
+                b_peaks[idx_b] = [idx_a]
+
+    time_diff = np.array([(b_time[idx_b] - a_time[idx_a])   for (idx_a, idx_b) in possible_links ])
+    # print(possible_links, a_peaks, b_peaks)
+    # print(time_diff)
+    time_diff = np.median(time_diff)
+    return time_diff
+
+
 
 def plot(df_t265, df_gt, skip=10):
     df_a = df_t265.iloc[::skip, :]
