@@ -54,7 +54,8 @@ class EcalToCSV(object):
             H_body_w_ned = transform_pose(pose, self.frames['body_frame_transform_in_t265_frame'], self.frames['t265_world_to_ned_world'])
             ned_rot = R.from_matrix(H_body_w_ned[:3, :3]).as_euler('xyz', degrees=True)
             ned_pos = H_body_w_ned[:3, 3]
-            self.pose_data.append(dict(pose_tx_raw=pose_raw_t.x, pose_ty_raw=pose_raw_t.y, pose_tz_raw=pose_raw_t.z,
+            self.pose_data.append(dict(hardware_ts=int(pose.hardware_ts * 1000), tracker_confidence=pose.tracker_confidence,
+                                    pose_tx_raw=pose_raw_t.x, pose_ty_raw=pose_raw_t.y, pose_tz_raw=pose_raw_t.z,
                                     pose_rx_raw=pose_raw_r.x, pose_ry_raw=pose_raw_r.y, pose_rz_raw=pose_raw_r.z, pose_rw_raw=pose_raw_r.w,
                                     pose_tx_ned=ned_pos[0], pose_ty_ned=ned_pos[1], pose_tz_ned=ned_pos[2],
                                     pose_roll_ned=ned_rot[0], pose_pitch_ned=ned_rot[1], pose_yaw_ned=ned_rot[2]))
