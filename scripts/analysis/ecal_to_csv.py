@@ -1,11 +1,18 @@
 import argparse
 from pathlib import Path
+from datetime import datetime
 import sys
-import ecal
 import time
+import logging
+import csv
+
+
+import ecal
 import ecal.core.core as ecal_core
 import yaml
 from ecal.core.subscriber import ProtoSubscriber
+from scipy.spatial.transform import Rotation as R
+
 
 THIS_FILE = Path(__file__)
 THIS_DIR = THIS_FILE.parent
@@ -18,9 +25,10 @@ sys.path.insert(1, str(build_dir))
 
 from LandingMessage_pb2 import LandingMessage
 from PoseMessage_pb2 import PoseMessage
-
-
 from landing.helper.helper_utility import setup_frames, transform_pose
+
+
+logging.basicConfig(level=logging.INFO)
 
 
 class EcalToCSV(object):
@@ -28,20 +36,31 @@ class EcalToCSV(object):
         self.config = config
         self.save_dir = save_dir
         self.setup_ecal()
-
         self.frames = setup_frames(config)
-        print(self.frames)
 
-        self.raw_pose_data = {}
+        date = datetime.now().strftime("%Y_%m_%d-%I:%M:%S_%p")
+        self.save_file = Path(save_dir) / f"poses_{date}.csv"
+        self.pose_data = []
+        print(self.save_file)
 
     def callback_lm(self, topic_name, lm: LandingMessage, time_):
         print(lm, time_)
 
     def callback_pose(self, topic_name, pose: PoseMessage, time_):
-        pose_ned = transform_pose(pose, self.frames['body_frame_transform_in_t265_frame'], self.frames['t265_world_to_ned_world'])
+        logging.info("Got Pose Data: %s", len(self.pose_data))
+        try:
+            pose_raw_t = pose.translation
+            pose_raw_r = pose.rotation
+            H_body_w_ned = transform_pose(pose, self.frames['body_frame_transform_in_t265_frame'], self.frames['t265_world_to_ned_world'])
+            ned_rot = R.from_matrix(H_body_w_ned[:3, :3]).as_euler('xyz', degrees=True)
+            ned_pos = H_body_w_ned[:3, 3]
+            self.pose_data.append(dict(pose_tx_raw=pose_raw_t.x, pose_ty_raw=pose_raw_t.y, pose_tz_raw=pose_raw_t.z,
+                                    pose_rx_raw=pose_raw_r.x, pose_ry_raw=pose_raw_r.y, pose_rz_raw=pose_raw_r.z, pose_rw_raw=pose_raw_r.w,
+                                    pose_tx_ned=ned_pos[0], pose_ty_ned=ned_pos[1], pose_tz_ned=ned_pos[2],
+                                    pose_roll_ned=ned_rot[0], pose_pitch_ned=ned_rot[1], pose_yaw_ned=ned_rot[2]))
 
-        # print(pose, time_)
-        # print(pose_ned)
+        except:
+            logging.exception("Error")
 
     def setup_ecal(self):
 
@@ -58,7 +77,11 @@ class EcalToCSV(object):
 
 
     def save_data(self):
-        print("Will save data")
+        logging.info("Saving Info")
+        with open(self.save_file, 'w', encoding='utf8', newline='') as output_file:
+            fc = csv.DictWriter(output_file, fieldnames=self.pose_data[0].keys())
+            fc.writeheader()
+            fc.writerows(self.pose_data)
 
 
 def parse_args():
@@ -89,7 +112,7 @@ def main():
 
     try:
         while ecal_core.ok():
-            time.sleep(0.02)
+            time.sleep(0.1)
 
     except KeyboardInterrupt:
         print()
