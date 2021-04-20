@@ -17,6 +17,9 @@ import yaml
 from ecal.core.subscriber import ProtoSubscriber
 from scipy.spatial.transform import Rotation as R
 from scipy.signal import find_peaks
+import open3d as o3d
+import copy
+
 
 
 THIS_FILE = Path(__file__)
@@ -68,9 +71,12 @@ def compare(config, compare_dir, gt_labels, fake=False, fname_t265='t265_pose.cs
 
     plot(df_t265_pose, df_gt_pose)
     time_diff = find_time_matching_timestamps(df_t265_pose, df_gt_pose)
+
     df_gt_pose.loc[:, ('hardware_ts')] = df_gt_pose['hardware_ts'] - time_diff
     logging.info("Aligning the two data streams, time offset is: %d", time_diff)
     plot(df_t265_pose, df_gt_pose)
+
+    return df_t265_pose, df_gt_pose
 
 def find_time_matching_timestamps(df_t265, df_gt, field='pose_pitch_ned', skip=10,
                                     find_peaks_kwargs=dict(height=5, threshold=None, distance=10, prominence=9.0, wlen=100),
@@ -172,6 +178,7 @@ def fake_data(df, offset_seconds=10):
     records = [dict(hardware_ts=i, pose_tx_ned=0.0, pose_ty_ned=0.0, pose_tz_ned=0.0, pose_roll_ned=0.0, pose_pitch_ned=0.0, pose_yaw_ned=0.0)  for i in range(start_micro, min_micro, 5000)]
     df_new = pd.DataFrame.from_records(records)
     df = pd.concat([df_new, df])
+    df = df.reset_index()
     return df
 
 def parse_args():
@@ -196,12 +203,89 @@ def parse_args():
     return args
 
 
+def plot_3d(df_t265, df_gt):
+
+    o3d.utility.set_verbosity_level(o3d.utility.VerbosityLevel.Debug)
+
+
+
+    t265_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.2)
+    gt_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.2)
+
+    # vis = o3d.visualization.Visualizer()
+    # vis.create_window()
+    # vis.add_geometry(t265_frame)
+    # vis.add_geometry(gt_frame)
+
+
+    ts = 5000
+
+    time_gt = df_gt['hardware_ts'].to_numpy(dtype=np.int64)
+    time_t265 = df_t265['hardware_ts'].to_numpy(np.int64)
+
+    pose_gt = df_gt[t265_labels[1:]].to_numpy(dtype=np.float64)
+    pose_t265 = df_t265[t265_labels[1:]].to_numpy(np.float64)
+
+    min_gt = np.min(time_gt)
+    min_t265 = np.min(time_t265)
+    max_gt = np.max(time_gt)
+    max_t265 = np.max(time_t265)
+
+    # import ipdb; ipdb.set_trace()
+    min_value = np.min([min_gt, min_t265])
+    max_value = np.max([max_gt, max_t265])
+
+    print(min_value, min_gt, min_t265)
+    for t_value in range(min_value, max_value, 10000):
+        idx_gt = get_idx(t_value, time_gt)
+        idx_t265 = get_idx(t_value, time_t265)
+        t_gt = time_gt[idx_gt]
+        t_t265 = time_t265[idx_t265]
+
+        p_gt = pose_gt[idx_gt, :]
+        p_t265 = pose_t265[idx_t265, :]
+
+        print(t_value)
+        print(idx_gt, idx_t265)
+        print(t_gt, t_t265)
+        print(p_gt, p_t265)
+        print()
+
+        
+
+        time.sleep(0.01)
+
+
+    # for i in range(icp_iteration):
+    #     reg_p2l = o3d.pipelines.registration.registration_icp(
+    #         source, target, threshold, np.identity(4),
+    #         o3d.pipelines.registration.TransformationEstimationPointToPlane(),
+    #         o3d.pipelines.registration.ICPConvergenceCriteria(max_iteration=1))
+    #     source.transform(reg_p2l.transformation)
+    #     vis.update_geometry(source)
+    #     vis.poll_events()
+    #     vis.update_renderer()
+    #     if save_image:
+    #         vis.capture_screen_image("temp_%04d.jpg" % i)
+    # vis.destroy_window()
+
+def get_idx(value, array, starting_idx=0, ending_idx=None):
+    if ending_idx is None:
+        ending_idx = array.shape[0]
+    view = array[starting_idx:ending_idx]
+
+    idx = np.searchsorted(view, value, side='left')
+    return idx
+
+
+
 def main():
     args = parse_args()
     with open(args.config) as file:
         config = yaml.safe_load(file)
 
-    compare(config, args.compare_dir, args.ground_truth, fake=args.fake)
+    df_t265, df_gt = compare(config, args.compare_dir, args.ground_truth, fake=args.fake)
+    plot_3d(df_t265, df_gt)
 
 
 
