@@ -19,6 +19,7 @@ from scipy.spatial.transform import Rotation as R
 from scipy.signal import find_peaks
 import open3d as o3d
 import copy
+from scipy.spatial.transform import Rotation as R
 
 
 
@@ -26,7 +27,6 @@ THIS_FILE = Path(__file__)
 THIS_DIR = THIS_FILE.parent
 
 build_dir = THIS_DIR.parent.parent / f"dk-x86_64-build"
-print(build_dir)
 sys.path.insert(1, str(build_dir))
 build_dir = THIS_DIR.parent.parent / "cmake-build"
 sys.path.insert(1, str(build_dir))
@@ -39,6 +39,7 @@ from landing.helper.helper_utility import setup_frames, transform_pose
 logging.basicConfig(level=logging.INFO)
 
 
+# csv labels
 t265_labels = ['hardware_ts', 'pose_tx_ned', 'pose_ty_ned', 'pose_tz_ned', 'pose_roll_ned', 'pose_pitch_ned', 'pose_yaw_ned']
 gt_labels = ['hardware_ts', 'pose_tx_ned', 'pose_ty_ned', 'pose_tz_ned', 'pose_roll_ned', 'pose_pitch_ned', 'pose_yaw_ned']
 
@@ -62,18 +63,19 @@ def compare(config, compare_dir, gt_labels, fake=False, fname_t265='t265_pose.cs
     if fake:
         df_gt_pose = fake_data(df_gt_pose)
 
+    # set to zero
     logging.info("T265 Min timestamp: %d", df_t265_pose['hardware_ts'].min())
     logging.info("GT Min timestamp: %d", df_gt_pose['hardware_ts'].min())
     df_t265_pose.loc[:, ('hardware_ts')] = df_t265_pose['hardware_ts'] - df_t265_pose['hardware_ts'].min()
     df_gt_pose.loc[:, ('hardware_ts')] = df_gt_pose['hardware_ts'] - df_gt_pose['hardware_ts'].min()
 
     print(df_gt_pose)
-
+    # plot data before alignment
+    logging.info("Before temporal alignment")
     plot(df_t265_pose, df_gt_pose)
     time_diff = find_time_matching_timestamps(df_t265_pose, df_gt_pose)
-
     df_gt_pose.loc[:, ('hardware_ts')] = df_gt_pose['hardware_ts'] - time_diff
-    logging.info("Aligning the two data streams, time offset is: %d", time_diff)
+    logging.info("After aligning the two data streams, time offset is: %d", time_diff)
     plot(df_t265_pose, df_gt_pose)
 
     return df_t265_pose, df_gt_pose
@@ -162,14 +164,14 @@ def add_noise(df, column_name, mean=0.0, sigma=0.01):
     df.loc[:, column_name] = df[column_name] + noise
     return df
 
-def fake_data(df, offset_seconds=10):
+def fake_data(df, offset_seconds=10, gt_t_sigma=.001, gt_r_mean=1.0, gt_r_sigma=0.5):
     for name in t265_labels[1:4]:
         print(name)
-        df = add_noise(df, name, sigma=0.001)
+        df = add_noise(df, name, sigma=gt_t_sigma)
 
     for name in t265_labels[4:]:
         print(name)
-        df = add_noise(df, name, mean=1.0, sigma=0.5)
+        df = add_noise(df, name, mean=gt_r_mean, sigma=gt_r_sigma)
     
     min_micro = df['hardware_ts'].min()
     offset_micro = int(offset_seconds * 1000 * 1000)
@@ -203,22 +205,101 @@ def parse_args():
     return args
 
 
+def create_transform(pose):
+    transform = np.eye(4)
+    transform[:3, 3] = pose[:3]
+    rot = R.from_euler('xyz', pose[3:], degrees=True).as_matrix()
+    transform[:3,:3] = rot
+    return transform
+
+
+def box_center_to_corner(box):
+    # To return
+    corner_boxes = np.zeros((8, 3))
+
+    translation = box[0:3]
+    h, w, l = box[3], box[4], box[5]
+    rotation = box[6]
+
+    # Create a bounding box outline
+    bounding_box = np.array([
+        [-l/2, -l/2, l/2, l/2, -l/2, -l/2, l/2, l/2],
+        [w/2, -w/2, -w/2, w/2, w/2, -w/2, -w/2, w/2],
+        [-h/2, -h/2, -h/2, -h/2, h/2, h/2, h/2, h/2]])
+
+    # Standard 3x3 rotation matrix around the Z axis
+    rotation_matrix = np.array([
+        [np.cos(rotation), -np.sin(rotation), 0.0],
+        [np.sin(rotation), np.cos(rotation), 0.0],
+        [0.0, 0.0, 1.0]])
+
+    # Repeat the [x, y, z] eight times
+    eight_points = np.tile(translation, (8, 1))
+
+    # Translate the rotated bounding box by the
+    # original center position to obtain the final box
+    corner_box = np.dot(
+        rotation_matrix, bounding_box) + eight_points.transpose()
+
+    return corner_box.transpose()
+
+def create_bbox_to_ls(box):
+    points = box_center_to_corner(box)
+
+    lines = [[0, 1], [1, 2], [2, 3], [0, 3],
+            [4, 5], [5, 6], [6, 7], [4, 7],
+            [0, 4], [1, 5], [2, 6], [3, 7]]
+
+    # Use the same color for all lines
+    colors = [[1, 0, 0] for _ in range(len(lines))]
+
+    line_set = o3d.geometry.LineSet()
+    line_set.points = o3d.utility.Vector3dVector(points)
+    line_set.lines = o3d.utility.Vector2iVector(lines)
+    line_set.colors = o3d.utility.Vector3dVector(colors)
+
+    return line_set
+
+
+def update_line_set(line_set, line_data, color=[1.0,0,0]):
+    new_data = np.array(line_data)
+    num_points = new_data.shape[0]
+
+    lines = np.array([[i, i+1] for i in range(num_points -1)])
+    colors = [color for _ in range(len(lines))]
+
+    line_set.points = o3d.utility.Vector3dVector(new_data)
+    line_set.lines = o3d.utility.Vector2iVector(lines)
+    line_set.colors = o3d.utility.Vector3dVector(colors)
+    return line_set
+
+
 def plot_3d(df_t265, df_gt):
 
     o3d.utility.set_verbosity_level(o3d.utility.VerbosityLevel.Debug)
 
+    box_np = np.array([0,0,0, 10, 10, 10, 0])
+    box_ls = create_bbox_to_ls(box_np)
 
+    line_t265 = []
+    line_gt = []
 
+    # create axis frames and line trace
     t265_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.2)
+    t265_ls = o3d.geometry.LineSet()
     gt_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.2)
+    gt_ls = o3d.geometry.LineSet()
 
-    # vis = o3d.visualization.Visualizer()
-    # vis.create_window()
-    # vis.add_geometry(t265_frame)
-    # vis.add_geometry(gt_frame)
+    vert_copy = np.array(t265_frame.vertices).copy()
 
+    vis = o3d.visualization.Visualizer()
+    vis.create_window(window_name='Open3D', width=1920, height=1080,)
+    vis.add_geometry(t265_frame)
+    vis.add_geometry(gt_frame)
+    vis.add_geometry(box_ls)
+    vis.add_geometry(t265_ls)
+    vis.add_geometry(gt_ls)
 
-    ts = 5000
 
     time_gt = df_gt['hardware_ts'].to_numpy(dtype=np.int64)
     time_t265 = df_t265['hardware_ts'].to_numpy(np.int64)
@@ -231,43 +312,66 @@ def plot_3d(df_t265, df_gt):
     max_gt = np.max(time_gt)
     max_t265 = np.max(time_t265)
 
-    # import ipdb; ipdb.set_trace()
     min_value = np.min([min_gt, min_t265])
     max_value = np.max([max_gt, max_t265])
 
+    transform_gt = np.eye(4)
+    transform_t265 = np.eye(4)
+
+    ms_step = 10
+    us_step = ms_step * 1000
+    sec_step = ms_step / 1000
     print(min_value, min_gt, min_t265)
-    for t_value in range(min_value, max_value, 10000):
-        idx_gt = get_idx(t_value, time_gt)
-        idx_t265 = get_idx(t_value, time_t265)
-        t_gt = time_gt[idx_gt]
-        t_t265 = time_t265[idx_t265]
+    t1 = time.perf_counter()
+    line_gt = []
+    line_265 = []
+    for t_value in range(0, max_value, us_step):
+        if time.perf_counter() - t1 > sec_step:
+            idx_gt = get_idx(t_value, time_gt)
+            idx_t265 = get_idx(t_value, time_t265)
+            t_gt = time_gt[idx_gt]
+            t_t265 = time_t265[idx_t265]
 
-        p_gt = pose_gt[idx_gt, :]
-        p_t265 = pose_t265[idx_t265, :]
+            p_gt = pose_gt[idx_gt, :]
+            p_t265 = pose_t265[idx_t265, :]
 
-        print(t_value)
-        print(idx_gt, idx_t265)
-        print(t_gt, t_t265)
-        print(p_gt, p_t265)
-        print()
+            line_gt.append(p_gt[:3])
+            line_t265.append(p_t265[:3])
 
-        
+            gt_frame.vertices = o3d.utility.Vector3dVector(vert_copy.copy())
+            t265_frame.vertices = o3d.utility.Vector3dVector(vert_copy.copy())
 
-        time.sleep(0.01)
+            update_line_set(t265_ls, line_t265, color=[1.0, 0.0, 0.0])
+            update_line_set(gt_ls, line_gt, color=[0.0, 1.0, 0.0])
+
+            transform_gt_new = create_transform(p_gt)
+            transform_t265_new = create_transform(p_t265)
+
+            if t_t265 < 0:
+                transform_t265_new = np.eye(4)
+
+            gt_frame.transform(transform_gt_new)
+            t265_frame.transform(transform_t265_new)
+
+            t265_frame.compute_triangle_normals()
+            gt_frame.compute_triangle_normals
+
+            # print(t_value)
+            # print(idx_gt, idx_t265)
+            # print(t_gt, t_t265)
+            # print(p_gt, p_t265)
+            # print()
+            t1 = time.perf_counter()
 
 
-    # for i in range(icp_iteration):
-    #     reg_p2l = o3d.pipelines.registration.registration_icp(
-    #         source, target, threshold, np.identity(4),
-    #         o3d.pipelines.registration.TransformationEstimationPointToPlane(),
-    #         o3d.pipelines.registration.ICPConvergenceCriteria(max_iteration=1))
-    #     source.transform(reg_p2l.transformation)
-    #     vis.update_geometry(source)
-    #     vis.poll_events()
-    #     vis.update_renderer()
-    #     if save_image:
-    #         vis.capture_screen_image("temp_%04d.jpg" % i)
-    # vis.destroy_window()
+        vis.update_geometry(gt_frame)
+        vis.update_geometry(t265_frame)
+        vis.update_geometry(t265_ls)
+        vis.update_geometry(gt_ls)
+        vis.poll_events()
+        vis.update_renderer()
+        time.sleep(.005)
+
 
 def get_idx(value, array, starting_idx=0, ending_idx=None):
     if ending_idx is None:
