@@ -78,6 +78,8 @@ def compare(config, compare_dir, gt_labels, fake=False, fname_t265='t265_pose.cs
     logging.info("After aligning the two data streams, time offset is: %d", time_diff)
     plot(df_t265_pose, df_gt_pose)
 
+    df_gt_pose.to_csv(Path(compare_dir) / (fname_gt.split('.')[0] + '_aligned.csv'))
+
     return df_t265_pose, df_gt_pose
 
 def find_time_matching_timestamps(df_t265, df_gt, field='pose_pitch_ned', skip=10,
