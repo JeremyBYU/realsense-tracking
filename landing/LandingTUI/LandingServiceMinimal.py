@@ -598,10 +598,10 @@ def process_image(landing_service: LandingService, pull_queue: Queue, push_queue
                                      frame=config['single_scan']['command_frame'], H_body_w_ned=H_body_w_ned)
             single_scan_touchdowns.append(touchdown_results)
             if config['publish']['single_scan']['active']:
-                # logger.info("Publishing Data")
                 image.image_data = np.ndarray.tobytes(image_color_np)
                 tm = create_touchdown_message(
                     touchdown_results, command_frame=config['single_scan']['command_frame'], integrated=False)
+                image.ClearField('image_data_second')
                 push_queue.put((image, tm))
                 # logger.info("Pushing Data to queue")
 

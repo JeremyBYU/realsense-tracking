@@ -8,7 +8,7 @@ trap 'last_command=$current_command; current_command=$BASH_COMMAND' DEBUG
 trap 'echo "\"${last_command}\" command filed with exit code $?."' EXIT
 
 SRC="."
-DST_COMP="jeremy2@192.168.0.128"
+DST_COMP="jeremy2@192.168.0.163"
 DST_FOLDER="/home/jeremy2/ecal_meas"
 file_name="$(basename -a $1)"
 echo $file_name

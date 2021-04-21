@@ -1,7 +1,10 @@
 import sys
 import argparse
 import yaml
+import os
 from pathlib import Path
+
+os.environ["OMP_NUM_THREADS"] = "1"
 
 
 THIS_FILE = Path(__file__)

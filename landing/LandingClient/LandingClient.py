@@ -122,29 +122,31 @@ class Window(QWidget):
                                 suffix=self.integrated_touchdown_dist)
         self.update_value_label(self.mesh_vertices_status, self.extracted_mesh_vertices)
 
+
+        # Disabling all commands
         # Enable/Disable buttons based on state
-        if self.completed_integration:
-            self.extract_mesh_button.setEnabled(True)
-        else:
-            self.extract_mesh_button.setEnabled(False)
+        # if self.completed_integration:
+        #     self.extract_mesh_button.setEnabled(True)
+        # else:
+        #     self.extract_mesh_button.setEnabled(False)
 
         if self.extracted_mesh_vertices > 0:
-            self.touchdown_mesh_button.setEnabled(True)
+            # self.touchdown_mesh_button.setEnabled(True)
             self.show_mesh_button.setEnabled(True)
         else:
             self.touchdown_mesh_button.setEnabled(False)
             self.show_mesh_button.setEnabled(False)
 
 
-        if self.single_touchdown_dist is not None and self.single_touchdown_dist > 0.1:
-            self.land_single_button.setEnabled(True)
-        else:
-            self.land_single_button.setEnabled(False)
+        # if self.single_touchdown_dist is not None and self.single_touchdown_dist > 0.1:
+        #     self.land_single_button.setEnabled(True)
+        # else:
+        #     self.land_single_button.setEnabled(False)
 
-        if self.integrated_touchdown_dist is not None and self.integrated_touchdown_dist > 0.1:
-            self.land_integrated_button.setEnabled(True)
-        else:
-            self.land_integrated_button.setEnabled(False)
+        # if self.integrated_touchdown_dist is not None and self.integrated_touchdown_dist > 0.1:
+        #     self.land_integrated_button.setEnabled(True)
+        # else:
+        #     self.land_integrated_button.setEnabled(False)
 
 
     def toggle_single(self, on=False):
@@ -189,7 +191,7 @@ class Window(QWidget):
 
 
     def setup_gui(self):
-        self.setWindowTitle("Landing Client")
+        self.setWindowTitle("Landing Client (Commands Disabled)")
         # self.setFixedSize(800, 640)
 
         self.im_w = 320
@@ -220,10 +222,12 @@ class Window(QWidget):
         layout_top_left_single.setAlignment(Qt.AlignTop)
         self.single_start_button = QPushButton("Start")
         self.single_start_button.clicked.connect(partial(self.toggle_single, on=True))
+        self.single_start_button.setEnabled(False)
         self.single_label = QLabel("Single Scan")
         # self.single_label.setAlignment(Qt.AlignCenter) # no work
         self.single_stop_button = QPushButton("Stop")
         self.single_stop_button.clicked.connect(partial(self.toggle_single, on=False))
+        self.single_stop_button.setEnabled(False)
 
         layout_top_left_single.addWidget(self.single_start_button)
         layout_top_left_single.addWidget(self.single_label)
@@ -234,9 +238,11 @@ class Window(QWidget):
         layout_top_left_integrated.setAlignment(Qt.AlignTop)
         self.integrated_start_button = QPushButton("Start")
         self.integrated_start_button.clicked.connect(partial(self.integration_request, request_type='integrated_start'))
+        self.integrated_start_button.setEnabled(False)
         self.integrated_label = QLabel("Intregrated")
         self.integrated_stop_button = QPushButton("Stop")
         self.integrated_stop_button.clicked.connect(partial(self.integration_request, request_type='integrated_stop'))
+        self.integrated_stop_button.setEnabled(False)
 
         layout_top_left_integrated.addWidget(self.integrated_start_button)
         layout_top_left_integrated.addWidget(self.integrated_label)
@@ -306,7 +312,7 @@ class Window(QWidget):
         # Add Receive Mesh Button
         self.receive_mesh_button = QPushButton("Receive Mesh from Server")
         self.receive_mesh_button.clicked.connect(partial(self.integration_request, request_type='send_mesh'))
-        self.receive_mesh_button.setEnabled(True)
+        self.receive_mesh_button.setEnabled(False)
         # Add Show Mesh Button
         self.show_mesh_button = QPushButton("Show Mesh from Server")
         self.show_mesh_button.clicked.connect(self.show_mesh)

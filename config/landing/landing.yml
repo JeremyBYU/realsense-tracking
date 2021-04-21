@@ -10,10 +10,10 @@ mesh:
     use_cuda: false # use GPU CUDA acceleration for mesh smoothing
     stride: 2 # skip rows/columns
     filter:
-        loops_laplacian: 1 # how many iterations
+        loops_laplacian: 2 # how many iterations
         _lambda: 1.0 # weight factor for laplacian update
         kernel_size: 3 # only changes for laplacian
-        loops_bilateral: 0 # how many iterations
+        loops_bilateral: 1 # how many iterations
         sigma_length: 0.3 # std of distance between triangles centroids
         sigma_angle: 0.2 # std of distance between triangles normals
 # mesh smoothing for INTEGRATED meshes
@@ -47,10 +47,10 @@ polygon:
     postprocess: # post processing of polygons returned from polylidar for ground/obstacle identification
         filter: # obstacles must have these characteristics
             hole_area:
-                min: 0.01 # m^2
+                min: 0.2 # m^2
                 max: 80.0 # m^2
             hole_vertices:
-                min: 4
+                min: 8
             plane_area:
                 min: 0.1 # m^2
                 max: 400
@@ -109,7 +109,7 @@ publish:
         rate: 1
     single_scan: # rgbd_landing_message and touchdown message
         active: true
-        rate: 6
+        rate: 3
     mesh_and_touchdown_message: # rgbd_landing_message and touchdown message
         active: true
     
