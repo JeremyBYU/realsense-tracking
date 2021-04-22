@@ -58,11 +58,11 @@ active = true
   persistence_control = 2.0
 
   [filters.spatial]
-  active = false
+  active = true
   smooth_alpha = 0.35
   smooth_delta = 10.0
-  magnitude = 3.0
-  hole_fill = 1.0
+  magnitude = 2.0
+  hole_fill = 5.0
 
   [filters.align]
   active=true

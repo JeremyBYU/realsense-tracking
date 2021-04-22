@@ -47,10 +47,10 @@ polygon:
     postprocess: # post processing of polygons returned from polylidar for ground/obstacle identification
         filter: # obstacles must have these characteristics
             hole_area:
-                min: 0.2 # m^2
+                min: 0.05 # m^2
                 max: 80.0 # m^2
             hole_vertices:
-                min: 8
+                min: 4
             plane_area:
                 min: 0.1 # m^2
                 max: 400
