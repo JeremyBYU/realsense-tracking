@@ -399,6 +399,16 @@ class LandingService(object):
         self.integrate_pre = self.l515_axes @ l515_to_t265 @ self.t265_world_to_sensor_world
         self.integrate_post = np.linalg.inv(self.t265_world_to_sensor_world)
 
+        test_me = np.array([
+            [1,  0,  0.0,  0],
+            [0 , 0,  1.0,  0],
+            [0, -1,  0.0,  0.07],
+            [0,  0,  0,  1]
+        ])
+
+        self.integrate_pre = self.t265_world_to_sensor_world
+        self.integrate_post = test_me @ np.linalg.inv(self.t265_world_to_sensor_world)
+
         # Note, its like this: (At the very least you need three terms on the right)
         # S I M I L A R I T Y    T R A N S F O R M
         # H_L515_TO_NED @  H_L515_T265 @  H_t265_to_sensor @ H_t265_w_t265 @ inv(H_t265_to_sensor)

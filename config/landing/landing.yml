@@ -88,10 +88,10 @@ frames:
     # The l515_sensor_mount origin is near center of the l515 camera. It keeps the same NED frame as the body for simplicity.  X-Forward, Y-Right, Z-Down
     l515_sensor_mount:
         #translation [0.5, 0.0, -0.5] # Example: this is saying the l515 is 0.5 meters to the right and 0.5 up from drone origin 
-        translation: [0.0, 0.0, 0] # TODO UPDATE 
+        translation: [-0.07, 0.0, 0] # TODO UPDATE 
         rotation:   # Theses rotations are defined from the drone frame to the sensor mount frame
             roll: 0.0          
-            pitch: 0.0  # TODO UPDATE, POSITIVE MEANS THE CAMERA IS POINTING DOWNWARD
+            pitch: 90.0  # TODO UPDATE, POSITIVE MEANS THE CAMERA IS POINTING DOWNWARD
             yaw: 0.0
     # This transform represents the **internal** sensor coordinate frame of the l515
     # Its axes standard camera frame: Z-Forward, X-Right, Y-Down
