@@ -91,7 +91,7 @@ frames:
         translation: [-0.07, 0.0, 0] # TODO UPDATE 
         rotation:   # Theses rotations are defined from the drone frame to the sensor mount frame
             roll: 0.0          
-            pitch: 90.0  # TODO UPDATE, POSITIVE MEANS THE CAMERA IS POINTING DOWNWARD
+            pitch: -90.0  # TODO UPDATE, NEGATIVE MEANS THE CAMERA IS POINTING DOWNWARD
             yaw: 0.0
     # This transform represents the **internal** sensor coordinate frame of the l515
     # Its axes standard camera frame: Z-Forward, X-Right, Y-Down
