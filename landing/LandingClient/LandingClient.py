@@ -49,7 +49,7 @@ class Window(QWidget):
         self.pose_rotation_ned = None
 
         # Single Scan Variables
-        self.active_single_scan = True
+        self.active_single_scan = False
         self.single_touchdown_point = None
         self.single_touchdown_dist = None
 
