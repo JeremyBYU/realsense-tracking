@@ -41,7 +41,8 @@ logging.basicConfig(level=logging.INFO)
 
 # csv labels
 t265_labels = ['hardware_ts', 'pose_tx_ned', 'pose_ty_ned', 'pose_tz_ned', 'pose_roll_ned', 'pose_pitch_ned', 'pose_yaw_ned']
-gt_labels = ['hardware_ts', 'pose_tx_ned', 'pose_ty_ned', 'pose_tz_ned', 'pose_roll_ned', 'pose_pitch_ned', 'pose_yaw_ned']
+gt_labels = ['epoch_time_ns', 'X', 'Y', 'Z', 'roll', 'pitch', 'yaw']
+# gt_labels = ['xbee_time_received_ns', 'xbee_x', 'xbee_y', 'xbee_z', 'xbee_roll', 'xbee_pitch', 'xbee_yaw']
 
 def compare(config, compare_dir, gt_labels, fake=False, fname_t265='t265_pose.csv', fname_gt='gt_pose.csv'):
     # Read T265 CSV file
@@ -53,13 +54,16 @@ def compare(config, compare_dir, gt_labels, fake=False, fname_t265='t265_pose.cs
         gt_labels = t265_labels
     else:
         df_gt = pd.read_csv(Path(compare_dir) / fname_gt)
+        df_gt = df_gt[df_gt.index % 2 != 0]  # Excludes every 2nd row starting from 0
+        df_gt[gt_labels[0]] = df_gt[gt_labels[0]] / 1000
     # Rename columns to be the same for gt and t265
     df_gt_pose = df_gt[gt_labels]
     rename_dict = dict()
     for (gt, other) in zip(gt_labels, t265_labels):
         rename_dict[gt] = other
     logging.info("Renaming columns %s", rename_dict)
-    df_gt_pose.rename(columns=rename_dict)
+    df_gt_pose = df_gt_pose.rename(columns=rename_dict)
+
     if fake:
         df_gt_pose = fake_data(df_gt_pose)
 
