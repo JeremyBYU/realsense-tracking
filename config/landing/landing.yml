@@ -1,8 +1,8 @@
 arch: "x86_64"
 serial:
-    active: false
-    port: "/dev/ttyS4"
-    baudrate: 192000
+    active: true
+    port: "/dev/ttyUSB0"
+    baudrate: 57600
     timeout: 1 # seconds
 depth_scale: 0.00025
 # Mesh creation for ORGANIZED point clouds
