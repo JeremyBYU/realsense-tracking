@@ -38,6 +38,8 @@ from landing.helper.helper_utility import setup_frames, transform_pose
 
 logging.basicConfig(level=logging.INFO)
 
+RAD_TO_DEG = 180 / np.pi
+
 
 # csv labels
 common_labels = ['hardware_ts', 'pose_tx_ned', 'pose_ty_ned', 'pose_tz_ned', 'pose_roll_ned', 'pose_pitch_ned', 'pose_yaw_ned']
@@ -53,7 +55,7 @@ def rename_data(label_a, label_b, df):
     df = df.rename(columns=rename_dict)
     return df
 
-def compare(config, compare_dir, rc_gt_labels=rc_gt_labels, rc_t265_labels=rc_t265_labels,fake=False, fname='gt_pose.csv'):
+def compare(config, compare_dir, rc_gt_labels=rc_gt_labels, rc_t265_labels=rc_t265_labels,fake=False, fname='gt_pose.csv', time_match=False):
     # Read T265 CSV file
     df_rc = pd.read_csv(Path(compare_dir) / fname)
     df_rc = df_rc[df_rc.index % 2 != 0]  # Excludes every 2nd row starting from 0
@@ -67,8 +69,16 @@ def compare(config, compare_dir, rc_gt_labels=rc_gt_labels, rc_t265_labels=rc_t2
     df_rc_gt = df_rc_gt.astype({'hardware_ts': 'uint64'})
     df_rc_t265 = df_rc_t265.astype({'hardware_ts': 'uint64'})
 
+    df_rc_gt['pose_roll_ned'] = df_rc_gt['pose_roll_ned'] * RAD_TO_DEG
+    df_rc_gt['pose_pitch_ned'] = df_rc_gt['pose_pitch_ned'] * RAD_TO_DEG
+    df_rc_gt['pose_yaw_ned'] = df_rc_gt['pose_yaw_ned'] * RAD_TO_DEG
+    df_rc_gt['hardware_ts'] = df_rc_gt['hardware_ts'].div(1000).astype(np.uint64)
+
+
     print(df_rc_gt)
     print(df_rc_t265)
+
+
 
     # Read GT or fake data
     if fake:
@@ -87,11 +97,13 @@ def compare(config, compare_dir, rc_gt_labels=rc_gt_labels, rc_t265_labels=rc_t2
 
     logging.info("Plotting with timestamps: Before Temporal Alignment")
     plot(df_rc_t265, df_rc_gt)
-
-    time_diff = find_time_matching_timestamps(df_rc_t265, df_rc_gt)
-    logging.info("Plotting with timestamps: After Temporal Alignment; time offset is: %d", time_diff)
-    df_rc_gt.loc[:, ('hardware_ts')] = df_rc_gt['hardware_ts'] - time_diff
-    plot(df_rc_t265, df_rc_gt)
+    if time_match:
+        time_diff = find_time_matching_timestamps(df_rc_t265, df_rc_gt)
+        logging.info("Plotting with timestamps: After Temporal Alignment; time offset is: %d", time_diff)
+        df_rc_gt.loc[:, ('hardware_ts')] = df_rc_gt['hardware_ts'] - time_diff
+        plot(df_rc_t265, df_rc_gt)
+    else:
+        df_rc_gt['hardware_ts'] = df_rc_t265['hardware_ts']
 
     return df_rc_t265, df_rc_gt
 
@@ -394,6 +406,8 @@ def plot_3d(df_t265, df_gt):
         vis.poll_events()
         vis.update_renderer()
         time.sleep(.005)
+
+    input("waiting for your input to exit")
 
 
 def get_idx(value, array, starting_idx=0, ending_idx=None):
