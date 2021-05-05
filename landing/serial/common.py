@@ -1,11 +1,20 @@
 import time
 import ctypes
-from ctypes import Structure, c_float, c_ulonglong, Array, c_ubyte
+from ctypes import Structure, c_float, c_ulonglong, Array, c_ubyte, c_uint16, c_uint8
 
 
 START_BYTE1 = 0x1B
 START_BYTE2 = 0xFE
 
+def fletcher16(buffer):
+    chksm0 = c_uint8(0)
+    chksm1 = c_uint8(0)
+    final = c_uint16(0)
+    for i in range(len(buffer)):
+        chksm0.value += buffer[i]
+        chksm1.value += chksm0.value
+    final.value = (chksm1.value << 8) | chksm0.value
+    return final
 
 ################################################################################
 # A simple helper class
@@ -106,10 +115,16 @@ class MessagePoseUpdate(Structure, StructHelper):
                 ("data_size", c_ubyte),
                 ("msg_type", c_ubyte),
                 ("pose_update", PoseUpdate),
+                ("checksum", c_uint16)
                 ]
 
-    def __init__(self, start_byte1=START_BYTE1, start_byte2=START_BYTE2, data_size=PU_SIZE, msg_type=1, pose_update=PoseUpdate()):
+    def __init__(self, start_byte1=START_BYTE1, start_byte2=START_BYTE2, data_size=PU_SIZE, msg_type=1, pose_update:PoseUpdate()=PoseUpdate()):
         super(MessagePoseUpdate, self).__init__(start_byte1, start_byte2, data_size, msg_type, pose_update)
+        self.update_checksum()
+    
+    def update_checksum(self):
+        checksum = fletcher16(self.pose_update.get_bytes())
+        self.checksum = checksum
 
 class MessageLandingCommand(Structure, StructHelper):
     _pack = 1
@@ -118,16 +133,24 @@ class MessageLandingCommand(Structure, StructHelper):
                 ("data_size", c_ubyte),
                 ("msg_type", c_ubyte),
                 ("landing_command", LandingCommand),
+                ("checksum", c_uint16)
                 ]
     
     def __init__(self, start_byte1=START_BYTE1, start_byte2=START_BYTE2, data_size=LC_SIZE, msg_type=2, landing_command=LandingCommand()):
         super(MessageLandingCommand, self).__init__(start_byte1, start_byte2, data_size, msg_type, landing_command)
+        self.update_checksum()
+    
+    def update_checksum(self):
+        checksum = fletcher16(self.landing_command.get_bytes())
+        self.checksum = checksum
+
 
 def get_us_from_epoch():
     time_us = int(time.time() * 1000 * 1000)
     return time_us
 
 def serialize(obj_ctype):
+    obj_ctype.update_checksum()
     # cast the struct to a pointer to a char array
     pdata = ctypes.cast(ctypes.byref(obj_ctype), ctypes.POINTER(ctypes.c_char * ctypes.sizeof(obj_ctype)))
     # pdata.contents.raw
@@ -138,6 +161,7 @@ def serialize(obj_ctype):
 
 def test():
     time_us = get_us_from_epoch()
+    time_us = 1
     pose_update = PoseUpdate(time_us, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0)
     print("First Pose:")
     print(pose_update)
@@ -160,6 +184,7 @@ def test():
     print("Deserialized:")
     message_pose_update_new = MessagePoseUpdate.from_buffer_copy(buf)
     print(message_pose_update_new)
+
 
 
 if __name__ == "__main__":
