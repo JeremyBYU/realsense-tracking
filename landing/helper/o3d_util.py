@@ -2,6 +2,8 @@ import open3d as o3d
 import numpy as np
 from .LineMesh import LineMesh
 from open3d.cpu.pybind.geometry import TriangleMesh
+from descartes import PolygonPatch
+from shapely.geometry import Polygon
 # from .LineMesh import LineMesh
 # from airsimcollect.helper.helper_transforms import seg2rgb
 # from airsimcollect.helper.helper_logging import logger
@@ -36,6 +38,18 @@ class _MeshTransmissionFormat:
 
         mesh.vertices = o3d.utility.Vector3dVector(self.vertices)
         return mesh
+
+
+def plot_polygons(polygons, ax, linewidth=2, shell_color='green', hole_color='orange', linestyle='-'):
+    for poly in polygons:
+        shell_coords = Polygon(poly.exterior)
+        outlinePatch = PolygonPatch(shell_coords, ec=shell_color, fill=False, linewidth=linewidth, linestyle=linestyle)
+        ax.add_patch(outlinePatch)
+
+        for hole_poly in poly.interiors:
+            outline = Polygon(shell=hole_poly)
+            outlinePatch = PolygonPatch(outline, ec=hole_color, fill=False, linewidth=linewidth, linestyle=linestyle)
+            ax.add_patch(outlinePatch)
 
 def remove_nans(a):
     return a[~np.isnan(a).any(axis=1)]
