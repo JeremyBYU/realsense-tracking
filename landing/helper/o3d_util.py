@@ -1,6 +1,7 @@
 import open3d as o3d
 import numpy as np
 from .LineMesh import LineMesh
+from open3d.cpu.pybind.geometry import TriangleMesh
 # from .LineMesh import LineMesh
 # from airsimcollect.helper.helper_transforms import seg2rgb
 # from airsimcollect.helper.helper_logging import logger
@@ -10,6 +11,31 @@ GREEN = (0, 255/255, 0)
 BLUE = (0, 0, 255/255)
 PURPLE = [199/255, 36/255, 177/255]
 
+
+class _MeshTransmissionFormat:
+    def __init__(self, mesh: TriangleMesh):
+        self.triangle_material_ids = np.array(mesh.triangle_material_ids)
+        self.triangle_normals = np.array(mesh.triangle_normals)
+        self.triangle_uvs = np.array(mesh.triangle_uvs)
+        self.triangles = np.array(mesh.triangles)
+
+        self.vertex_colors = np.array(mesh.vertex_colors)
+        self.vertex_normals = np.array(mesh.vertex_normals)
+        self.vertices = np.array(mesh.vertices)
+
+    def create_mesh(self) -> TriangleMesh:
+        mesh = TriangleMesh()
+
+        mesh.triangle_material_ids = o3d.utility.IntVector(self.triangle_material_ids)
+        mesh.triangle_normals = o3d.utility.Vector3dVector(self.triangle_normals)
+        mesh.triangle_uvs = o3d.utility.Vector2dVector(self.triangle_uvs)
+        mesh.triangles = o3d.utility.Vector3iVector(self.triangles)
+
+        mesh.vertex_colors = o3d.utility.Vector3dVector(self.vertex_colors)
+        mesh.vertex_normals = o3d.utility.Vector3dVector(self.vertex_normals)
+
+        mesh.vertices = o3d.utility.Vector3dVector(self.vertices)
+        return mesh
 
 def remove_nans(a):
     return a[~np.isnan(a).any(axis=1)]

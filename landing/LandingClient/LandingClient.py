@@ -4,13 +4,17 @@ from pathlib import Path
 import queue
 from functools import partial
 import time
+try:
+   import cPickle as pickle
+except:
+   import pickle
 from landing.helper.helper_logging import setup_logger
 logger = setup_logger(server=False)
 import open3d as o3d
 from scipy.spatial.transform import Rotation as R
 
 from PyQt5.QtWidgets import (QApplication, QGridLayout, QPushButton, QVBoxLayout,
-                             QWidget, QFormLayout, QHBoxLayout, QLabel, QMessageBox
+                             QWidget, QFormLayout, QHBoxLayout, QLabel, QMessageBox, QInputDialog
                              )
 from PyQt5.QtCore import Qt, QObject, QRunnable, pyqtSignal, pyqtSlot, QTimer
 from PyQt5.QtGui import QImage, QPixmap, QFont
@@ -35,7 +39,7 @@ from TouchdownMessage_pb2 import TouchdownMessage, SINGLE, INTEGRATED, MeshAndTo
 
 from landing.helper.helper_utility import get_mesh_data_from_message, convert_polygon_message_to_shapely
 from landing.helper.helper_meshes import create_o3d_mesh_from_data
-from landing.helper.o3d_util import create_linemesh_from_shapely, get_segments
+from landing.helper.o3d_util import create_linemesh_from_shapely, get_segments, _MeshTransmissionFormat
 
 
 class Window(QWidget):
@@ -181,6 +185,12 @@ class Window(QWidget):
                 tp.paint_uniform_color([0, 0.0, 1])
                 geoms.append(tp)
             o3d.visualization.draw_geometries([self.o3d_mesh, axis_frame, *geoms], width=800, height=600)
+            fname, ok = QInputDialog.getText(self, 'Save Mesh?', 'Enter File Name or leave blank to skip saving:')
+            if fname != "":
+                data = dict(mesh=_MeshTransmissionFormat(self.o3d_mesh), polygon=self.integrated_polygon, tp=self.integrated_touchdown_point, tp_dist=self.integrated_touchdown_dist)
+                with open(f"assets/data/{fname}",'wb') as fp:
+                    pickle.dump(data, fp)
+
         else:
             msg = QMessageBox()
             msg.setWindowTitle("ERROR!")
