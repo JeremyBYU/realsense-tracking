@@ -149,6 +149,12 @@ to extract meshes from the voxel volume. Configured by `config/rsintegrate_defau
 
 ## Notes
 
+### Serial Emulation
+
+0. https://stackoverflow.com/a/19733677
+1. Enter this into terminal 1 `socat -d -d pty,raw,echo=0 pty,raw,echo=0`
+2. Now `/dev/pts/1` and `/dev/pts/2` are linked. Tested with writing to `/dev/pts/2` and reading from `/dev/pts/1`
+
 ### Deploy Binaries instead of Docker
 
 Instead of *deploying* a docker image, you can just deploy the binaries it built! The following script will gather all the dependencies for the binary in the `bin/$ARCH` folder.
