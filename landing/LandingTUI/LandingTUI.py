@@ -62,8 +62,10 @@ class App:
         self.send_mesh_td_btn = self.root.add_button(
             "Save Mesh", 2, 2, column_span=1, command=self.send_mesh)
 
+        self.remove_integrated_btn = self.root.add_button(
+            "Remove Mesh", 3, 0, column_span=1, command=partial(self.request_integrated, request='integrated_remove'))
         # Test Serial Commands
-        self.root.add_button("Send Test Command", 3, 0, column_span=3, command=partial(self.root.show_text_box_popup, title="Enter Command, e.g. pu;10;0.1;0.2;0.3;1;2;3", command=self.send_serial_command_test))
+        self.root.add_button("Send Test Command", 3, 1, column_span=2, command=partial(self.root.show_text_box_popup, title="Enter Command, e.g. pu;10;0.1;0.2;0.3;1;2;3", command=self.send_serial_command_test))
 
 
         self.landing_label = self.root.add_label("Landing", 4, 0, column_span=1)

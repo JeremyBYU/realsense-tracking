@@ -21,7 +21,7 @@ from ecal.core.publisher import ProtoPublisher
 from PoseMessage_pb2 import PoseMessage
 from ImageMessage_pb2 import ImageMessage
 from LandingMessage_pb2 import LandingMessage
-from Integrate_pb2 import IntegrateRequest, IntegrateResponse, ExtractResponse, ExtractRequest, START, STOP, MESH, Mesh
+from Integrate_pb2 import IntegrateRequest, IntegrateResponse, ExtractResponse, ExtractRequest, START, STOP, MESH, Mesh, REMOVE
 from TouchdownMessage_pb2 import TouchdownMessage, MeshAndTouchdownMessage
 
 
@@ -209,6 +209,19 @@ class LandingService(object):
                 logger.info("Stopping volume integration")
                 self.active_integration = False
                 self.completed_integration = True
+            else:
+                logger.warn("Integration has not started")
+                rtn_value = 1
+                rtn_msg = "Integration has not started"
+        elif this_request == "integrated_remove":
+            if self.completed_integration:
+                request.type = REMOVE
+                request.scene = "Default"
+                request_string = request.SerializeToString()
+                _ = self.integration_client.call_method("IntegrateScene", request_string)
+                logger.info("Removing %s volume integration", request.scene)
+                self.active_integration = False
+                self.completed_integration = False
             else:
                 logger.warn("Integration has not started")
                 rtn_value = 1

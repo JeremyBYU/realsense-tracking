@@ -58,8 +58,6 @@ When having any problems first see these issues: [Issue 1](`https://github.com/c
 
 ### ECAL Config File
 
-ITS NOT SENDING THE ECAL FILE CORRECTLY!
-
 The software is configured to use the `config/ecal/ecal.ini` file. Note that some values have been changed from the default. If you are using `ecal_mon_gui` on an  external computer to monitor messages dont forget to modify *your* `ecal.ini` to point to the correct UDP multicast address and other options (e.g., `ttl`).
 
 ## Run Docker

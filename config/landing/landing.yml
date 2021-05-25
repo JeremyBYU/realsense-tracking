@@ -1,6 +1,6 @@
 arch: "x86_64"
 serial:
-    active: true
+    active: false
     port: "/dev/ttyUSB0"
     baudrate: 57600
     timeout: 1 # seconds
