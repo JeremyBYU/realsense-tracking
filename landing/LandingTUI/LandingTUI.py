@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 from inspect import cleandoc
 import itertools
-from inspect import cleandoc
 from functools import partial
 import numpy as np
 from logging import Logger
@@ -88,6 +87,11 @@ class App:
         self.ls = LandingService(config)
         # setups
         self.root.set_on_draw_update_func(self.update_gui)
+
+        self.root.run_on_exit(self.exit_fn)
+
+    def exit_fn(self):
+        self.ls.save_data()
 
     def toggle_single(self, on=True):
         self.ls.activate_single_scan_touchdown(on)
@@ -177,13 +181,14 @@ class App:
         self.live_status.set_text(label_str)
 
 
-
 def main(config):
     root = py_cui.PyCUI(10, 6)
     root.set_title("Landing TUI")
     root.set_refresh_timeout(0.1)
     s = App(root, config)
     root.start()
+
+
 
 
 if __name__ == '__main__':

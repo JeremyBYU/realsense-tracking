@@ -11,6 +11,7 @@ from landing.helper.helper_logging import logger
 import open3d as o3d
 from scipy.spatial.transform import Rotation as R
 import serial
+import pandas as pd
 
 import ecal.core.core as ecal_core
 import ecal.core.service as ecal_service
@@ -62,6 +63,7 @@ class LandingService(object):
         self.integrated_touchdown_result = None
         self.integrated_tri_mesh = None
 
+        self.integrated_alg_timings = []
         # All single scans will be recorded (appended to list) from a separate process
         self.manager = Manager()  # manages shared data between polylidar process
         # These will contain the results of all single scan touchdowns points
@@ -80,6 +82,11 @@ class LandingService(object):
         self.setup_frames()
         # Wil set up ECAL communication
         self.setup_ecal()
+
+
+    def save_data(self):
+        df = pd.DataFrame.from_records(self.integrated_alg_timings)
+        df.to_csv("assets/data/landing_service.csv")
 
     def callback_pose(self, topic_name, pose: PoseMessage, time_):
         # logger.info(f"Pose of T265 in T265 World Frame: translation: {vec3_to_str(pose.translation)}; \
@@ -262,11 +269,23 @@ class LandingService(object):
         ga = GaussianAccumulatorS2Beta(level=config['fastga']['level'])
         ico = IcoCharts(level=config['fastga']['level'])
 
+
+        t1 = time.perf_counter()
+        mesh_filter = config['mesh_integrated']['filter']
+        bilateral_filter_normals(tri_mesh, iterations=mesh_filter['loops_bilateral'], 
+                                sigma_length=mesh_filter['sigma_length'], 
+                                sigma_angle=mesh_filter['sigma_angle'])
+        t2 = time.perf_counter()
+        t_filter = (t2 - t1) * 1000
+
         chosen_plane, alg_timings, tri_mesh, avg_peaks, _ = extract_polygons_from_tri_mesh(
             tri_mesh, pl, ga, ico, config)
 
+        alg_timings.update(dict(t_bilateral=t_filter))
+
         if chosen_plane is not None:
             touchdown_point = get_3D_touchdown_point(chosen_plane, config['polylabel']['precision'])
+            alg_timings['t_polylabel'] = touchdown_point['t_polylabel']
             self.integrated_touchdown_point_ned = touchdown_point['point'].tolist()
             self.integrated_touchdown_dist_ned = touchdown_point['dist']
             success = True
@@ -283,8 +302,9 @@ class LandingService(object):
             logger.warn("Could not find a touchdown point")
 
         touchdown_result = dict(polygon=chosen_plane, alg_timings=alg_timings,
-                                avg_peaks=avg_peaks, touchdown_point=touchdown_point)
+                                avg_peaks=avg_peaks, touchdown_point=touchdown_point, integrated=True)
         self.integrated_touchdown_result = touchdown_result
+        self.integrated_alg_timings.append(alg_timings)
         # tm = create_touchdown_message(touchdown_result, command_frame='ned', integrated=True)
         # # TODO lock this publisher resource?
         # self.pub_touchdown.send(tm)
@@ -308,12 +328,14 @@ class LandingService(object):
                 tri_mesh = create_tri_mesh_from_data(raw_data[0], raw_data[1])
                 logger.info("Mesh has %d vertices", np.asarray(tri_mesh.vertices).shape[0])
 
-                t1 = time.perf_counter()
-                # as long as the mesh isnt too big, this is not too expensive (sub 5 ms)
-                mesh_filter = self.config['mesh_integrated']['filter']
-                bilateral_filter_normals(
-                    tri_mesh, iterations=mesh_filter['loops_bilateral'], sigma_length=mesh_filter['sigma_length'], sigma_angle=mesh_filter['sigma_angle'])
-                t2 = time.perf_counter()
+                # t1 = time.perf_counter()
+                # # as long as the mesh isnt too big, this is not too expensive (sub 5 ms)
+                # mesh_filter = self.config['mesh_integrated']['filter']
+                # bilateral_filter_normals(
+                #     tri_mesh, iterations=mesh_filter['loops_bilateral'], sigma_length=mesh_filter['sigma_length'], sigma_angle=mesh_filter['sigma_angle'])
+                # t2 = time.perf_counter()
+                # t_filter = (t2 - t1) * 1000
+                # logger.info("Smooth Mesh: %.1f", t_filter)
                 self.integrated_tri_mesh = tri_mesh
             except:
                 logger.exception("Error extracting mesh")
@@ -608,7 +630,7 @@ def process_image(landing_service: LandingService, pull_queue: Queue, push_queue
             # Put modified image on queue to publish message
             touchdown_results = dict(polygon=chosen_plane, alg_timings=alg_timings,
                                      avg_peaks=avg_peaks, touchdown_point=touchdown_point,
-                                     frame=config['single_scan']['command_frame'], H_body_w_ned=H_body_w_ned)
+                                     frame=config['single_scan']['command_frame'], H_body_w_ned=H_body_w_ned, integrated=False)
             single_scan_touchdowns.append(touchdown_results)
             if config['publish']['single_scan']['active']:
                 image.image_data = np.ndarray.tobytes(image_color_np)

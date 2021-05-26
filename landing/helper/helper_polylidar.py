@@ -259,8 +259,10 @@ def extract_polygons_from_tri_mesh(tri_mesh, pl, ga, ico, config,
 
 def get_touchdown_point(poly, precision=0.05):
     all_rings = poly_to_rings(poly)
+    t1 = time.perf_counter()
     point, dist = polylabelfast(all_rings,precision=precision)
-    result = dict(point=np.array(point), dist=dist)
+    t2 = time.perf_counter()
+    result = dict(point=np.array(point), dist=dist, t_polylabel=(t2-t1) * 1000)
     return result
 
 
