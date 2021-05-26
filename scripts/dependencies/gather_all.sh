@@ -8,7 +8,7 @@ trap 'last_command=$current_command; current_command=$BASH_COMMAND' DEBUG
 # echo an error message before exiting
 trap 'echo "\"${last_command}\" command filed with exit code $?."' EXIT
 
-architectures="aarch64"
+architectures="x86_64"
 bin_dir="bin/"
 dist_dir="bin/"
 
@@ -25,4 +25,5 @@ for val in $architectures; do
 done
 
 
-# This one seems to be missing
+# Example how to launch for x86_64
+# GLOG_logtostderr=1 ./bin/x86_64/ld-linux-x86-64.so.2 ./bin/x86_64/rs-integrate-server --log_dir=./logs --v=2 --config=config/l515/rsintegrate_default.toml

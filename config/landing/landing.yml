@@ -31,7 +31,7 @@ polylidar: # Parameters we send to polylidar. Determine plane and polygon extrac
     min_hole_vertices: 4 # minimum number of vertices in a hole to return
     min_triangles: 200 # minimum number of triangles needed to make a plane
 fastga: # Parameters used for dominant plane normal estimation
-    level: 4 # refinement level of the gaussian accumulator
+    level: 3 # refinement level of the gaussian accumulator
     down_sample_fraction: 0.20 # only use X% of triangle normals from mesh for integration, lower the faster
     find_peaks_kwargs: # peak detection arguments
         threshold_abs: 50 # [0-255], minimum value of normalized histogram of S2 to be a peak
