@@ -1,0 +1,709 @@
+Log file created at: 2021/05/28 16:29:20
+Running on machine: cerberus
+Log line format: [IWEF]mmdd hh:mm:ss.uuuuuu threadid file:line] msg
+I0528 16:29:20.814536 12219 rs-integrate-server.cpp:527] Starting rs-integrate-server
+I0528 16:29:20.816020 12219 rs-integrate-server.cpp:550] Waiting for service requests: 
+I0528 16:29:25.862509 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233765862; send_ts: 1619010557386; hardware_ts: 1619010557332
+I0528 16:29:26.041841 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233766042; send_ts: 1619010557574; hardware_ts: 1619010557522
+I0528 16:29:26.190877 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233766191; send_ts: 1619010557723; hardware_ts: 1619010557675
+I0528 16:29:26.359336 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233766359; send_ts: 1619010557891; hardware_ts: 1619010557828
+I0528 16:29:26.539992 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233766540; send_ts: 1619010558072; hardware_ts: 1619010558020
+I0528 16:29:26.690250 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233766690; send_ts: 1619010558222; hardware_ts: 1619010558173
+I0528 16:29:26.882556 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233766883; send_ts: 1619010558414; hardware_ts: 1619010558325
+I0528 16:29:27.035511 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233767036; send_ts: 1619010558567; hardware_ts: 1619010558515
+I0528 16:29:27.186906 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233767187; send_ts: 1619010558719; hardware_ts: 1619010558666
+I0528 16:29:27.374543 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233767375; send_ts: 1619010558906; hardware_ts: 1619010558854
+I0528 16:29:27.521450 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233767521; send_ts: 1619010559053; hardware_ts: 1619010559003
+I0528 16:29:27.706512 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233767707; send_ts: 1619010559238; hardware_ts: 1619010559188
+I0528 16:29:27.855556 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233767856; send_ts: 1619010559387; hardware_ts: 1619010559336
+I0528 16:29:28.038908 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233768039; send_ts: 1619010559571; hardware_ts: 1619010559521
+I0528 16:29:28.188396 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233768188; send_ts: 1619010559720; hardware_ts: 1619010559668
+I0528 16:29:28.372732 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233768373; send_ts: 1619010559904; hardware_ts: 1619010559852
+I0528 16:29:28.520423 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233768520; send_ts: 1619010560052; hardware_ts: 1619010560001
+I0528 16:29:28.704661 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233768705; send_ts: 1619010560236; hardware_ts: 1619010560187
+I0528 16:29:28.855875 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233768856; send_ts: 1619010560388; hardware_ts: 1619010560337
+I0528 16:29:29.032902 12224 rs-integrate-server.cpp:229] Received Integrate Scene Request START: Default
+I0528 16:29:29.032919 12224 rs-integrate-server.cpp:283] Updating Pre Multiply Matrix
+I0528 16:29:29.032923 12224 rs-integrate-server.cpp:289] Updating Post Multiply Matrix
+I0528 16:29:29.032925 12224 rs-integrate-server.cpp:294] Premultiply matrix: 00 00 -1 00
+01 00 00 00
+00 -1 00 00
+00 00 00 01
+I0528 16:29:29.032970 12224 rs-integrate-server.cpp:295] PostMultiply matrix: 000000000001 000000000000 000000000000 000000000000
+000000000000 -2.22045e-16 0000000000-1 000000000000
+000000000000 000000000001 -2.22045e-16 000000000.07
+000000000000 000000000000 000000000000 000000000001
+I0528 16:29:29.043808 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233769044; send_ts: 1619010560576; hardware_ts: 1619010560524
+I0528 16:29:29.194424 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233769194; send_ts: 1619010560726; hardware_ts: 1619010560674
+I0528 16:29:29.194581 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:29.195719 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:29.200479 13576 rs-integrate-server.cpp:497] Volume Integration took: 4.753 milliseconds
+I0528 16:29:29.392366 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233769392; send_ts: 1619010560924; hardware_ts: 1619010560863
+I0528 16:29:29.571261 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233769571; send_ts: 1619010561103; hardware_ts: 1619010561052
+I0528 16:29:29.571311 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:29.571962 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:29.574237 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.271 milliseconds
+I0528 16:29:29.722152 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233769722; send_ts: 1619010561254; hardware_ts: 1619010561205
+I0528 16:29:29.890195 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233769890; send_ts: 1619010561422; hardware_ts: 1619010561359
+I0528 16:29:29.890228 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:29.890808 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:29.893157 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.344 milliseconds
+I0528 16:29:30.071259 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233770071; send_ts: 1619010561603; hardware_ts: 1619010561554
+I0528 16:29:30.230702 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233770231; send_ts: 1619010561762; hardware_ts: 1619010561712
+I0528 16:29:30.230775 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:30.231453 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:30.234105 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.649 milliseconds
+I0528 16:29:30.388512 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233770389; send_ts: 1619010561920; hardware_ts: 1619010561872
+I0528 16:29:30.554462 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233770554; send_ts: 1619010562086; hardware_ts: 1619010562035
+I0528 16:29:30.554534 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:30.555212 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:30.557832 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.616 milliseconds
+I0528 16:29:30.731230 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233770731; send_ts: 1619010562263; hardware_ts: 1619010562200
+I0528 16:29:30.888207 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233770888; send_ts: 1619010562420; hardware_ts: 1619010562368
+I0528 16:29:30.888274 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:30.888940 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:30.891486 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.541 milliseconds
+I0528 16:29:31.054605 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233771055; send_ts: 1619010562586; hardware_ts: 1619010562538
+I0528 16:29:31.229347 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233771229; send_ts: 1619010562761; hardware_ts: 1619010562711
+I0528 16:29:31.406474 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233771406; send_ts: 1619010562938; hardware_ts: 1619010562886
+I0528 16:29:31.582814 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233771583; send_ts: 1619010563115; hardware_ts: 1619010563019
+I0528 16:29:31.582857 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:31.583465 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:31.586516 13576 rs-integrate-server.cpp:497] Volume Integration took: 3.045 milliseconds
+I0528 16:29:31.727046 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233771727; send_ts: 1619010563259; hardware_ts: 1619010563197
+I0528 16:29:31.892123 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233771892; send_ts: 1619010563424; hardware_ts: 1619010563375
+I0528 16:29:31.892194 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:31.893069 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:31.895741 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.630 milliseconds
+I0528 16:29:32.069092 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233772069; send_ts: 1619010563601; hardware_ts: 1619010563552
+I0528 16:29:32.249089 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233772249; send_ts: 1619010563781; hardware_ts: 1619010563685
+I0528 16:29:32.390444 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233772390; send_ts: 1619010563922; hardware_ts: 1619010563860
+I0528 16:29:32.390511 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:32.391041 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:32.393306 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.262 milliseconds
+I0528 16:29:32.554153 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233772554; send_ts: 1619010564086; hardware_ts: 1619010564035
+I0528 16:29:32.729199 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233772729; send_ts: 1619010564261; hardware_ts: 1619010564210
+I0528 16:29:32.729279 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:32.729991 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:32.732722 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.725 milliseconds
+I0528 16:29:32.908212 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233772908; send_ts: 1619010564440; hardware_ts: 1619010564388
+I0528 16:29:33.083036 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233773083; send_ts: 1619010564615; hardware_ts: 1619010564520
+I0528 16:29:33.225103 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233773225; send_ts: 1619010564757; hardware_ts: 1619010564695
+I0528 16:29:33.225172 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:33.225708 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:33.228706 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.994 milliseconds
+I0528 16:29:33.386108 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233773386; send_ts: 1619010564918; hardware_ts: 1619010564868
+I0528 16:29:33.554268 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233773554; send_ts: 1619010565086; hardware_ts: 1619010565035
+I0528 16:29:33.717746 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233773718; send_ts: 1619010565250; hardware_ts: 1619010565200
+I0528 16:29:33.717803 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:33.718176 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:33.720088 13576 rs-integrate-server.cpp:497] Volume Integration took: 1.910 milliseconds
+I0528 16:29:33.891943 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233773892; send_ts: 1619010565424; hardware_ts: 1619010565362
+I0528 16:29:34.078255 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233774078; send_ts: 1619010565610; hardware_ts: 1619010565521
+I0528 16:29:34.078289 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:34.078824 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:34.081028 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.199 milliseconds
+I0528 16:29:34.273547 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233774274; send_ts: 1619010565805; hardware_ts: 1619010565754
+I0528 16:29:34.422824 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233774423; send_ts: 1619010565955; hardware_ts: 1619010565907
+I0528 16:29:34.422854 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:34.423425 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:34.425614 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.186 milliseconds
+I0528 16:29:34.612000 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233774612; send_ts: 1619010566144; hardware_ts: 1619010566056
+I0528 16:29:34.760020 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233774760; send_ts: 1619010566292; hardware_ts: 1619010566241
+I0528 16:29:34.760093 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:34.760650 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:34.762619 13576 rs-integrate-server.cpp:497] Volume Integration took: 1.965 milliseconds
+I0528 16:29:34.942521 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233774943; send_ts: 1619010566474; hardware_ts: 1619010566423
+I0528 16:29:35.087522 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233775088; send_ts: 1619010566619; hardware_ts: 1619010566566
+I0528 16:29:35.087579 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:35.088255 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:35.090761 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.501 milliseconds
+I0528 16:29:35.264086 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233775264; send_ts: 1619010566796; hardware_ts: 1619010566745
+I0528 16:29:35.438232 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233775438; send_ts: 1619010566970; hardware_ts: 1619010566920
+I0528 16:29:35.438297 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:35.438796 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:35.441992 13576 rs-integrate-server.cpp:497] Volume Integration took: 3.193 milliseconds
+I0528 16:29:35.587242 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233775587; send_ts: 1619010567119; hardware_ts: 1619010567057
+I0528 16:29:35.751127 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233775751; send_ts: 1619010567283; hardware_ts: 1619010567227
+I0528 16:29:35.916702 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233775917; send_ts: 1619010567448; hardware_ts: 1619010567396
+I0528 16:29:36.083118 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233776083; send_ts: 1619010567615; hardware_ts: 1619010567563
+I0528 16:29:36.083178 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:36.083680 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:36.086283 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.599 milliseconds
+I0528 16:29:36.250660 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233776251; send_ts: 1619010567782; hardware_ts: 1619010567729
+I0528 16:29:36.418009 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233776418; send_ts: 1619010567950; hardware_ts: 1619010567896
+I0528 16:29:36.585620 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233776586; send_ts: 1619010568117; hardware_ts: 1619010568064
+I0528 16:29:36.585657 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:36.586194 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:36.588440 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.244 milliseconds
+I0528 16:29:36.781090 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233776781; send_ts: 1619010568313; hardware_ts: 1619010568210
+I0528 16:29:36.918999 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233776919; send_ts: 1619010568451; hardware_ts: 1619010568398
+I0528 16:29:37.099977 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233777100; send_ts: 1619010568632; hardware_ts: 1619010568581
+I0528 16:29:37.100052 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:37.100775 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:37.103260 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.478 milliseconds
+I0528 16:29:37.269404 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233777269; send_ts: 1619010568801; hardware_ts: 1619010568751
+I0528 16:29:37.440002 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233777440; send_ts: 1619010568972; hardware_ts: 1619010568917
+I0528 16:29:37.440071 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:37.440699 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:37.443300 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.596 milliseconds
+I0528 16:29:37.604719 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233777605; send_ts: 1619010569136; hardware_ts: 1619010569084
+I0528 16:29:37.767874 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233777768; send_ts: 1619010569300; hardware_ts: 1619010569250
+I0528 16:29:37.767951 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:37.768415 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:37.771782 13576 rs-integrate-server.cpp:497] Volume Integration took: 3.361 milliseconds
+I0528 16:29:37.936105 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233777936; send_ts: 1619010569468; hardware_ts: 1619010569417
+I0528 16:29:38.103479 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233778103; send_ts: 1619010569635; hardware_ts: 1619010569583
+I0528 16:29:38.103544 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:38.104018 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:38.106513 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.492 milliseconds
+I0528 16:29:38.270205 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233778270; send_ts: 1619010569802; hardware_ts: 1619010569750
+I0528 16:29:38.436026 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233778436; send_ts: 1619010569968; hardware_ts: 1619010569916
+I0528 16:29:38.436064 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:38.436591 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:38.439364 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.769 milliseconds
+I0528 16:29:38.602843 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233778603; send_ts: 1619010570135; hardware_ts: 1619010570083
+I0528 16:29:38.768052 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233778768; send_ts: 1619010570300; hardware_ts: 1619010570249
+I0528 16:29:38.768097 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:38.768612 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:38.771078 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.462 milliseconds
+I0528 16:29:38.936173 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233778936; send_ts: 1619010570468; hardware_ts: 1619010570416
+I0528 16:29:39.102342 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233779102; send_ts: 1619010570634; hardware_ts: 1619010570583
+I0528 16:29:39.102371 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:39.102859 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:39.105453 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.591 milliseconds
+I0528 16:29:39.267436 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233779267; send_ts: 1619010570799; hardware_ts: 1619010570749
+I0528 16:29:39.535959 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233779536; send_ts: 1619010571068; hardware_ts: 1619010571016
+I0528 16:29:39.535988 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:39.536506 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:39.539271 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.761 milliseconds
+I0528 16:29:39.701853 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233779702; send_ts: 1619010571234; hardware_ts: 1619010571182
+I0528 16:29:39.866199 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233779866; send_ts: 1619010571398; hardware_ts: 1619010571349
+I0528 16:29:39.866267 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:39.866808 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:39.869429 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.617 milliseconds
+I0528 16:29:40.034863 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233780035; send_ts: 1619010571567; hardware_ts: 1619010571515
+I0528 16:29:40.202296 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233780202; send_ts: 1619010571734; hardware_ts: 1619010571682
+I0528 16:29:40.202400 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:40.203251 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:40.205811 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.555 milliseconds
+I0528 16:29:40.372267 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233780372; send_ts: 1619010571904; hardware_ts: 1619010571848
+I0528 16:29:40.532178 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233780532; send_ts: 1619010572064; hardware_ts: 1619010572015
+I0528 16:29:40.532219 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:40.532912 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:40.535845 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.929 milliseconds
+I0528 16:29:40.699914 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233780700; send_ts: 1619010572232; hardware_ts: 1619010572181
+I0528 16:29:40.867388 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233780867; send_ts: 1619010572399; hardware_ts: 1619010572348
+I0528 16:29:40.867449 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:40.868100 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:40.871670 13576 rs-integrate-server.cpp:497] Volume Integration took: 3.564 milliseconds
+I0528 16:29:41.033913 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233781034; send_ts: 1619010572566; hardware_ts: 1619010572514
+I0528 16:29:41.201275 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233781201; send_ts: 1619010572733; hardware_ts: 1619010572681
+I0528 16:29:41.201335 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:41.201864 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:41.205175 13576 rs-integrate-server.cpp:497] Volume Integration took: 3.308 milliseconds
+I0528 16:29:41.366883 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233781367; send_ts: 1619010572899; hardware_ts: 1619010572848
+I0528 16:29:41.533141 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233781533; send_ts: 1619010573065; hardware_ts: 1619010573014
+I0528 16:29:41.533185 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:41.533705 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:41.536554 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.845 milliseconds
+I0528 16:29:41.699998 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233781700; send_ts: 1619010573232; hardware_ts: 1619010573181
+I0528 16:29:41.864002 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233781864; send_ts: 1619010573396; hardware_ts: 1619010573347
+I0528 16:29:41.864085 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:41.864527 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:41.867365 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.834 milliseconds
+I0528 16:29:42.032598 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233782033; send_ts: 1619010573564; hardware_ts: 1619010573514
+I0528 16:29:42.196249 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233782196; send_ts: 1619010573728; hardware_ts: 1619010573680
+I0528 16:29:42.364435 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233782364; send_ts: 1619010573896; hardware_ts: 1619010573847
+I0528 16:29:42.364500 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:42.365051 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:42.367719 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.665 milliseconds
+I0528 16:29:42.532524 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233782533; send_ts: 1619010574064; hardware_ts: 1619010574013
+I0528 16:29:42.698920 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233782699; send_ts: 1619010574231; hardware_ts: 1619010574180
+I0528 16:29:42.699025 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:42.699574 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:42.701978 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.400 milliseconds
+I0528 16:29:42.863368 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233782863; send_ts: 1619010574395; hardware_ts: 1619010574345
+I0528 16:29:43.036118 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233783036; send_ts: 1619010574568; hardware_ts: 1619010574518
+I0528 16:29:43.036206 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:43.036720 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:43.039743 13576 rs-integrate-server.cpp:497] Volume Integration took: 3.020 milliseconds
+I0528 16:29:43.181607 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233783182; send_ts: 1619010574713; hardware_ts: 1619010574661
+I0528 16:29:43.349130 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233783349; send_ts: 1619010574881; hardware_ts: 1619010574831
+I0528 16:29:43.349201 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:43.349669 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:43.352372 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.699 milliseconds
+I0528 16:29:43.514619 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233783515; send_ts: 1619010575047; hardware_ts: 1619010574998
+I0528 16:29:43.683598 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233783684; send_ts: 1619010575215; hardware_ts: 1619010575164
+I0528 16:29:43.683647 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:43.684068 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:43.686491 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.419 milliseconds
+I0528 16:29:43.884496 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233783884; send_ts: 1619010575416; hardware_ts: 1619010575364
+I0528 16:29:44.048110 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233784048; send_ts: 1619010575580; hardware_ts: 1619010575530
+I0528 16:29:44.048141 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:44.048632 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:44.050909 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.272 milliseconds
+I0528 16:29:44.214313 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233784214; send_ts: 1619010575746; hardware_ts: 1619010575697
+I0528 16:29:44.383618 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233784384; send_ts: 1619010575915; hardware_ts: 1619010575864
+I0528 16:29:44.383661 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:44.384310 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:44.386749 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.434 milliseconds
+I0528 16:29:44.549238 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233784549; send_ts: 1619010576081; hardware_ts: 1619010576030
+I0528 16:29:44.714154 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233784714; send_ts: 1619010576246; hardware_ts: 1619010576197
+I0528 16:29:44.714226 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:44.714987 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:44.717597 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.599 milliseconds
+I0528 16:29:44.881811 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233784882; send_ts: 1619010576414; hardware_ts: 1619010576363
+I0528 16:29:45.048975 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233785049; send_ts: 1619010576581; hardware_ts: 1619010576530
+I0528 16:29:45.049042 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:45.049700 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:45.052867 13576 rs-integrate-server.cpp:497] Volume Integration took: 3.163 milliseconds
+I0528 16:29:45.215582 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233785216; send_ts: 1619010576747; hardware_ts: 1619010576696
+I0528 16:29:45.382143 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233785382; send_ts: 1619010576914; hardware_ts: 1619010576863
+I0528 16:29:45.382212 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:45.382602 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:45.384714 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.107 milliseconds
+I0528 16:29:45.551383 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233785551; send_ts: 1619010577083; hardware_ts: 1619010577029
+I0528 16:29:45.715787 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233785716; send_ts: 1619010577247; hardware_ts: 1619010577196
+I0528 16:29:45.882839 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233785883; send_ts: 1619010577415; hardware_ts: 1619010577362
+I0528 16:29:45.882939 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:45.883440 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:45.886646 13576 rs-integrate-server.cpp:497] Volume Integration took: 3.199 milliseconds
+I0528 16:29:46.049378 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233786049; send_ts: 1619010577581; hardware_ts: 1619010577529
+I0528 16:29:46.215404 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233786215; send_ts: 1619010577747; hardware_ts: 1619010577695
+I0528 16:29:46.215468 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:46.215966 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:46.219022 13576 rs-integrate-server.cpp:497] Volume Integration took: 3.051 milliseconds
+I0528 16:29:46.382325 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233786382; send_ts: 1619010577914; hardware_ts: 1619010577862
+I0528 16:29:46.548864 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233786549; send_ts: 1619010578081; hardware_ts: 1619010578028
+I0528 16:29:46.716017 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233786716; send_ts: 1619010578248; hardware_ts: 1619010578195
+I0528 16:29:46.716089 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:46.716562 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:46.719175 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.607 milliseconds
+I0528 16:29:46.880506 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233786880; send_ts: 1619010578412; hardware_ts: 1619010578362
+I0528 16:29:47.049633 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233787050; send_ts: 1619010578581; hardware_ts: 1619010578528
+I0528 16:29:47.215394 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233787215; send_ts: 1619010578747; hardware_ts: 1619010578695
+I0528 16:29:47.215461 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:47.216086 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:47.218848 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.756 milliseconds
+I0528 16:29:47.388795 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233787389; send_ts: 1619010578921; hardware_ts: 1619010578860
+I0528 16:29:47.550949 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233787551; send_ts: 1619010579083; hardware_ts: 1619010579033
+I0528 16:29:47.551025 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:47.551729 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:47.554082 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.346 milliseconds
+I0528 16:29:47.728811 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233787729; send_ts: 1619010579261; hardware_ts: 1619010579212
+I0528 16:29:47.899068 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233787899; send_ts: 1619010579431; hardware_ts: 1619010579380
+I0528 16:29:47.899154 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:47.899829 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:47.902740 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.907 milliseconds
+I0528 16:29:48.064950 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233788065; send_ts: 1619010579597; hardware_ts: 1619010579546
+I0528 16:29:48.233517 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233788234; send_ts: 1619010579765; hardware_ts: 1619010579713
+I0528 16:29:48.233587 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:48.234052 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:48.236517 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.461 milliseconds
+I0528 16:29:48.397313 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233788397; send_ts: 1619010579929; hardware_ts: 1619010579879
+I0528 16:29:48.564457 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233788564; send_ts: 1619010580096; hardware_ts: 1619010580046
+I0528 16:29:48.564491 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:48.565016 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:48.567376 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.357 milliseconds
+I0528 16:29:48.733278 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233788733; send_ts: 1619010580265; hardware_ts: 1619010580212
+I0528 16:29:48.898370 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233788898; send_ts: 1619010580430; hardware_ts: 1619010580379
+I0528 16:29:48.898448 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:48.899092 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:48.901827 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.730 milliseconds
+I0528 16:29:49.064280 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233789064; send_ts: 1619010580596; hardware_ts: 1619010580545
+I0528 16:29:49.229131 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233789229; send_ts: 1619010580761; hardware_ts: 1619010580712
+I0528 16:29:49.229194 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:49.229655 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:49.232082 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.424 milliseconds
+I0528 16:29:49.397969 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233789398; send_ts: 1619010580930; hardware_ts: 1619010580878
+I0528 16:29:49.592185 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233789592; send_ts: 1619010581124; hardware_ts: 1619010581012
+I0528 16:29:49.592237 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:49.592762 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:49.595059 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.293 milliseconds
+I0528 16:29:49.750010 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233789750; send_ts: 1619010581282; hardware_ts: 1619010581179
+I0528 16:29:49.912689 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233789913; send_ts: 1619010581444; hardware_ts: 1619010581394
+I0528 16:29:49.912747 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:49.913692 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:49.915977 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.281 milliseconds
+I0528 16:29:50.096750 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233790097; send_ts: 1619010581629; hardware_ts: 1619010581577
+I0528 16:29:50.271747 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233790272; send_ts: 1619010581804; hardware_ts: 1619010581719
+I0528 16:29:50.271811 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:50.272447 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:50.275352 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.900 milliseconds
+I0528 16:29:50.415513 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233790416; send_ts: 1619010581947; hardware_ts: 1619010581896
+I0528 16:29:50.591120 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233790591; send_ts: 1619010582123; hardware_ts: 1619010582074
+I0528 16:29:50.591192 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:50.591672 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:50.594120 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.444 milliseconds
+I0528 16:29:50.772449 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233790772; send_ts: 1619010582304; hardware_ts: 1619010582253
+I0528 16:29:50.918067 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233790918; send_ts: 1619010582450; hardware_ts: 1619010582396
+I0528 16:29:50.918258 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:50.918881 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:50.921583 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.697 milliseconds
+I0528 16:29:51.095822 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233791096; send_ts: 1619010582628; hardware_ts: 1619010582578
+I0528 16:29:51.245795 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233791246; send_ts: 1619010582778; hardware_ts: 1619010582725
+I0528 16:29:51.245829 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:51.246421 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:51.248819 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.394 milliseconds
+I0528 16:29:51.431972 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233791432; send_ts: 1619010582964; hardware_ts: 1619010582913
+I0528 16:29:51.585237 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233791585; send_ts: 1619010583117; hardware_ts: 1619010583066
+I0528 16:29:51.775745 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233791776; send_ts: 1619010583308; hardware_ts: 1619010583219
+I0528 16:29:51.775784 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:51.776499 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:51.779289 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.785 milliseconds
+I0528 16:29:51.929771 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233791930; send_ts: 1619010583462; hardware_ts: 1619010583411
+I0528 16:29:52.083731 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233792084; send_ts: 1619010583615; hardware_ts: 1619010583564
+I0528 16:29:52.083772 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:52.084479 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:52.087127 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.644 milliseconds
+I0528 16:29:52.275933 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233792276; send_ts: 1619010583808; hardware_ts: 1619010583717
+I0528 16:29:52.424504 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233792424; send_ts: 1619010583956; hardware_ts: 1619010583907
+I0528 16:29:52.424576 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:52.425288 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:52.428071 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.775 milliseconds
+I0528 16:29:52.581457 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233792581; send_ts: 1619010584113; hardware_ts: 1619010584057
+I0528 16:29:52.758013 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233792758; send_ts: 1619010584290; hardware_ts: 1619010584240
+I0528 16:29:52.938328 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233792938; send_ts: 1619010584470; hardware_ts: 1619010584385
+I0528 16:29:52.938428 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:52.938967 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:52.942198 13576 rs-integrate-server.cpp:497] Volume Integration took: 3.226 milliseconds
+I0528 16:29:53.084690 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233793085; send_ts: 1619010584616; hardware_ts: 1619010584565
+I0528 16:29:53.262219 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233793262; send_ts: 1619010584794; hardware_ts: 1619010584744
+I0528 16:29:53.262307 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:53.262888 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:53.265998 13576 rs-integrate-server.cpp:497] Volume Integration took: 3.104 milliseconds
+I0528 16:29:53.420843 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233793421; send_ts: 1619010584953; hardware_ts: 1619010584887
+I0528 16:29:53.586027 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233793586; send_ts: 1619010585118; hardware_ts: 1619010585065
+I0528 16:29:53.586127 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:53.586742 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:53.589648 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.901 milliseconds
+I0528 16:29:53.762679 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233793763; send_ts: 1619010585294; hardware_ts: 1619010585243
+I0528 16:29:53.937629 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233793938; send_ts: 1619010585469; hardware_ts: 1619010585385
+I0528 16:29:54.081779 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233794082; send_ts: 1619010585614; hardware_ts: 1619010585562
+I0528 16:29:54.081856 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:54.082554 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:54.084899 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.340 milliseconds
+I0528 16:29:54.258540 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233794259; send_ts: 1619010585790; hardware_ts: 1619010585738
+I0528 16:29:54.435657 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233794436; send_ts: 1619010585967; hardware_ts: 1619010585916
+I0528 16:29:54.578660 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233794579; send_ts: 1619010586110; hardware_ts: 1619010586059
+I0528 16:29:54.578714 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:54.579337 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:54.581575 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.235 milliseconds
+I0528 16:29:54.755831 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233794756; send_ts: 1619010586288; hardware_ts: 1619010586237
+I0528 16:29:54.936228 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233794936; send_ts: 1619010586468; hardware_ts: 1619010586417
+I0528 16:29:54.936283 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:54.936882 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:54.939711 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.824 milliseconds
+I0528 16:29:55.119293 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233795119; send_ts: 1619010586651; hardware_ts: 1619010586600
+I0528 16:29:55.303592 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233795304; send_ts: 1619010586835; hardware_ts: 1619010586785
+I0528 16:29:55.453511 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233795454; send_ts: 1619010586985; hardware_ts: 1619010586933
+I0528 16:29:55.453568 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:55.454100 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:55.457227 13576 rs-integrate-server.cpp:497] Volume Integration took: 3.123 milliseconds
+I0528 16:29:55.640131 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233795640; send_ts: 1619010587172; hardware_ts: 1619010587084
+I0528 16:29:55.832551 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233795833; send_ts: 1619010587364; hardware_ts: 1619010587313
+I0528 16:29:55.832617 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:55.833077 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:55.835536 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.456 milliseconds
+I0528 16:29:55.987200 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233795987; send_ts: 1619010587519; hardware_ts: 1619010587468
+I0528 16:29:56.145506 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233796146; send_ts: 1619010587677; hardware_ts: 1619010587625
+I0528 16:29:56.343422 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233796343; send_ts: 1619010587875; hardware_ts: 1619010587784
+I0528 16:29:56.343468 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:56.344079 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:56.347100 13576 rs-integrate-server.cpp:497] Volume Integration took: 3.017 milliseconds
+I0528 16:29:56.504029 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233796504; send_ts: 1619010588036; hardware_ts: 1619010587944
+I0528 16:29:56.667163 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233796667; send_ts: 1619010588199; hardware_ts: 1619010588147
+I0528 16:29:56.827167 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233796827; send_ts: 1619010588359; hardware_ts: 1619010588309
+I0528 16:29:56.827210 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:56.827780 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:56.829828 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.044 milliseconds
+I0528 16:29:57.031776 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233797032; send_ts: 1619010588564; hardware_ts: 1619010588512
+I0528 16:29:57.192795 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233797193; send_ts: 1619010588725; hardware_ts: 1619010588675
+I0528 16:29:57.192836 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:57.193341 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:57.195756 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.411 milliseconds
+I0528 16:29:57.357417 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233797357; send_ts: 1619010588889; hardware_ts: 1619010588840
+I0528 16:29:57.528189 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233797528; send_ts: 1619010589060; hardware_ts: 1619010589009
+I0528 16:29:57.528236 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:57.528818 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:57.531168 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.347 milliseconds
+I0528 16:29:57.701251 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233797701; send_ts: 1619010589233; hardware_ts: 1619010589181
+I0528 16:29:57.877400 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233797877; send_ts: 1619010589409; hardware_ts: 1619010589312
+I0528 16:29:57.877497 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:57.878167 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:57.880661 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.488 milliseconds
+I0528 16:29:58.019946 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233798020; send_ts: 1619010589552; hardware_ts: 1619010589489
+I0528 16:29:58.185380 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233798185; send_ts: 1619010589717; hardware_ts: 1619010589668
+I0528 16:29:58.185457 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:58.186169 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:58.189023 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.849 milliseconds
+I0528 16:29:58.367167 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233798367; send_ts: 1619010589899; hardware_ts: 1619010589847
+I0528 16:29:58.543769 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233798544; send_ts: 1619010590075; hardware_ts: 1619010589982
+I0528 16:29:58.543838 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:58.544540 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:58.547302 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.757 milliseconds
+I0528 16:29:58.690034 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233798690; send_ts: 1619010590222; hardware_ts: 1619010590160
+I0528 16:29:58.855613 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233798856; send_ts: 1619010590387; hardware_ts: 1619010590338
+I0528 16:29:58.855696 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:58.856343 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:58.859372 13576 rs-integrate-server.cpp:497] Volume Integration took: 3.025 milliseconds
+I0528 16:29:59.034601 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233799035; send_ts: 1619010590566; hardware_ts: 1619010590515
+I0528 16:29:59.210736 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233799211; send_ts: 1619010590742; hardware_ts: 1619010590648
+I0528 16:29:59.210811 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:59.211340 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:59.214262 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.916 milliseconds
+I0528 16:29:59.391288 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233799391; send_ts: 1619010590923; hardware_ts: 1619010590872
+I0528 16:29:59.569957 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233799570; send_ts: 1619010591102; hardware_ts: 1619010591006
+I0528 16:29:59.570001 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:59.570561 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:59.572876 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.310 milliseconds
+I0528 16:29:59.716589 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233799717; send_ts: 1619010591248; hardware_ts: 1619010591187
+I0528 16:29:59.884013 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233799884; send_ts: 1619010591416; hardware_ts: 1619010591367
+I0528 16:29:59.884048 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:29:59.884673 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:29:59.887372 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.695 milliseconds
+I0528 16:30:00.066130 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233800066; send_ts: 1619010591598; hardware_ts: 1619010591547
+I0528 16:30:00.246022 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233800246; send_ts: 1619010591778; hardware_ts: 1619010591683
+I0528 16:30:00.246060 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:30:00.246726 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:30:00.249449 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.719 milliseconds
+I0528 16:30:00.382653 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233800383; send_ts: 1619010591914; hardware_ts: 1619010591864
+I0528 16:30:00.566218 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233800566; send_ts: 1619010592098; hardware_ts: 1619010592047
+I0528 16:30:00.566257 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:30:00.566840 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:30:00.570056 13576 rs-integrate-server.cpp:497] Volume Integration took: 3.211 milliseconds
+I0528 16:30:00.714725 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233800715; send_ts: 1619010592246; hardware_ts: 1619010592185
+I0528 16:30:00.891932 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233800892; send_ts: 1619010592424; hardware_ts: 1619010592372
+I0528 16:30:00.891970 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:30:00.892482 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:30:00.895298 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.812 milliseconds
+I0528 16:30:01.081405 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233801081; send_ts: 1619010592613; hardware_ts: 1619010592514
+I0528 16:30:01.223155 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233801223; send_ts: 1619010592755; hardware_ts: 1619010592704
+I0528 16:30:01.223198 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:30:01.223740 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:30:01.226101 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.355 milliseconds
+I0528 16:30:01.411550 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233801412; send_ts: 1619010592943; hardware_ts: 1619010592846
+I0528 16:30:01.551869 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233801552; send_ts: 1619010593084; hardware_ts: 1619010593033
+I0528 16:30:01.551962 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:30:01.552619 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:30:01.555003 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.380 milliseconds
+I0528 16:30:01.738128 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233801738; send_ts: 1619010593270; hardware_ts: 1619010593173
+I0528 16:30:01.919562 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233801920; send_ts: 1619010593451; hardware_ts: 1619010593402
+I0528 16:30:01.919615 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:30:01.920271 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:30:01.922514 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.236 milliseconds
+I0528 16:30:02.098322 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233802098; send_ts: 1619010593630; hardware_ts: 1619010593581
+I0528 16:30:02.277621 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233802278; send_ts: 1619010593809; hardware_ts: 1619010593713
+I0528 16:30:02.447609 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233802448; send_ts: 1619010593979; hardware_ts: 1619010593931
+I0528 16:30:02.447675 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:30:02.448295 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:30:02.450567 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.267 milliseconds
+I0528 16:30:02.619781 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233802620; send_ts: 1619010594152; hardware_ts: 1619010594103
+I0528 16:30:02.793625 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233802794; send_ts: 1619010594325; hardware_ts: 1619010594275
+I0528 16:30:02.964826 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233802965; send_ts: 1619010594497; hardware_ts: 1619010594445
+I0528 16:30:02.964902 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:30:02.965507 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:30:02.967919 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.408 milliseconds
+I0528 16:30:03.131681 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233803132; send_ts: 1619010594663; hardware_ts: 1619010594613
+I0528 16:30:03.296835 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233803297; send_ts: 1619010594829; hardware_ts: 1619010594778
+I0528 16:30:03.459093 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233803459; send_ts: 1619010594991; hardware_ts: 1619010594940
+I0528 16:30:03.459163 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:30:03.459827 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:30:03.462334 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.502 milliseconds
+I0528 16:30:03.620131 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233803620; send_ts: 1619010595152; hardware_ts: 1619010595102
+I0528 16:30:03.781637 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233803782; send_ts: 1619010595313; hardware_ts: 1619010595265
+I0528 16:30:03.947180 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233803947; send_ts: 1619010595479; hardware_ts: 1619010595426
+I0528 16:30:04.119191 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233804119; send_ts: 1619010595651; hardware_ts: 1619010595588
+I0528 16:30:04.119254 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:30:04.119976 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:30:04.122845 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.864 milliseconds
+I0528 16:30:04.280228 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233804280; send_ts: 1619010595812; hardware_ts: 1619010595750
+I0528 16:30:04.472837 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233804473; send_ts: 1619010596005; hardware_ts: 1619010595913
+I0528 16:30:04.639153 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233804639; send_ts: 1619010596171; hardware_ts: 1619010596079
+I0528 16:30:04.817867 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233804818; send_ts: 1619010596350; hardware_ts: 1619010596288
+I0528 16:30:04.986672 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233804987; send_ts: 1619010596518; hardware_ts: 1619010596458
+I0528 16:30:04.986739 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:30:04.987460 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:30:04.990032 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.567 milliseconds
+I0528 16:30:05.145577 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233805146; send_ts: 1619010596677; hardware_ts: 1619010596630
+I0528 16:30:05.325273 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233805325; send_ts: 1619010596857; hardware_ts: 1619010596805
+I0528 16:30:05.500478 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233805500; send_ts: 1619010597032; hardware_ts: 1619010596981
+I0528 16:30:05.679054 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233805679; send_ts: 1619010597211; hardware_ts: 1619010597159
+I0528 16:30:05.857914 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233805858; send_ts: 1619010597390; hardware_ts: 1619010597338
+I0528 16:30:06.035593 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233806036; send_ts: 1619010597567; hardware_ts: 1619010597471
+I0528 16:30:06.035670 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:30:06.036270 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:30:06.038662 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.388 milliseconds
+I0528 16:30:06.178104 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233806178; send_ts: 1619010597710; hardware_ts: 1619010597649
+I0528 16:30:06.345815 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233806346; send_ts: 1619010597878; hardware_ts: 1619010597827
+I0528 16:30:06.524340 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233806524; send_ts: 1619010598056; hardware_ts: 1619010598004
+I0528 16:30:06.524401 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:30:06.525018 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:30:06.527385 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.361 milliseconds
+I0528 16:30:06.699939 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233806700; send_ts: 1619010598232; hardware_ts: 1619010598180
+I0528 16:30:06.876173 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233806876; send_ts: 1619010598408; hardware_ts: 1619010598311
+I0528 16:30:07.015204 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233807015; send_ts: 1619010598547; hardware_ts: 1619010598486
+I0528 16:30:07.015270 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:30:07.016010 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:30:07.018669 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.654 milliseconds
+I0528 16:30:07.179859 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233807180; send_ts: 1619010598712; hardware_ts: 1619010598660
+I0528 16:30:07.352823 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233807353; send_ts: 1619010598885; hardware_ts: 1619010598833
+I0528 16:30:07.520556 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233807521; send_ts: 1619010599052; hardware_ts: 1619010599002
+I0528 16:30:07.520608 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:30:07.521379 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:30:07.524190 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.805 milliseconds
+I0528 16:30:07.688796 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233807689; send_ts: 1619010599221; hardware_ts: 1619010599171
+I0528 16:30:07.856412 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233807856; send_ts: 1619010599388; hardware_ts: 1619010599338
+I0528 16:30:07.856492 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:30:07.857074 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:30:07.859711 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.634 milliseconds
+I0528 16:30:08.023449 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233808023; send_ts: 1619010599555; hardware_ts: 1619010599504
+I0528 16:30:08.185451 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233808185; send_ts: 1619010599717; hardware_ts: 1619010599669
+I0528 16:30:08.351111 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233808351; send_ts: 1619010599883; hardware_ts: 1619010599833
+I0528 16:30:08.351161 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:30:08.351861 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:30:08.354534 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.668 milliseconds
+I0528 16:30:08.514685 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233808515; send_ts: 1619010600046; hardware_ts: 1619010599996
+I0528 16:30:08.675879 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233808676; send_ts: 1619010600208; hardware_ts: 1619010600158
+I0528 16:30:08.848546 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233808849; send_ts: 1619010600380; hardware_ts: 1619010600319
+I0528 16:30:09.038735 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233809039; send_ts: 1619010600570; hardware_ts: 1619010600480
+I0528 16:30:09.038810 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:30:09.039512 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:30:09.041980 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.463 milliseconds
+I0528 16:30:09.201390 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233809201; send_ts: 1619010600733; hardware_ts: 1619010600641
+I0528 16:30:09.363255 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233809363; send_ts: 1619010600895; hardware_ts: 1619010600842
+I0528 16:30:09.521672 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233809522; send_ts: 1619010601053; hardware_ts: 1619010601004
+I0528 16:30:09.521745 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:30:09.522465 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:30:09.525327 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.857 milliseconds
+I0528 16:30:09.684504 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233809684; send_ts: 1619010601216; hardware_ts: 1619010601166
+I0528 16:30:09.848018 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233809848; send_ts: 1619010601380; hardware_ts: 1619010601328
+I0528 16:30:10.010955 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233810011; send_ts: 1619010601543; hardware_ts: 1619010601491
+I0528 16:30:10.176636 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233810177; send_ts: 1619010601708; hardware_ts: 1619010601655
+I0528 16:30:10.176738 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:30:10.177445 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:30:10.180215 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.766 milliseconds
+I0528 16:30:10.348987 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233810349; send_ts: 1619010601881; hardware_ts: 1619010601820
+I0528 16:30:10.511154 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233810511; send_ts: 1619010602043; hardware_ts: 1619010601983
+I0528 16:30:10.706918 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233810707; send_ts: 1619010602239; hardware_ts: 1619010602145
+I0528 16:30:10.868083 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233810868; send_ts: 1619010602400; hardware_ts: 1619010602308
+I0528 16:30:10.868122 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:30:10.868832 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:30:10.871217 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.381 milliseconds
+I0528 16:30:11.029212 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233811029; send_ts: 1619010602561; hardware_ts: 1619010602510
+I0528 16:30:11.191586 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233811192; send_ts: 1619010602723; hardware_ts: 1619010602673
+I0528 16:30:11.191641 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:30:11.192334 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:30:11.195035 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.697 milliseconds
+I0528 16:30:11.351333 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233811351; send_ts: 1619010602883; hardware_ts: 1619010602834
+I0528 16:30:11.512651 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233811513; send_ts: 1619010603044; hardware_ts: 1619010602994
+I0528 16:30:11.512686 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:30:11.513260 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:30:11.515652 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.388 milliseconds
+I0528 16:30:11.675802 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233811676; send_ts: 1619010603208; hardware_ts: 1619010603153
+I0528 16:30:11.876799 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233811877; send_ts: 1619010603409; hardware_ts: 1619010603311
+I0528 16:30:11.876834 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:30:11.877506 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:30:11.880010 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.502 milliseconds
+I0528 16:30:12.027254 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233812027; send_ts: 1619010603559; hardware_ts: 1619010603507
+I0528 16:30:12.181701 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233812182; send_ts: 1619010603714; hardware_ts: 1619010603663
+I0528 16:30:12.181747 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:30:12.182392 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:30:12.184725 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.329 milliseconds
+I0528 16:30:12.348091 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233812348; send_ts: 1619010603880; hardware_ts: 1619010603818
+I0528 16:30:12.528292 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233812528; send_ts: 1619010604060; hardware_ts: 1619010604009
+I0528 16:30:12.528374 13576 rs-integrate-server.cpp:467] Pose Changed
+I0528 16:30:12.529012 13576 rs-integrate-server.cpp:492] Integrating Default
+I0528 16:30:12.531352 13576 rs-integrate-server.cpp:497] Volume Integration took: 2.336 milliseconds
+I0528 16:30:12.674474 12224 rs-integrate-server.cpp:229] Received Integrate Scene Request STOP: Default
+I0528 16:30:12.674491 12224 rs-integrate-server.cpp:283] Updating Pre Multiply Matrix
+I0528 16:30:12.674495 12224 rs-integrate-server.cpp:289] Updating Post Multiply Matrix
+I0528 16:30:12.674497 12224 rs-integrate-server.cpp:294] Premultiply matrix: 00 00 -1 00
+01 00 00 00
+00 -1 00 00
+00 00 00 01
+I0528 16:30:12.674543 12224 rs-integrate-server.cpp:295] PostMultiply matrix: 000000000001 000000000000 000000000000 000000000000
+000000000000 -2.22045e-16 0000000000-1 000000000000
+000000000000 000000000001 -2.22045e-16 000000000.07
+000000000000 000000000000 000000000000 000000000001
+I0528 16:30:12.680312 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233812680; send_ts: 1619010604212; hardware_ts: 1619010604162
+I0528 16:30:12.845129 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233812845; send_ts: 1619010604377; hardware_ts: 1619010604315
+I0528 16:30:13.023384 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233813023; send_ts: 1619010604555; hardware_ts: 1619010604506
+I0528 16:30:13.179352 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233813179; send_ts: 1619010604711; hardware_ts: 1619010604660
+I0528 16:30:13.342722 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233813343; send_ts: 1619010604875; hardware_ts: 1619010604814
+I0528 16:30:13.527956 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233813528; send_ts: 1619010605060; hardware_ts: 1619010605008
+I0528 16:30:13.720297 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233813720; send_ts: 1619010605252; hardware_ts: 1619010605203
+I0528 16:30:13.845227 12224 rs-integrate-server.cpp:379] Received Extract Request MESH: Default
+I0528 16:30:13.862887 12224 rs-integrate-server.cpp:371] Mesh Extraction took: 17.527; Half Edge Extraction: 0.000; Serialization: 0.109
+I0528 16:30:13.862906 12224 rs-integrate-server.cpp:372] Vertices: 11174; Triangles: 21520
+I0528 16:30:13.876221 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233813876; send_ts: 1619010605408; hardware_ts: 1619010605358
+I0528 16:30:14.069501 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233814069; send_ts: 1619010605601; hardware_ts: 1619010605513
+I0528 16:30:14.265558 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233814266; send_ts: 1619010605797; hardware_ts: 1619010605709
+I0528 16:30:14.465423 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233814465; send_ts: 1619010605997; hardware_ts: 1619010605907
+I0528 16:30:14.665652 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233814666; send_ts: 1619010606197; hardware_ts: 1619010606107
+I0528 16:30:14.864526 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233814865; send_ts: 1619010606396; hardware_ts: 1619010606308
+I0528 16:30:15.068742 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233815069; send_ts: 1619010606600; hardware_ts: 1619010606509
+I0528 16:30:15.269680 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233815270; send_ts: 1619010606801; hardware_ts: 1619010606712
+I0528 16:30:15.445744 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233815446; send_ts: 1619010606978; hardware_ts: 1619010606917
+I0528 16:30:15.611944 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233815612; send_ts: 1619010607144; hardware_ts: 1619010607083
+I0528 16:30:15.811985 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233815812; send_ts: 1619010607344; hardware_ts: 1619010607294
+I0528 16:30:15.983469 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233815983; send_ts: 1619010607515; hardware_ts: 1619010607467
+I0528 16:30:16.159302 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233816159; send_ts: 1619010607691; hardware_ts: 1619010607641
+I0528 16:30:16.337289 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233816337; send_ts: 1619010607869; hardware_ts: 1619010607774
+I0528 16:30:16.482184 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233816482; send_ts: 1619010608014; hardware_ts: 1619010607953
+I0528 16:30:16.650693 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233816651; send_ts: 1619010608183; hardware_ts: 1619010608132
+I0528 16:30:16.829174 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233816829; send_ts: 1619010608361; hardware_ts: 1619010608311
+I0528 16:30:16.978178 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233816978; send_ts: 1619010608510; hardware_ts: 1619010608448
+I0528 16:30:17.149768 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233817150; send_ts: 1619010608682; hardware_ts: 1619010608632
+I0528 16:30:17.333536 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233817334; send_ts: 1619010608865; hardware_ts: 1619010608770
+I0528 16:30:17.483146 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233817483; send_ts: 1619010609015; hardware_ts: 1619010608954
+I0528 16:30:17.661410 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233817661; send_ts: 1619010609193; hardware_ts: 1619010609141
+I0528 16:30:17.813215 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233817813; send_ts: 1619010609345; hardware_ts: 1619010609282
+I0528 16:30:17.989058 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233817989; send_ts: 1619010609521; hardware_ts: 1619010609472
+I0528 16:30:18.145169 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233818145; send_ts: 1619010609677; hardware_ts: 1619010609616
+I0528 16:30:18.329457 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233818329; send_ts: 1619010609861; hardware_ts: 1619010609809
+I0528 16:30:18.522855 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233818523; send_ts: 1619010610055; hardware_ts: 1619010610005
+I0528 16:30:18.682106 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233818682; send_ts: 1619010610214; hardware_ts: 1619010610153
+I0528 16:30:18.869237 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233818869; send_ts: 1619010610401; hardware_ts: 1619010610302
+I0528 16:30:19.017530 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233819018; send_ts: 1619010610549; hardware_ts: 1619010610500
+I0528 16:30:19.180452 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233819180; send_ts: 1619010610712; hardware_ts: 1619010610650
+I0528 16:30:19.368710 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233819369; send_ts: 1619010610900; hardware_ts: 1619010610800
+I0528 16:30:19.522330 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233819522; send_ts: 1619010611054; hardware_ts: 1619010611003
+I0528 16:30:19.685063 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233819685; send_ts: 1619010611217; hardware_ts: 1619010611156
+I0528 16:30:19.879282 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233819879; send_ts: 1619010611411; hardware_ts: 1619010611310
+I0528 16:30:20.033327 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233820033; send_ts: 1619010611565; hardware_ts: 1619010611464
+I0528 16:30:20.188630 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233820189; send_ts: 1619010611720; hardware_ts: 1619010611670
+I0528 16:30:20.355765 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233820356; send_ts: 1619010611888; hardware_ts: 1619010611825
+I0528 16:30:20.509948 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233820510; send_ts: 1619010612042; hardware_ts: 1619010611980
+I0528 16:30:20.699291 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233820699; send_ts: 1619010612231; hardware_ts: 1619010612132
+I0528 16:30:20.850944 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233820851; send_ts: 1619010612383; hardware_ts: 1619010612332
+I0528 16:30:21.009088 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233821009; send_ts: 1619010612541; hardware_ts: 1619010612480
+I0528 16:30:21.195041 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233821195; send_ts: 1619010612727; hardware_ts: 1619010612675
+I0528 16:30:21.348373 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233821348; send_ts: 1619010612880; hardware_ts: 1619010612819
+I0528 16:30:21.527611 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233821528; send_ts: 1619010613059; hardware_ts: 1619010613008
+I0528 16:30:21.678717 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233821679; send_ts: 1619010613210; hardware_ts: 1619010613148
+I0528 16:30:21.851509 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233821852; send_ts: 1619010613383; hardware_ts: 1619010613332
+I0528 16:30:22.034397 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233822034; send_ts: 1619010613566; hardware_ts: 1619010613470
+I0528 16:30:22.184340 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233822184; send_ts: 1619010613716; hardware_ts: 1619010613653
+I0528 16:30:22.351895 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233822352; send_ts: 1619010613884; hardware_ts: 1619010613834
+I0528 16:30:22.532263 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233822532; send_ts: 1619010614064; hardware_ts: 1619010613969
+I0528 16:30:22.677719 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233822678; send_ts: 1619010614209; hardware_ts: 1619010614147
+I0528 16:30:22.842031 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233822842; send_ts: 1619010614374; hardware_ts: 1619010614324
+I0528 16:30:23.020615 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233823021; send_ts: 1619010614552; hardware_ts: 1619010614500
+I0528 16:30:23.192950 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233823193; send_ts: 1619010614725; hardware_ts: 1619010614674
+I0528 16:30:23.368369 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233823368; send_ts: 1619010614900; hardware_ts: 1619010614805
+I0528 16:30:23.506851 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233823507; send_ts: 1619010615039; hardware_ts: 1619010614977
+I0528 16:30:23.677804 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233823678; send_ts: 1619010615210; hardware_ts: 1619010615148
+I0528 16:30:23.849911 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233823850; send_ts: 1619010615382; hardware_ts: 1619010615318
+I0528 16:30:24.009380 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233824009; send_ts: 1619010615541; hardware_ts: 1619010615488
+I0528 16:30:24.178210 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233824178; send_ts: 1619010615710; hardware_ts: 1619010615660
+I0528 16:30:24.354985 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233824355; send_ts: 1619010615887; hardware_ts: 1619010615838
+I0528 16:30:24.538652 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233824539; send_ts: 1619010616070; hardware_ts: 1619010615974
+I0528 16:30:24.721362 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233824721; send_ts: 1619010616253; hardware_ts: 1619010616204
+I0528 16:30:24.913583 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233824914; send_ts: 1619010616445; hardware_ts: 1619010616386
+I0528 16:30:25.082434 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233825082; send_ts: 1619010616614; hardware_ts: 1619010616564
+I0528 16:30:25.258205 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233825258; send_ts: 1619010616790; hardware_ts: 1619010616737
+I0528 16:30:25.424688 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233825425; send_ts: 1619010616956; hardware_ts: 1619010616906
+I0528 16:30:25.591882 13576 rs-integrate-server.cpp:436] Received RGBDMessage; now: 1622233825592; send_ts: 1619010617124; hardware_ts: 1619010617071
+I0528 16:30:25.752451 13576 rs-integrate-serve

@@ -1,7 +1,7 @@
 import open3d as o3d
 import numpy as np
 from .LineMesh import LineMesh
-from open3d.cpu.pybind.geometry import TriangleMesh
+# from open3d.geometry import TriangleMesh
 from descartes import PolygonPatch
 from shapely.geometry import Polygon
 # from .LineMesh import LineMesh
@@ -15,7 +15,7 @@ PURPLE = [199/255, 36/255, 177/255]
 
 
 class _MeshTransmissionFormat:
-    def __init__(self, mesh: TriangleMesh):
+    def __init__(self, mesh: o3d.geometry.TriangleMesh):
         self.triangle_material_ids = np.array(mesh.triangle_material_ids)
         self.triangle_normals = np.array(mesh.triangle_normals)
         self.triangle_uvs = np.array(mesh.triangle_uvs)
@@ -25,8 +25,8 @@ class _MeshTransmissionFormat:
         self.vertex_normals = np.array(mesh.vertex_normals)
         self.vertices = np.array(mesh.vertices)
 
-    def create_mesh(self) -> TriangleMesh:
-        mesh = TriangleMesh()
+    def create_mesh(self) -> o3d.geometry.TriangleMesh:
+        mesh = o3d.geometry.TriangleMesh()
 
         mesh.triangle_material_ids = o3d.utility.IntVector(self.triangle_material_ids)
         mesh.triangle_normals = o3d.utility.Vector3dVector(self.triangle_normals)
