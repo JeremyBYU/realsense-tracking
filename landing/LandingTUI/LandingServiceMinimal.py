@@ -221,18 +221,16 @@ class LandingService(object):
                 rtn_value = 1
                 rtn_msg = "Integration has not started"
         elif this_request == "integrated_remove":
-            if self.completed_integration:
-                request.type = REMOVE
-                request.scene = "Default"
-                request_string = request.SerializeToString()
-                _ = self.integration_client.call_method("IntegrateScene", request_string)
-                logger.info("Removing %s volume integration", request.scene)
-                self.active_integration = False
-                self.completed_integration = False
-            else:
-                logger.warn("Integration has not started")
-                rtn_value = 1
-                rtn_msg = "Integration has not started"
+            request.type = REMOVE
+            request.scene = "Default"
+            request_string = request.SerializeToString()
+            _ = self.integration_client.call_method("IntegrateScene", request_string)
+            logger.info("Removing %s volume integration", request.scene)
+            self.active_integration = False
+            self.completed_integration = False
+            if not self.completed_integration:
+                logger.warn("Integration has not started (at least not by this process). I will still forward the request to the server")
+
         elif this_request == "integrated_extract":
             if self.active_integration or self.completed_integration:
                 request = ExtractRequest()
@@ -344,6 +342,10 @@ class LandingService(object):
 
     def initiate_landing(self, request):
         logger.info("'Initiate Landing method called with: %s", request)
+
+        if self.config['serial']['disable_commands']:
+            logger.error("Disabled landing commands. Will not send serial command!")
+            return
 
         if request == "land_single":
             if len(self.single_scan_touchdowns) > 0 and self.active_single_scan:
