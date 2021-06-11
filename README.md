@@ -160,6 +160,8 @@ You must be inside the docker container when executing this script
 
 1. `./scripts/dependencies/gather_all.sh`
 
+You can launch the binaries in parallel with this command: `parallel --verbose --linebuffer ::: scripts/launch/launch_rspub.sh scripts/launch/launch_integrate.sh`
+
 
 #### X86_64
 
