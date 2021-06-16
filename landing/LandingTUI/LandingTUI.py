@@ -91,8 +91,8 @@ class App:
         self.root.run_on_exit(self.exit_fn)
 
     def exit_fn(self):
-        pass
-        # self.ls.save_data()
+        # pass
+        self.ls.save_data()
 
     def toggle_single(self, on=True):
         self.ls.activate_single_scan_touchdown(on)

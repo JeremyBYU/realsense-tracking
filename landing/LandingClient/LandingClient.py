@@ -185,11 +185,11 @@ class Window(QWidget):
                 tp.paint_uniform_color([0, 0.0, 1])
                 geoms.append(tp)
             o3d.visualization.draw_geometries([self.o3d_mesh, axis_frame, *geoms], width=800, height=600)
-            # fname, ok = QInputDialog.getText(self, 'Save Mesh?', 'Enter File Name or leave blank to skip saving:')
-            # if fname != "":
-            #     data = dict(mesh=_MeshTransmissionFormat(self.o3d_mesh), polygon=self.integrated_polygon, tp=self.integrated_touchdown_point, tp_dist=self.integrated_touchdown_dist)
-            #     with open(f"assets/data/{fname}",'wb') as fp:
-            #         pickle.dump(data, fp)
+            fname, ok = QInputDialog.getText(self, 'Save Mesh?', 'Enter File Name or leave blank to skip saving:')
+            if fname != "":
+                data = dict(mesh=_MeshTransmissionFormat(self.o3d_mesh), polygon=self.integrated_polygon, tp=self.integrated_touchdown_point, tp_dist=self.integrated_touchdown_dist)
+                with open(f"assets/data/{fname}",'wb') as fp:
+                    pickle.dump(data, fp)
 
         else:
             msg = QMessageBox()
