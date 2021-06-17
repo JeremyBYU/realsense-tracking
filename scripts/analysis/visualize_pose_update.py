@@ -21,7 +21,7 @@ import open3d as o3d
 import copy
 from scipy.spatial.transform import Rotation as R
 
-
+np.set_printoptions(precision=2, suppress=True)
 
 THIS_FILE = Path(__file__)
 THIS_DIR = THIS_FILE.parent
@@ -55,9 +55,9 @@ def rename_data(label_a, label_b, df):
     df = df.rename(columns=rename_dict)
     return df
 
-def compare(config, compare_dir, rc_gt_labels=rc_gt_labels, rc_t265_labels=rc_t265_labels,fake=False, fname='gt_pose.csv', time_match=False):
+def compare(config, fpath='assets/data/analysis/flightlog/test06.csv', rc_gt_labels=rc_gt_labels, rc_t265_labels=rc_t265_labels,fake=False, time_match=False):
     # Read T265 CSV file
-    df_rc = pd.read_csv(Path(compare_dir) / fname)
+    df_rc = pd.read_csv(Path(fpath))
     df_rc = df_rc[df_rc.index % 2 != 0]  # Excludes every 2nd row starting from 0
     df_rc_gt = df_rc[rc_gt_labels]
     df_rc_t265 = df_rc[rc_t265_labels]
@@ -74,11 +74,8 @@ def compare(config, compare_dir, rc_gt_labels=rc_gt_labels, rc_t265_labels=rc_t2
     df_rc_gt['pose_yaw_ned'] = df_rc_gt['pose_yaw_ned'] * RAD_TO_DEG
     df_rc_gt['hardware_ts'] = df_rc_gt['hardware_ts'].div(1000).astype(np.uint64)
 
-
     print(df_rc_gt)
     print(df_rc_t265)
-
-
 
     # Read GT or fake data
     if fake:
@@ -95,7 +92,11 @@ def compare(config, compare_dir, rc_gt_labels=rc_gt_labels, rc_t265_labels=rc_t2
     logging.info("Plotting with complete message")
     plot(df_rc_t265, df_rc_gt, use_index=True)
 
-    logging.info("Plotting with timestamps: Before Temporal Alignment")
+    bias = (df_rc_gt.iloc[:5].to_numpy() - df_rc_t265.iloc[:5].to_numpy()).mean(axis=0)
+    bias[0] = 0 # time is nothing
+    print(f"Bias Is {bias}")
+    df_rc_t265 = df_rc_t265.add(bias)
+    logging.info("Plotting with timestamps: After Bias Adjustment Alignment")
     plot(df_rc_t265, df_rc_gt)
     if time_match:
         time_diff = find_time_matching_timestamps(df_rc_t265, df_rc_gt)
@@ -169,11 +170,18 @@ def optimize_peak_linkage(a, peaks_a, meta_a, a_time,
     return time_diff
 
 
+def update_axes(ax, meter=True):
+    ax.set_xlabel('time (s)')
+    ax.set_ylabel("meters" if meter else "degrees")
 
 def plot(df_t265, df_gt, skip=10, use_index=False):
+
+    plt.rcParams.update({'font.size': 14})
     df_a = df_t265.iloc[::skip, :]
     df_b = df_gt.iloc[::skip, :]
     fig, ax = plt.subplots(nrows=2, ncols=3, sharex=True, figsize=(15, 7) )
+
+    map_label = dict(pose_tx_ned="X", pose_ty_ned="Y", pose_tz_ned="Z",pose_roll_ned='Roll', pose_pitch_ned='Pitch', pose_yaw_ned='Yaw')
 
     common_labels_matrix = np.array(common_labels[1:]).reshape((2, 3))
     for i in range(common_labels_matrix.shape[0]):
@@ -187,8 +195,9 @@ def plot(df_t265, df_gt, skip=10, use_index=False):
             b_col = index_b if use_index else df_b_x
             ax[i][j].plot(a_col, df_a[common_labels_matrix[i,j]], label='T265')
             ax[i][j].plot(b_col, df_b[common_labels_matrix[i,j]], label='GT')
-            ax[i][j].set_title(name)
+            ax[i][j].set_title(map_label[name])
             ax[i][j].legend()
+            update_axes(ax[i][j], i == 0)
 
     plt.show()
 def add_noise(df, column_name, mean=0.0, sigma=0.01):
@@ -228,8 +237,8 @@ def parse_args():
                         default="config/landing/landing.yml",
                         help='The config file',
                         )
-    parser.add_argument('--compare_dir', '-cd',
-                        default="assets/data/comp1",
+    parser.add_argument('--fpath', '-fp',
+                        default="assets/data/analysis/flightlog/test06.csv",
                         help='The directory to compare',
                         )
 
@@ -286,7 +295,7 @@ def create_bbox_to_ls(box):
             [0, 4], [1, 5], [2, 6], [3, 7]]
 
     # Use the same color for all lines
-    colors = [[1, 0, 0] for _ in range(len(lines))]
+    colors = [[0.5, 0, 0.5] for _ in range(len(lines))]
 
     line_set = o3d.geometry.LineSet()
     line_set.points = o3d.utility.Vector3dVector(points)
@@ -313,7 +322,7 @@ def plot_3d(df_t265, df_gt):
 
     o3d.utility.set_verbosity_level(o3d.utility.VerbosityLevel.Debug)
 
-    box_np = np.array([0,0,0, 10, 10, 10, 0])
+    box_np = np.array([0,0,0,0.05,3.5,3.5,0.0])
     box_ls = create_bbox_to_ls(box_np)
 
     line_t265 = []
@@ -376,8 +385,8 @@ def plot_3d(df_t265, df_gt):
             gt_frame.vertices = o3d.utility.Vector3dVector(vert_copy.copy())
             t265_frame.vertices = o3d.utility.Vector3dVector(vert_copy.copy())
 
-            update_line_set(t265_ls, line_t265, color=[1.0, 0.0, 0.0])
-            update_line_set(gt_ls, line_gt, color=[0.0, 1.0, 0.0])
+            update_line_set(t265_ls, line_t265, color=[0.12156863, 0.46666667, 0.70588235])
+            update_line_set(gt_ls, line_gt, color=[1.0, 0.49803922, 0.05490196])
 
             transform_gt_new = create_transform(p_gt)
             transform_t265_new = create_transform(p_t265)
@@ -407,6 +416,11 @@ def plot_3d(df_t265, df_gt):
         vis.update_renderer()
         time.sleep(.005)
 
+    while(True):
+        time.sleep(.005)
+        vis.poll_events()
+        vis.update_renderer()
+
     input("waiting for your input to exit")
 
 
@@ -425,7 +439,7 @@ def main():
     with open(args.config) as file:
         config = yaml.safe_load(file)
 
-    df_t265, df_gt = compare(config, args.compare_dir, fake=args.fake)
+    df_t265, df_gt = compare(config, args.fpath, fake=args.fake)
     plot_3d(df_t265, df_gt)
 
 
