@@ -8,6 +8,7 @@ dk-x86_64-build
 dk-aarch64-build
 
 assets/data/*
+!assets/data/o3d_view_default.json
 !assets/data/analysis/
 
 .ipynb_checkpoints
