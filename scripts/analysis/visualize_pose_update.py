@@ -5,16 +5,16 @@ import sys
 import time
 import logging
 import csv
-import matplotlib.pyplot as plt
+import ipdb
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
 from itertools import product
 
 
+import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
-import ecal
-import ecal.core.core as ecal_core
 import yaml
-from ecal.core.subscriber import ProtoSubscriber
 from scipy.spatial.transform import Rotation as R
 from scipy.signal import find_peaks
 import open3d as o3d
@@ -31,9 +31,7 @@ sys.path.insert(1, str(build_dir))
 build_dir = THIS_DIR.parent.parent / "cmake-build"
 sys.path.insert(1, str(build_dir))
 
-from LandingMessage_pb2 import LandingMessage
-from PoseMessage_pb2 import PoseMessage
-from landing.helper.helper_utility import setup_frames, transform_pose
+# from landing.helper.helper_utility import setup_frames, transform_pose
 
 
 logging.basicConfig(level=logging.INFO)
@@ -55,7 +53,40 @@ def rename_data(label_a, label_b, df):
     df = df.rename(columns=rename_dict)
     return df
 
+
+def align_data(df_rc_gt, df_rc_t265):
+    """Perforrms single rigid body transformation between ground truth and T265
+    """
+    gt_pose = df_rc_gt.iloc[0].to_numpy()
+    est_pose = df_rc_t265.iloc[0].to_numpy()
+
+    r_gt = R.from_euler('yxz', gt_pose[4:], degrees=True)
+    r_est = R.from_euler('yxz', est_pose[4:], degrees=True)
+
+    r_prime = r_gt.as_matrix() @ r_est.as_matrix().T
+    t_prime = gt_pose[1:4] - r_prime @ est_pose[1:4]
+
+    all_poses = df_rc_t265.iloc[:].to_numpy()[:, 1:4].T
+    new_poses = r_prime @ all_poses + np.expand_dims(t_prime, axis=1)
+
+    new_eulers = []
+    for i in range(df_rc_t265.shape[0]):
+        est_rot = df_rc_t265.iloc[i].to_numpy()[4:]
+        r_est = R.from_euler('yxz', est_rot, degrees=True).as_matrix()
+        new_rot_matrix = r_prime @ r_est
+        new_euler = R.from_matrix(new_rot_matrix).as_euler('yxz', degrees=True)
+        new_eulers.append(new_euler)
+    
+    new_eulers = np.array(new_eulers)
+    
+    df_rc_t265.iloc[:, 1:4] = new_poses.T
+    df_rc_t265.iloc[:, 4:] = new_eulers
+
+
+
 def compare(config, fpath='assets/data/analysis/flightlog/test06.csv', rc_gt_labels=rc_gt_labels, rc_t265_labels=rc_t265_labels,fake=False, time_match=False):
+    """Compare between T265 and MCS. Align Data
+    """
     # Read T265 CSV file
     df_rc = pd.read_csv(Path(fpath))
     df_rc = df_rc[df_rc.index % 2 != 0]  # Excludes every 2nd row starting from 0
@@ -74,10 +105,7 @@ def compare(config, fpath='assets/data/analysis/flightlog/test06.csv', rc_gt_lab
     df_rc_gt['pose_yaw_ned'] = df_rc_gt['pose_yaw_ned'] * RAD_TO_DEG
     df_rc_gt['hardware_ts'] = df_rc_gt['hardware_ts'].div(1000).astype(np.uint64)
 
-    print(df_rc_gt)
-    print(df_rc_t265)
-
-    # Read GT or fake data
+    # Read GT or fake data for testing
     if fake:
         df_rc_t265_cp = df_rc_t265.copy()
         df_rc_gt = fake_data(df_rc_t265_cp, offset_seconds=0)
@@ -92,11 +120,8 @@ def compare(config, fpath='assets/data/analysis/flightlog/test06.csv', rc_gt_lab
     logging.info("Plotting with complete message")
     plot(df_rc_t265, df_rc_gt, use_index=True)
 
-    bias = (df_rc_gt.iloc[:5].to_numpy() - df_rc_t265.iloc[:5].to_numpy()).mean(axis=0)
-    bias[0] = 0 # time is nothing
-    print(f"Bias Is {bias}")
-    df_rc_t265 = df_rc_t265.add(bias)
-    logging.info("Plotting with timestamps: After Bias Adjustment Alignment")
+    align_data(df_rc_gt, df_rc_t265)
+    logging.info("Plotting with timestamps: After Alignment Adjustment")
     plot(df_rc_t265, df_rc_gt)
     if time_match:
         time_diff = find_time_matching_timestamps(df_rc_t265, df_rc_gt)
@@ -175,6 +200,7 @@ def update_axes(ax, meter=True):
     ax.set_ylabel("meters" if meter else "degrees")
 
 def plot(df_t265, df_gt, skip=10, use_index=False):
+    "Plots data between T265 and GT (MCS)"
 
     plt.rcParams.update({'font.size': 14})
     df_a = df_t265.iloc[::skip, :]
@@ -194,12 +220,13 @@ def plot(df_t265, df_gt, skip=10, use_index=False):
             a_col = index_a if use_index else df_a_x
             b_col = index_b if use_index else df_b_x
             ax[i][j].plot(a_col, df_a[common_labels_matrix[i,j]], label='T265')
-            ax[i][j].plot(b_col, df_b[common_labels_matrix[i,j]], label='GT')
+            ax[i][j].plot(b_col, df_b[common_labels_matrix[i,j]], label='MCS')
             ax[i][j].set_title(map_label[name])
             ax[i][j].legend()
             update_axes(ax[i][j], i == 0)
-
+    plt.tight_layout()
     plt.show()
+
 def add_noise(df, column_name, mean=0.0, sigma=0.01):
     size = len(df[column_name])
     noise = mean + np.random.randn(size) * sigma
@@ -258,6 +285,7 @@ def create_transform(pose):
 
 
 def box_center_to_corner(box):
+    "Crates vertices for a box, box is [x,y,z,l,w.h,yaw]"
     # To return
     corner_boxes = np.zeros((8, 3))
 
@@ -288,6 +316,7 @@ def box_center_to_corner(box):
     return corner_box.transpose()
 
 def create_bbox_to_ls(box):
+    "Converts a box to a lineset"
     points = box_center_to_corner(box)
 
     lines = [[0, 1], [1, 2], [2, 3], [0, 3],
@@ -318,7 +347,63 @@ def update_line_set(line_set, line_data, color=[1.0,0,0]):
     return line_set
 
 
+def compute_ate(df_t265, df_gt):
+    "Will comptue the absolute trajectory deviation"
+    time_gt = df_gt['hardware_ts'].to_numpy(dtype=np.int64)
+    time_t265 = df_t265['hardware_ts'].to_numpy(np.int64)
+
+    pose_gt = df_gt[common_labels[1:]].to_numpy(dtype=np.float64)
+    pose_t265 = df_t265[common_labels[1:]].to_numpy(np.float64)
+
+    min_gt = np.min(time_gt)
+    min_t265 = np.min(time_t265)
+    max_gt = np.max(time_gt)
+    max_t265 = np.max(time_t265)
+
+    min_value = np.min([min_gt, min_t265])
+    max_value = np.max([max_gt, max_t265])
+
+    ms_step = 10
+    us_step = ms_step * 1000
+    sec_step = ms_step / 1000
+    ate_rot = []
+    ate_pos = []
+    distance = []
+    prior_pos = [0,0,0]
+    for t_value in range(0, max_value, us_step):
+        idx_gt = get_idx(t_value, time_gt)
+        idx_t265 = get_idx(t_value, time_t265)
+
+        gt_pose = pose_gt[idx_gt, :]
+        est_pose = pose_t265[idx_t265, :]
+        distance.append(np.linalg.norm(gt_pose[0:3] - prior_pos))
+        prior_pos = gt_pose[0:3]
+        r_gt = R.from_euler('yxz', gt_pose[3:], degrees=True).as_matrix()
+        r_est = R.from_euler('yxz', est_pose[3:], degrees=True).as_matrix()
+
+        delta_r_est = r_gt @ r_est.T
+        delta_p = gt_pose[0:3] - delta_r_est @ est_pose[0:3]
+
+        delta_r_degrees = np.degrees(np.linalg.norm(R.from_matrix(delta_r_est).as_rotvec()))
+        ate_rot.append(delta_r_degrees)
+        ate_pos.append(delta_p)
+
+    ate_pos = np.array(ate_pos)
+    ate_rot = np.array(ate_rot)
+
+    ate_pos_norm = np.linalg.norm(ate_pos, axis=1)
+
+    ate_rot_final = np.sqrt(np.mean(ate_rot ** 2))
+    ate_pos_final = np.sqrt(np.mean(ate_pos_norm ** 2))
+
+    total_distance = np.sum(distance)
+
+    return ate_rot_final, ate_pos_final, total_distance
+
+
+
 def plot_3d(df_t265, df_gt):
+    "Plots the Drone trajectory using MCS and T265"
 
     o3d.utility.set_verbosity_level(o3d.utility.VerbosityLevel.Debug)
 
@@ -365,7 +450,7 @@ def plot_3d(df_t265, df_gt):
     ms_step = 10
     us_step = ms_step * 1000
     sec_step = ms_step / 1000
-    print(min_value, min_gt, min_t265)
+    # print(min_value, min_gt, min_t265)
     t1 = time.perf_counter()
     line_gt = []
     line_265 = []
@@ -399,12 +484,6 @@ def plot_3d(df_t265, df_gt):
 
             t265_frame.compute_triangle_normals()
             gt_frame.compute_triangle_normals
-
-            # print(t_value)
-            # print(idx_gt, idx_t265)
-            # print(t_gt, t_t265)
-            # print(p_gt, p_t265)
-            # print()
             t1 = time.perf_counter()
 
 
@@ -421,9 +500,6 @@ def plot_3d(df_t265, df_gt):
         vis.poll_events()
         vis.update_renderer()
 
-    input("waiting for your input to exit")
-
-
 def get_idx(value, array, starting_idx=0, ending_idx=None):
     if ending_idx is None:
         ending_idx = array.shape[0]
@@ -432,14 +508,15 @@ def get_idx(value, array, starting_idx=0, ending_idx=None):
     idx = np.searchsorted(view, value, side='left')
     return idx
 
-
-
 def main():
     args = parse_args()
     with open(args.config) as file:
         config = yaml.safe_load(file)
 
     df_t265, df_gt = compare(config, args.fpath, fake=args.fake)
+    ate_rot, ate_pos, total_distance = compute_ate(df_t265, df_gt)
+    fname = Path(args.fpath).name
+    print(f"File: {fname}; ATE_R: {ate_rot:.2f}; ATE_P: {ate_pos:.3f}; Length: {total_distance:.1f}m")
     plot_3d(df_t265, df_gt)
 
 
